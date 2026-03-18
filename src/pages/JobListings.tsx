@@ -84,9 +84,14 @@ useEffect(() => {
   });
 
   const filtered = jobs?.filter((j) => {
-    const q = search.toLowerCase();
-    return j.title.toLowerCase().includes(q) || j.location.toLowerCase().includes(q);
-  });
+  const q = search.trim().toLowerCase();
+
+  return (
+    j.title.toLowerCase().includes(q) ||
+    j.location.toLowerCase().includes(q) ||
+    (j.description && j.description.toLowerCase().includes(q))
+  );
+});
 
   const jobDetail = jobs?.find((j) => j.id === selectedJob);
 
