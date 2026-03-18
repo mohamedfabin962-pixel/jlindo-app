@@ -145,7 +145,7 @@ useEffect(() => {
                   )}
                 </div>
                 <div className="mt-3 flex items-center justify-between">
-                  <StatusBadge status={job.status} />
+                  <StatusBadge status="open" />
                   {applied && (
                     <span className="text-xs font-medium text-success">Applied ✓</span>
                   )}
