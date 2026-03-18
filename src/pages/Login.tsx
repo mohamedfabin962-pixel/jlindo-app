@@ -18,14 +18,23 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
       toast({ title: "Login failed", description: error.message, variant: "destructive" });
     } else {
-    //   navigate("/joblistings");
-    window.location.href = "/jobs";
-    }
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", emailUser.user.id)
+    .single();
+
+  if (profile?.role === "employer") {
+    navigate("/employer/dashboard");
+  } else {
+    navigate("/jobs");
+  }
+}
   };
 
   return (

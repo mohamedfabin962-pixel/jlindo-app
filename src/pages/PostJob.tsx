@@ -23,26 +23,65 @@ export default function PostJob() {
     workers_required: "",
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    const { error } = await supabase.from("jobs").insert({
-      employer_id: user!.id,
-      title: form.title.trim(),
-      location: form.location.trim(),
-      salary: form.salary.trim(),
-      working_hours: form.working_hours.trim(),
-      description: form.description.trim(),
-      workers_required: form.workers_required ? parseInt(form.workers_required) : 1,
+//   const handleSubmit = async (e: React.FormEvent) => {
+//     e.preventDefault();
+//     setLoading(true);
+//     const { error } = await supabase.from("jobs").insert({
+//       employer_id: user!.id,
+//       title: form.title.trim(),
+//       location: form.location.trim(),
+//       salary: form.salary.trim(),
+//       working_hours: form.working_hours.trim(),
+//       description: form.description.trim(),
+//       workers_required: form.workers_required ? parseInt(form.workers_required) : 1,
+//     });
+//     setLoading(false);
+//     if (error) {
+//       toast({ title: "Error", description: error.message, variant: "destructive" });
+//     } else {
+//       toast({ title: "Job posted!" });
+//       navigate("/employer/dashboard");
+//     }
+//   };
+
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  if (!form.title.trim() || !form.location.trim() || !form.salary.trim() || !form.working_hours.trim() || !form.description.trim()) {
+    toast({
+      title: "Missing fields",
+      description: "Please fill all required job details.",
+      variant: "destructive",
     });
-    setLoading(false);
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Job posted!" });
-      navigate("/employer/dashboard");
-    }
-  };
+    return;
+  }
+
+  setLoading(true);
+
+  const { error } = await supabase.from("jobs").insert({
+    employer_id: user!.id,
+    title: form.title.trim(),
+    location: form.location.trim(),
+    salary: form.salary.trim(),
+    working_hours: form.working_hours.trim(),
+    description: form.description.trim(),
+    workers_required: form.workers_required ? parseInt(form.workers_required) : 1,
+  });
+
+  setLoading(false);
+
+  if (error) {
+    toast({ title: "Job post failed", description: error.message, variant: "destructive" });
+  } else {
+    toast({
+      title: "Job Posted Successfully",
+      description: "Workers can now see and apply for this job.",
+    });
+
+    navigate("/jobs");   // ⭐ better UX
+  }
+};
+
 
   const update = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [field]: e.target.value }));
