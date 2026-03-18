@@ -92,7 +92,7 @@ useEffect(() => {
 
   return (
     <div className="container py-6 max-w-2xl">
-      <h1 className="text-2xl font-bold tracking-tight mb-1">Find a shift</h1>
+      <h1 className="text-2xl font-bold tracking-tight mb-1">Find Work Near You</h1>
       <p className="text-muted-foreground text-sm mb-4">Browse open jobs in your area</p>
 
       <div className="relative mb-6">
