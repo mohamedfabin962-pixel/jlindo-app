@@ -48,9 +48,9 @@ export default function Login() {
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in…" : "Sign In"}
-            </Button>
+          <Button type="submit" className="w-full transition-all" disabled={loading}>
+  {loading ? "Signing in..." : "Sign In"}
+</Button>
           </form>
           <p className="mt-4 text-center text-sm text-muted-foreground">
             Don't have an account?{" "}
