@@ -15,10 +15,18 @@ export default function Index() {
     );
   }
 
-  if (user && profile) {
-    if (profile.role === "employer") return <Navigate to="/employer/dashboard" replace />;
-    return <Navigate to="/jobs" replace />;
+  if (user) {
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">Loading profile…</div>
+      </div>
+    );
   }
+
+  if (profile.role === "employer") return <Navigate to="/employer/dashboard" replace />;
+  return <Navigate to="/jobs" replace />;
+}
 
   return (
     <div className="min-h-screen flex flex-col">

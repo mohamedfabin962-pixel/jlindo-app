@@ -20,9 +20,26 @@ const queryClient = new QueryClient();
 
 function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user, profile, loading } = useAuth();
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-pulse text-muted-foreground">Loading…</div></div>;
-  if (!user) return <Navigate to="/login" replace />;
-  if (roles && profile && !roles.includes(profile.role)) return <Navigate to="/" replace />;
+
+  // ⭐ wait until auth fully loads
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">Checking session…</div>
+      </div>
+    );
+  }
+
+  // ⭐ if still no user → go login
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // ⭐ if role restriction exists
+  if (roles && profile && !roles.includes(profile.role)) {
+    return <Navigate to="/" replace />;
+  }
+
   return <>{children}</>;
 }
 
@@ -44,18 +61,38 @@ function AppRoutes() {
   );
 }
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <BrowserRouter>
-        <AuthProvider>
-          <AppHeader />
-          <AppRoutes />
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+function AuthGate() {
+  const { loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">Restoring session…</div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <AppHeader />
+      <AppRoutes />
+    </>
+  );
+}
+
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <BrowserRouter>
+          <AuthProvider>
+            <AuthGate />
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

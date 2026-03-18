@@ -15,27 +15,32 @@ export default function Login() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) {
-      toast({ title: "Login failed", description: error.message, variant: "destructive" });
-    } else {
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", emailUser.user.id)
-    .single();
+const handleLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
 
-  if (profile?.role === "employer") {
-    navigate("/employer/dashboard");
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  setLoading(false);
+
+  if (error) {
+    toast({
+      title: "Login failed",
+      description: error.message,
+      variant: "destructive",
+    });
   } else {
-    navigate("/jobs");
+    toast({
+      title: "Login successful",
+      description: "Redirecting...",
+    });
+
+    window.location.href = "/";   // ⭐ ONLY THIS
   }
-}
-  };
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
