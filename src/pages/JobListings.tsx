@@ -162,8 +162,20 @@ useEffect(() => {
         </AnimatePresence>
 
         {filtered?.length === 0 && !isLoading && (
-          <p className="text-center text-muted-foreground py-8">No jobs found. Try a different search.</p>
-        )}
+  <div className="text-center py-12 space-y-3">
+    <div className="text-4xl">🔍</div>
+    <p className="font-semibold">No jobs available right now</p>
+    <p className="text-sm text-muted-foreground">
+      Try searching another location or check back later.
+    </p>
+    <Button
+      variant="outline"
+      onClick={() => setSearch("")}
+    >
+      Clear Search
+    </Button>
+  </div>
+)}
       </div>
 
       {/* Job detail modal */}

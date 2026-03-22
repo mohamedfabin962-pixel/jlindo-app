@@ -104,8 +104,20 @@ export default function EmployerDashboard() {
   </div>
 ))}
         {jobs?.length === 0 && !isLoading && (
-          <p className="text-center text-muted-foreground py-8">No jobs posted yet.</p>
-        )}
+  <div className="text-center py-12 space-y-3">
+    <div className="text-4xl">📢</div>
+    <p className="font-semibold">You haven't posted any jobs yet</p>
+    <p className="text-sm text-muted-foreground">
+      Start by posting your first job to find workers.
+    </p>
+    <Button
+      className="bg-accent text-accent-foreground hover:bg-accent/90"
+      asChild
+    >
+      <Link to="/employer/post-job">Post Job</Link>
+    </Button>
+  </div>
+)}
       </div>
     </div>
   );
