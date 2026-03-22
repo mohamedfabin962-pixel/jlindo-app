@@ -38,8 +38,11 @@ const [isLoading, setIsLoading] = useState(true);
 useEffect(() => {
   const loadJobs = async () => {
     const { data, error } = await supabase
-      .from("jobs")
-      .select("*");
+  .from("jobs")
+  .select(`
+    *,
+    applications!applications_job_id_fkey(status)
+  `);
 
     console.log("DATA", data);
     console.log("ERROR", error);
@@ -141,8 +144,11 @@ useEffect(() => {
                   <span className="flex items-center gap-1"><MapPin size={14} /> {job.location}</span>
                   <span className="flex items-center gap-1"><Clock size={14} /> {job.working_hours}</span>
                   {job.workers_required && (
-                    <span className="flex items-center gap-1"><Users size={14} /> {job.workers_required} needed</span>
-                  )}
+  <span className="flex items-center gap-1">
+    <Users size={14} />
+    {job.workers_required - (job.applications?.filter((a:any) => a.status === "accepted").length || 0)} spots left
+  </span>
+)}
                 </div>
                 <div className="mt-3 flex items-center justify-between">
                   <StatusBadge status="open" />
