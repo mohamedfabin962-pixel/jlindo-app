@@ -145,7 +145,20 @@ const openFeedback = feedbacks?.filter((f) => f.status !== "resolved").length ||
           <TabsTrigger value="users">Users ({users?.length || 0})</TabsTrigger>
           <TabsTrigger value="jobs">Jobs ({jobs?.length || 0})</TabsTrigger>
           <TabsTrigger value="applications">Applications ({applications?.length || 0})</TabsTrigger>
-          <TabsTrigger value="feedback">Feedback ({feedbacks?.length || 0})</TabsTrigger>
+          <TabsTrigger value="feedback">
+  <div className="flex items-center gap-2">
+    Feedback
+    <span
+      className={`px-2 py-0.5 text-xs rounded-full ${
+        openFeedback > 0
+          ? "bg-red-500 text-white"
+          : "bg-gray-200 text-gray-600"
+      }`}
+    >
+      {openFeedback}
+    </span>
+  </div>
+</TabsTrigger>
         </TabsList>
 
         <TabsContent value="users">
