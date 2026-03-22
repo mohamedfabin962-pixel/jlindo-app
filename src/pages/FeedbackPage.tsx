@@ -19,30 +19,41 @@ export default function FeedbackPage() {
   const [submitted, setSubmitted] = useState(false);
 
   const mutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from("feedback").insert({
-        user_id: user!.id,
-        feedback_type: type,
-        message: message.trim(),
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      setSubmitted(true);
-      setMessage("");
-      setTimeout(() => setSubmitted(false), 3000);
-    },
-    onError: (err: any) => {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    },
-  });
+  mutationFn: async () => {
+    const { error } = await supabase.from("feedback").insert({
+      user_id: user?.id,
+      type,
+      message: message.trim(),
+    });
+
+    if (error) throw error;
+  },
+  onSuccess: () => {
+    setSubmitted(true);
+    setMessage("");
+
+    toast({
+      title: "Feedback sent",
+      description: "Thanks for helping improve the product 🚀",
+    });
+
+    setTimeout(() => setSubmitted(false), 3000);
+  },
+  onError: (err: any) => {
+    toast({
+      title: "Error",
+      description: err.message,
+      variant: "destructive",
+    });
+  },
+});
 
   return (
     <div className="container py-6 max-w-lg">
       <Card>
         <CardHeader>
           <CardTitle className="text-xl font-bold">Report Issue / Suggest Feature</CardTitle>
-          <p className="text-sm text-muted-foreground">Help us improve JobConnect</p>
+          <p className="text-sm text-muted-foreground">Help us improve Jlindo</p>
         </CardHeader>
         <CardContent>
           <AnimatePresence mode="wait">
@@ -59,13 +70,16 @@ export default function FeedbackPage() {
               </motion.div>
             ) : (
               <motion.form
-                key="form"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onSubmit={(e) => { e.preventDefault(); mutation.mutate(); }}
-                className="space-y-4"
-              >
+  key="form"
+  initial={{ opacity: 0 }}
+  animate={{ opacity: 1 }}
+  exit={{ opacity: 0 }}
+  onSubmit={(e) => {
+    e.preventDefault();
+    mutation.mutate();
+  }}
+  className="space-y-4"
+>
                 <div className="space-y-2">
                   <Label>Feedback Type</Label>
                   <Select value={type} onValueChange={setType}>

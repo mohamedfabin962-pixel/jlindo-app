@@ -88,6 +88,21 @@ export default function AdminDashboard() {
     },
   });
 
+  const updateFeedbackStatus = useMutation({
+  mutationFn: async ({ id, status }: { id: string; status: string }) => {
+    const { error } = await supabase
+      .from("feedback")
+      .update({ status })
+      .eq("id", id);
+
+    if (error) throw error;
+  },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ["admin-feedback"] });
+    toast({ title: "Feedback status updated" });
+  },
+});
+
   if (loading) return <div className="flex items-center justify-center min-h-screen"><div className="animate-pulse">Loading…</div></div>;
   if (!isAdmin) return <Navigate to="/" replace />;
 
@@ -171,15 +186,37 @@ export default function AdminDashboard() {
         <TabsContent value="feedback">
           <div className="space-y-2">
             {feedbacks?.map((f) => (
-              <div key={f.id} className="border p-3 rounded-lg bg-card">
-                <div className="flex items-center gap-2 mb-1">
-                  <StatusBadge status={f.feedback_type === "bug" ? "rejected" : f.feedback_type === "feature" ? "pending" : "open"} />
-                  <span className="text-xs text-muted-foreground uppercase font-bold">{f.feedback_type}</span>
-                  <span className="text-xs text-muted-foreground ml-auto">{new Date(f.created_at).toLocaleDateString()}</span>
-                </div>
-                <p className="text-sm">{f.message}</p>
-              </div>
-            ))}
+  <div key={f.id} className="border p-3 rounded-lg bg-card">
+    <div className="flex items-center gap-2 mb-2">
+      <StatusBadge status={f.status === "resolved" ? "success" : "pending"} />
+
+      <span className="text-xs font-bold uppercase">
+        {f.type}
+      </span>
+
+      <span className="text-xs text-muted-foreground ml-auto">
+        {new Date(f.created_at).toLocaleDateString()}
+      </span>
+    </div>
+
+    <p className="text-sm mb-3">{f.message}</p>
+
+    {f.status !== "resolved" && (
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() =>
+          updateFeedbackStatus.mutate({
+            id: f.id,
+            status: "resolved",
+          })
+        }
+      >
+        Mark Resolved
+      </Button>
+    )}
+  </div>
+))}
           </div>
         </TabsContent>
       </Tabs>
