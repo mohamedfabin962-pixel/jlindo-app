@@ -110,9 +110,35 @@ const isAdmin = profile?.role === "admin";
   if (loading) return <div className="flex items-center justify-center min-h-screen"><div className="animate-pulse">Loading…</div></div>;
   if (!isAdmin) return <Navigate to="/" replace />;
 
+const totalUsers = users?.length || 0;
+const totalJobs = jobs?.length || 0;
+const totalApplications = applications?.length || 0;
+const openFeedback = feedbacks?.filter((f) => f.status !== "resolved").length || 0;
+
   return (
     <div className="container py-6">
       <h1 className="text-2xl font-bold tracking-tight mb-6">Admin Dashboard</h1>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div className="p-4 rounded-xl bg-card border">
+    <p className="text-sm text-muted-foreground">Users</p>
+    <p className="text-2xl font-bold">{totalUsers}</p>
+  </div>
+
+  <div className="p-4 rounded-xl bg-card border">
+    <p className="text-sm text-muted-foreground">Jobs</p>
+    <p className="text-2xl font-bold">{totalJobs}</p>
+  </div>
+
+  <div className="p-4 rounded-xl bg-card border">
+    <p className="text-sm text-muted-foreground">Applications</p>
+    <p className="text-2xl font-bold">{totalApplications}</p>
+  </div>
+
+  <div className="p-4 rounded-xl bg-card border">
+    <p className="text-sm text-muted-foreground">Open Feedback</p>
+    <p className="text-2xl font-bold text-destructive">{openFeedback}</p>
+  </div>
+</div>
 
       <Tabs defaultValue="users">
         <TabsList className="mb-4">
