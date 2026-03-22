@@ -18,37 +18,58 @@ export default function Signup() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+const handleSignup = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
 
-    const { data, error } = await supabase.auth.signUp({
+  // 1️⃣ Create auth user
+ const { data, error } = await supabase.auth.signUp({
+  email,
+  password,
+  options: {
+    data: {
+      display_name: fullName,
+      phone: phone,
+    },
+  },
+});
+
+  if (error) {
+    setLoading(false);
+    toast({
+      title: "Signup failed",
+      description: error.message,
+      variant: "destructive",
+    });
+    return;
+  }
+
+  const userId = data.user?.id;
+
+  // 2️⃣ Insert profile data (VERY IMPORTANT)
+  if (userId) {
+    const { error: profileError } = await supabase.from("profiles").insert({
+      id: userId,
       email,
-      password,
-      options: {
-        data: { full_name: fullName },
-        emailRedirectTo: window.location.origin,
-      },
+      full_name: fullName,
+      phone,
+      role,
     });
 
-    if (error) {
-      toast({ title: "Signup failed", description: error.message, variant: "destructive" });
-      setLoading(false);
-      return;
+    if (profileError) {
+      console.log("PROFILE INSERT ERROR:", profileError);
     }
+  }
 
-    // Update profile with role and phone
-    if (data.user) {
-      await supabase
-        .from("profiles")
-        .update({ role, full_name: fullName, phone })
-        .eq("user_id", data.user.id);
-    }
+  setLoading(false);
 
-    setLoading(false);
-    toast({ title: "Account created!", description: "You're now signed in." });
-    navigate("/");
-  };
+  toast({
+    title: "Account created",
+    description: "You can login now",
+  });
+
+  navigate("/login");
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
