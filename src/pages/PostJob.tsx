@@ -66,6 +66,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     working_hours: form.working_hours.trim(),
     description: form.description.trim(),
     workers_required: form.workers_required ? parseInt(form.workers_required) : 1,
+    status: "open",
   });
 
   setLoading(false);
