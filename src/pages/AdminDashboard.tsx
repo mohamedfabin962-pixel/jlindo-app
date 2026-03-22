@@ -11,7 +11,11 @@ import { Trash2, Ban } from "lucide-react";
 import { Navigate } from "react-router-dom";
 
 export default function AdminDashboard() {
-  const { isAdmin, loading } = useAuth();
+
+ const { user, profile, loading } = useAuth();
+const isAdmin = profile?.role === "admin";
+
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
