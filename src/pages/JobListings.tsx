@@ -199,11 +199,11 @@ useEffect(() => {
                 <p className="text-xs text-muted-foreground">
                   Posted {new Date(jobDetail.created_at).toLocaleDateString()}
                 </p>
-                {jobDetail.status !== "open" ? (
+     {jobDetail?.status !== "open" ? (
   <Button disabled className="w-full">
     Job Closed
   </Button>
-) : myApplications?.includes(jobDetail.id) ? (
+) : myApplications?.includes(jobDetail?.id) ? (
   <Button disabled className="w-full bg-success text-success-foreground">
     Application Sent ✓
   </Button>

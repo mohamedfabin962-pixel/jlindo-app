@@ -99,6 +99,15 @@ export default function JobApplicants() {
       )}
 
       <h2 className="text-lg font-semibold mb-4">Applicants</h2>
+      <Button
+  variant="destructive"
+  onClick={async () => {
+    await supabase.from("jobs").update({ status: "closed" }).eq("id", jobId);
+    window.location.reload();
+  }}
+>
+  Close Job
+</Button>
 
       {isLoading && (
         <div className="space-y-3">
