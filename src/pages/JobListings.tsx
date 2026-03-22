@@ -181,19 +181,23 @@ useEffect(() => {
                 <p className="text-xs text-muted-foreground">
                   Posted {new Date(jobDetail.created_at).toLocaleDateString()}
                 </p>
-                {myApplications?.includes(jobDetail.id) ? (
-                  <Button disabled className="w-full bg-success text-success-foreground">
-                    Application Sent ✓
-                  </Button>
-                ) : (
-                  <Button
-                    className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
-                    onClick={() => applyMutation.mutate(jobDetail.id)}
-                    disabled={applyMutation.isPending}
-                  >
-                    {applyMutation.isPending ? "Applying…" : "Apply Now"}
-                  </Button>
-                )}
+                {jobDetail.status !== "open" ? (
+  <Button disabled className="w-full">
+    Job Closed
+  </Button>
+) : myApplications?.includes(jobDetail.id) ? (
+  <Button disabled className="w-full bg-success text-success-foreground">
+    Application Sent ✓
+  </Button>
+) : (
+  <Button
+    className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+    onClick={() => applyMutation.mutate(jobDetail.id)}
+    disabled={applyMutation.isPending}
+  >
+    {applyMutation.isPending ? "Applying…" : "Apply Now"}
+  </Button>
+)}
               </div>
             </>
           )}

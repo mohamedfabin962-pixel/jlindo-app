@@ -62,26 +62,47 @@ export default function EmployerDashboard() {
       )}
 
       <div className="space-y-3">
-        {jobs?.map((job) => (
-          <Link
-            key={job.id}
-            to={`/employer/job/${job.id}`}
-            className="block border p-4 rounded-xl bg-card hover:border-primary/50 transition-colors"
-          >
-            <div className="flex justify-between items-start">
-              <h3 className="font-bold">{job.title}</h3>
-              <StatusBadge status={job.status} />
-            </div>
-            <div className="mt-2 flex items-center gap-3 text-sm text-muted-foreground">
-              <span>{job.location}</span>
-              <span className="font-mono-tabular text-primary">{job.salary}</span>
-            </div>
-            <div className="mt-2 flex items-center gap-1 text-sm">
-              <Users size={14} className="text-muted-foreground" />
-              <span className="font-medium">{appCounts?.[job.id] || 0} applicants</span>
-            </div>
-          </Link>
-        ))}
+{jobs?.map((job) => (
+  <div key={job.id} className="border p-4 rounded-xl bg-card space-y-2">
+
+    <Link
+      to={`/employer/job/${job.id}`}
+      className="block hover:border-primary/50 transition-colors"
+    >
+      <div className="flex justify-between items-start">
+        <h3 className="font-bold">{job.title}</h3>
+        <StatusBadge status={job.status} />
+      </div>
+
+      <div className="mt-2 flex items-center gap-3 text-sm text-muted-foreground">
+        <span>{job.location}</span>
+        <span className="font-mono-tabular text-primary">{job.salary}</span>
+      </div>
+
+      <div className="mt-2 flex items-center gap-1 text-sm">
+        <Users size={14} className="text-muted-foreground" />
+        <span className="font-medium">{appCounts?.[job.id] || 0} applicants</span>
+      </div>
+    </Link>
+
+    {job.status === "open" && (
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={async () => {
+          await supabase
+            .from("jobs")
+            .update({ status: "closed" })
+            .eq("id", job.id);
+
+          window.location.reload();
+        }}
+      >
+        Close Job
+      </Button>
+    )}
+  </div>
+))}
         {jobs?.length === 0 && !isLoading && (
           <p className="text-center text-muted-foreground py-8">No jobs posted yet.</p>
         )}
