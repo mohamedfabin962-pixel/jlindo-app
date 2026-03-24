@@ -30,27 +30,54 @@ export function AppHeader() {
             <nav className="hidden md:flex items-center gap-1">
               {role === "worker" && (
                 <>
-                  <Button variant="ghost" size="sm" asChild><Link to="/jobs">Find Work</Link></Button>
-                  <Button variant="ghost" size="sm" asChild><Link to="/my-applications">My Jobs</Link></Button>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link to="/jobs">Find Work</Link>
+                  </Button>
+
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link to="/my-applications">My Jobs</Link>
+                  </Button>
+
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link to="/profile">Profile</Link>
+                  </Button>
                 </>
               )}
+
               {role === "employer" && (
                 <>
-                  <Button variant="ghost" size="sm" asChild><Link to="/employer/dashboard">Dashboard</Link></Button>
-                  <Button variant="ghost" size="sm" asChild><Link to="/employer/post-job">Post Job</Link></Button>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link to="/employer/dashboard">Dashboard</Link>
+                  </Button>
+
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link to="/employer/post-job">Post Job</Link>
+                  </Button>
                 </>
               )}
+
               {isAdmin && (
-                <Button variant="ghost" size="sm" asChild><Link to="/admin">Admin</Link></Button>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/admin">Admin</Link>
+                </Button>
               )}
-              <Button variant="ghost" size="sm" asChild><Link to="/feedback">Feedback</Link></Button>
+
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/feedback">Feedback</Link>
+              </Button>
+
               <Button variant="ghost" size="sm" onClick={handleSignOut}>
                 <LogOut className="h-4 w-4 mr-1" /> Sign Out
               </Button>
             </nav>
 
             {/* Mobile toggle */}
-            <Button variant="ghost" size="sm" className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="md:hidden"
+              onClick={() => setMobileOpen(!mobileOpen)}
+            >
               {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
           </>
@@ -58,7 +85,9 @@ export function AppHeader() {
 
         {!user && (
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm" asChild><Link to="/login">Log In</Link></Button>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/login">Log In</Link>
+            </Button>
             <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90" asChild>
               <Link to="/signup">Sign Up</Link>
             </Button>
@@ -71,20 +100,39 @@ export function AppHeader() {
         <div className="md:hidden border-t bg-card p-4 space-y-2">
           {role === "worker" && (
             <>
-              <Button variant="ghost" className="w-full justify-start" asChild onClick={() => setMobileOpen(false)}><Link to="/jobs">Find Work</Link></Button>
-              <Button variant="ghost" className="w-full justify-start" asChild onClick={() => setMobileOpen(false)}><Link to="/my-applications">My Jobs</Link></Button>
+              <Button variant="ghost" className="w-full justify-start" asChild onClick={() => setMobileOpen(false)}>
+                <Link to="/jobs">Find Work</Link>
+              </Button>
+              <Button variant="ghost" className="w-full justify-start" asChild onClick={() => setMobileOpen(false)}>
+                <Link to="/my-applications">My Jobs</Link>
+              </Button>
+              <Button variant="ghost" className="w-full justify-start" asChild onClick={() => setMobileOpen(false)}>
+                <Link to="/profile">Profile</Link>
+              </Button>
             </>
           )}
+
           {role === "employer" && (
             <>
-              <Button variant="ghost" className="w-full justify-start" asChild onClick={() => setMobileOpen(false)}><Link to="/employer/dashboard">Dashboard</Link></Button>
-              <Button variant="ghost" className="w-full justify-start" asChild onClick={() => setMobileOpen(false)}><Link to="/employer/post-job">Post Job</Link></Button>
+              <Button variant="ghost" className="w-full justify-start" asChild onClick={() => setMobileOpen(false)}>
+                <Link to="/employer/dashboard">Dashboard</Link>
+              </Button>
+              <Button variant="ghost" className="w-full justify-start" asChild onClick={() => setMobileOpen(false)}>
+                <Link to="/employer/post-job">Post Job</Link>
+              </Button>
             </>
           )}
+
           {isAdmin && (
-            <Button variant="ghost" className="w-full justify-start" asChild onClick={() => setMobileOpen(false)}><Link to="/admin">Admin</Link></Button>
+            <Button variant="ghost" className="w-full justify-start" asChild onClick={() => setMobileOpen(false)}>
+              <Link to="/admin">Admin</Link>
+            </Button>
           )}
-          <Button variant="ghost" className="w-full justify-start" asChild onClick={() => setMobileOpen(false)}><Link to="/feedback">Feedback</Link></Button>
+
+          <Button variant="ghost" className="w-full justify-start" asChild onClick={() => setMobileOpen(false)}>
+            <Link to="/feedback">Feedback</Link>
+          </Button>
+
           <Button variant="ghost" className="w-full justify-start" onClick={handleSignOut}>
             <LogOut className="h-4 w-4 mr-2" /> Sign Out
           </Button>
