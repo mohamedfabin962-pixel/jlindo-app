@@ -83,6 +83,18 @@ export default function EmployerDashboard() {
         <Users size={14} className="text-muted-foreground" />
         <span className="font-medium">{appCounts?.[job.id] || 0} applicants</span>
       </div>
+
+      <div className="mt-3 flex gap-2">
+  <Button
+    size="sm"
+    variant="outline"
+    asChild
+  >
+    <Link to={`/employer/edit-job/${job.id}`}>
+      Edit
+    </Link>
+  </Button>
+</div>
     </Link>
 
     {job.status === "open" && (

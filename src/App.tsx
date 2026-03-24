@@ -9,6 +9,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import WorkerProfile from "./pages/WorkerProfile";
 import Profile from "./pages/Profile";
+import EditJob from "./pages/EditJob";
 import JobListings from "./pages/JobListings";
 import MyApplications from "./pages/MyApplications";
 import EmployerDashboard from "./pages/EmployerDashboard";
@@ -59,6 +60,14 @@ function AppRoutes() {
       <Route path="/feedback" element={<ProtectedRoute><FeedbackPage /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+      <Route
+  path="/employer/edit-job/:jobId"
+  element={
+    <ProtectedRoute roles={["employer"]}>
+      <EditJob />
+    </ProtectedRoute>
+  }
+/>
       <Route path="*" element={<NotFound />} />
       <Route path="/profile" element={<ProtectedRoute roles={["worker"]}><WorkerProfile /></ProtectedRoute>} />
     </Routes>
