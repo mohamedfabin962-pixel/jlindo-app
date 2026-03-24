@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import WorkerProfile from "./pages/WorkerProfile";
+import Profile from "./pages/Profile";
 import JobListings from "./pages/JobListings";
 import MyApplications from "./pages/MyApplications";
 import EmployerDashboard from "./pages/EmployerDashboard";
@@ -56,6 +57,7 @@ function AppRoutes() {
       <Route path="/employer/post-job" element={<ProtectedRoute roles={["employer"]}><PostJob /></ProtectedRoute>} />
       <Route path="/employer/job/:jobId" element={<ProtectedRoute roles={["employer"]}><JobApplicants /></ProtectedRoute>} />
       <Route path="/feedback" element={<ProtectedRoute><FeedbackPage /></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
       <Route path="/profile" element={<ProtectedRoute roles={["worker"]}><WorkerProfile /></ProtectedRoute>} />
