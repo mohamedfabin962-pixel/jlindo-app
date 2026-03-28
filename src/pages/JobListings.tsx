@@ -133,29 +133,52 @@ useEffect(() => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 whileTap={{ scale: 0.98 }}
-                className="border p-4 rounded-xl bg-card hover:border-primary/50 transition-colors cursor-pointer"
+                className="bg-white rounded-2xl shadow-sm border p-4 hover:shadow-md transition cursor-pointer"
                 onClick={() => setSelectedJob(job.id)}
               >
-                <div className="flex justify-between items-start">
-                  <h3 className="text-lg font-bold tracking-tight">{job.title}</h3>
-                  <span className="font-mono-tabular text-primary font-semibold">{job.salary}</span>
-                </div>
-                <div className="mt-2 flex flex-wrap gap-3 text-muted-foreground text-sm">
-                  <span className="flex items-center gap-1"><MapPin size={14} /> {job.location}</span>
-                  <span className="flex items-center gap-1"><Clock size={14} /> {job.working_hours}</span>
-                  {job.workers_required && (
-  <span className="flex items-center gap-1">
-    <Users size={14} />
-    {job.workers_required - (job.applications?.filter((a:any) => a.status === "accepted").length || 0)} spots left
-  </span>
-)}
-                </div>
-                <div className="mt-3 flex items-center justify-between">
-                  <StatusBadge status="open" />
-                  {applied && (
-                    <span className="text-xs font-medium text-success">Applied ✓</span>
-                  )}
-                </div>
+                <div className="space-y-3">
+
+  {/* Title + status */}
+  <div className="flex justify-between items-start">
+    <h3 className="text-base font-semibold leading-tight">
+      {job.title}
+    </h3>
+    <StatusBadge status="open" />
+  </div>
+
+  {/* Location */}
+  <div className="text-sm text-muted-foreground flex items-center gap-1">
+    <MapPin size={14} />
+    {job.location}
+  </div>
+
+  {/* Salary highlight */}
+  <div className="text-lg font-bold text-primary">
+    {job.salary}
+  </div>
+
+  {/* Extra info */}
+  <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+    <span className="flex items-center gap-1">
+      <Clock size={14} /> {job.working_hours}
+    </span>
+
+    {job.workers_required && (
+      <span className="flex items-center gap-1">
+        <Users size={14} />
+        {job.workers_required - (job.applications?.filter((a:any) => a.status === "accepted").length || 0)} spots left
+      </span>
+    )}
+  </div>
+
+  {/* Applied badge */}
+  {applied && (
+    <div className="text-xs font-medium text-success">
+      Applied ✓
+    </div>
+  )}
+
+</div>
               </motion.div>
             );
           })}
