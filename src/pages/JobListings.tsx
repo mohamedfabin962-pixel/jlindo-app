@@ -203,43 +203,69 @@ useEffect(() => {
 
       {/* Job detail modal */}
       <Dialog open={!!selectedJob} onOpenChange={() => setSelectedJob(null)}>
-        <DialogContent className="max-w-lg">
+ <DialogContent className="w-[95%] max-w-md rounded-2xl p-5 bg-white shadow-2xl border mx-auto backdrop-blur-none">
+        
           {jobDetail && (
             <>
               <DialogHeader>
                 <DialogTitle className="text-xl font-bold">{jobDetail.title}</DialogTitle>
               </DialogHeader>
-              <div className="space-y-3">
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1"><MapPin size={14} /> {jobDetail.location}</span>
-                  <span className="flex items-center gap-1"><Clock size={14} /> {jobDetail.working_hours}</span>
-                </div>
-                <div className="font-mono-tabular text-primary text-lg font-semibold">{jobDetail.salary}</div>
-                {jobDetail.workers_required && (
-                  <p className="text-sm text-muted-foreground">{jobDetail.workers_required} workers needed</p>
-                )}
-                <p className="text-sm leading-relaxed">{jobDetail.description}</p>
-                <p className="text-xs text-muted-foreground">
-                  Posted {new Date(jobDetail.created_at).toLocaleDateString()}
-                </p>
-     {jobDetail?.status !== "open" ? (
-  <Button disabled className="w-full">
-    Job Closed
-  </Button>
-) : myApplications?.includes(jobDetail?.id) ? (
-  <Button disabled className="w-full bg-success text-success-foreground">
-    Application Sent ✓
-  </Button>
-) : (
-  <Button
-    className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
-    onClick={() => applyMutation.mutate(jobDetail.id)}
-    disabled={applyMutation.isPending}
-  >
-    {applyMutation.isPending ? "Applying…" : "Apply Now"}
-  </Button>
-)}
-              </div>
+              <div className="max-h-[80vh] overflow-y-auto space-y-4 pb-2 bg-white">
+
+  {/* Title */}
+  <h2 className="text-lg font-bold leading-tight">
+    {jobDetail.title}
+  </h2>
+
+  {/* Location */}
+  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+    <MapPin size={16} />
+    {jobDetail.location}
+  </div>
+
+  {/* Salary */}
+  <div className="text-xl font-bold text-primary">
+    {jobDetail.salary}
+  </div>
+
+  {/* Working hours */}
+  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+    <Clock size={16} />
+    {jobDetail.working_hours}
+  </div>
+
+  {/* Workers needed */}
+  {jobDetail.workers_required && (
+    <div className="text-sm text-muted-foreground">
+      Workers needed: {jobDetail.workers_required}
+    </div>
+  )}
+
+  {/* Description */}
+  <div className="text-sm leading-relaxed text-muted-foreground">
+    {jobDetail.description}
+  </div>
+
+  {/* Apply section */}
+  {jobDetail?.status !== "open" ? (
+    <Button disabled className="w-full">
+      Job Closed
+    </Button>
+  ) : myApplications?.includes(jobDetail?.id) ? (
+    <Button disabled className="w-full bg-success text-success-foreground">
+      Application Sent ✓
+    </Button>
+  ) : (
+    <Button
+      className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+      onClick={() => applyMutation.mutate(jobDetail.id)}
+      disabled={applyMutation.isPending}
+    >
+      {applyMutation.isPending ? "Applying…" : "Apply Now"}
+    </Button>
+  )}
+
+</div>
             </>
           )}
         </DialogContent>
