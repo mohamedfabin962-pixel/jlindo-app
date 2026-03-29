@@ -17,8 +17,8 @@ export function AppHeader() {
   const role = profile?.role;
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
-      <div className="container flex h-14 items-center justify-between">
+    <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-md">
+      <div className="container flex items-center justify-between py-3 max-w-6xl">
         <Link to="/" className="flex items-center gap-2 font-bold text-lg tracking-tight">
           <Briefcase className="h-5 w-5 text-primary" />
           JobConnecting

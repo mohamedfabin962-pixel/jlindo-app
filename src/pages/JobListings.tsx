@@ -102,14 +102,14 @@ useEffect(() => {
 return (
   <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
     <div className="container py-6 max-w-2xl space-y-5">
-      <h1 className="text-2xl font-bold tracking-tight mb-1">Find Work Near You</h1>
-      <p className="text-muted-foreground text-sm mb-4">Browse open jobs in your area</p>
+      <h1 className="text-2xl font-bold tracking-tight mb-1 text-gray-900">Find Work Near You</h1>
+      <p className="text-gray-600 text-sm mb-4">Browse open jobs in your area</p>
 
       <div className="relative mb-6">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search by title or location…"
-          className="pl-9"
+          className="pl-9 bg-white border border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -169,9 +169,9 @@ return (
 
   {/* Salary highlight */}
   <div className="px-4 pt-3.5 pb-4">
-    <div className="flex items-center justify-between bg-accent/10 rounded-xl px-4 py-3">
+    <div className="flex items-center justify-between bg-primary/10 rounded-xl px-4 py-3">
       <div>
-        <p className="text-accent font-bold text-xl tracking-tight">
+        <p className="text-primary font-bold text-xl tracking-tight">
           {job.salary}
         </p>
         <p className="text-muted-foreground text-xs mt-0.5">
