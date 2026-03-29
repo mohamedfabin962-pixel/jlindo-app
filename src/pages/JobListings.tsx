@@ -99,8 +99,9 @@ useEffect(() => {
 
   const jobDetail = jobs?.find((j) => j.id === selectedJob);
 
-  return (
-    <div className="container py-6 max-w-2xl">
+return (
+  <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+    <div className="container py-6 max-w-2xl space-y-5">
       <h1 className="text-2xl font-bold tracking-tight mb-1">Find Work Near You</h1>
       <p className="text-muted-foreground text-sm mb-4">Browse open jobs in your area</p>
 
@@ -135,7 +136,7 @@ useEffect(() => {
   exit={{ opacity: 0 }}
   whileTap={{ scale: 0.98 }}
   onClick={() => setSelectedJob(job.id)}
-  className="w-full text-left bg-card rounded-2xl shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08)] border border-border/60 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.12)] hover:border-border transition-all duration-300 cursor-pointer group"
+  className="w-full text-left bg-white rounded-2xl shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08)] border border-border/60 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.12)] hover:border-border transition-all duration-300 cursor-pointer group"
 >
   {/* Top section */}
   <div className="p-4 pb-0">
@@ -265,10 +266,10 @@ useEffect(() => {
     </div>
   )}
 
-  {/* Description */}
-  <div className="text-sm leading-relaxed text-muted-foreground">
-    {jobDetail.description}
-  </div>
+{/* Description */}
+<div className="bg-muted/40 rounded-xl p-3 text-sm leading-relaxed">
+  {jobDetail.description}
+</div>
 
   {/* Apply section */}
   {jobDetail?.status !== "open" ? (
@@ -294,6 +295,7 @@ useEffect(() => {
           )}
         </DialogContent>
       </Dialog>
+    </div>
     </div>
   );
 }

@@ -27,7 +27,7 @@ function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?
   // ⭐ wait until auth fully loads
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-pulse text-muted-foreground">Checking session…</div>
       </div>
     );
