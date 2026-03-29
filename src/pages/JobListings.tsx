@@ -139,7 +139,7 @@ return (
   className="w-full text-left bg-white rounded-2xl shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08)] border border-border/60 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.12)] hover:border-border transition-all duration-300 cursor-pointer group"
 >
   {/* Top section */}
-  <div className="p-4 pb-0">
+  <div className="p-4 space-y-3">
     <div className="flex items-start gap-3.5">
       
       {/* Logo placeholder */}
@@ -168,7 +168,7 @@ return (
   </div>
 
   {/* Salary highlight */}
-  <div className="px-4 pt-3.5 pb-4">
+  <div className="px-4 pb-4">
     <div className="flex items-center justify-between bg-primary/10 rounded-xl px-4 py-3">
       <div>
         <p className="text-primary font-bold text-xl tracking-tight">
@@ -277,12 +277,12 @@ return (
       Job Closed
     </Button>
   ) : myApplications?.includes(jobDetail?.id) ? (
-    <Button disabled className="w-full bg-success text-success-foreground">
+    <Button disabled className="w-full bg-green-500 text-white rounded-xl">
       Application Sent ✓
     </Button>
   ) : (
     <Button
-      className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+  className="w-full bg-primary text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-200"
       onClick={() => applyMutation.mutate(jobDetail.id)}
       disabled={applyMutation.isPending}
     >
