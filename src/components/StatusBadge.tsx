@@ -3,12 +3,12 @@ import { cn } from "@/lib/utils";
 type StatusType = "open" | "filled" | "blocked" | "pending" | "accepted" | "rejected";
 
 const statusStyles: Record<StatusType, string> = {
-  open: "bg-primary/10 text-primary",
-  filled: "bg-muted text-muted-foreground",
-  blocked: "bg-destructive/10 text-destructive",
-  pending: "bg-accent/10 text-accent",
-  accepted: "bg-success/10 text-success",
-  rejected: "bg-destructive/10 text-destructive",
+  open: "bg-green-100 text-green-700",
+  filled: "bg-gray-200 text-gray-600",
+  blocked: "bg-red-100 text-red-600",
+  pending: "bg-yellow-100 text-yellow-700",
+  accepted: "bg-green-100 text-green-700",
+  rejected: "bg-red-100 text-red-600",
 };
 
 export function StatusBadge({ status }: { status: string }) {
