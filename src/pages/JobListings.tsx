@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { MapPin, Clock, Users, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ChevronRight } from "lucide-react";
 
 export default function JobListings() {
   const { user } = useAuth();
@@ -127,59 +128,82 @@ useEffect(() => {
             const applied = myApplications?.includes(job.id);
             return (
               <motion.div
-                key={job.id}
-                layout
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                whileTap={{ scale: 0.98 }}
-                className="bg-white rounded-2xl shadow-sm border p-4 hover:shadow-md transition cursor-pointer"
-                onClick={() => setSelectedJob(job.id)}
-              >
-                <div className="space-y-3">
+  key={job.id}
+  layout
+  initial={{ opacity: 0, y: 10 }}
+  animate={{ opacity: 1, y: 0 }}
+  exit={{ opacity: 0 }}
+  whileTap={{ scale: 0.98 }}
+  onClick={() => setSelectedJob(job.id)}
+  className="w-full text-left bg-card rounded-2xl shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08)] border border-border/60 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.12)] hover:border-border transition-all duration-300 cursor-pointer group"
+>
+  {/* Top section */}
+  <div className="p-4 pb-0">
+    <div className="flex items-start gap-3.5">
+      
+      {/* Logo placeholder */}
+      <div className="h-12 w-12 rounded-xl bg-secondary flex items-center justify-center shrink-0">
+        <span className="text-lg font-bold text-muted-foreground">
+          {job.title.charAt(0)}
+        </span>
+      </div>
 
-  {/* Title + status */}
-  <div className="flex justify-between items-start">
-    <h3 className="text-base font-semibold leading-tight">
-      {job.title}
-    </h3>
-    <StatusBadge status="open" />
-  </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          
+          <div className="min-w-0">
+            <h3 className="font-semibold text-card-foreground text-[15px] leading-snug truncate group-hover:text-foreground transition-colors">
+              {job.title}
+            </h3>
+            <p className="text-sm text-muted-foreground mt-0.5 truncate">
+              {job.location}
+            </p>
+          </div>
 
-  {/* Location */}
-  <div className="text-sm text-muted-foreground flex items-center gap-1">
-    <MapPin size={14} />
-    {job.location}
+          <StatusBadge status={job.status || "open"} />
+        </div>
+      </div>
+    </div>
   </div>
 
   {/* Salary highlight */}
-  <div className="text-lg font-bold text-primary">
-    {job.salary}
+  <div className="px-4 pt-3.5 pb-4">
+    <div className="flex items-center justify-between bg-accent/10 rounded-xl px-4 py-3">
+      <div>
+        <p className="text-accent font-bold text-xl tracking-tight">
+          {job.salary}
+        </p>
+        <p className="text-muted-foreground text-xs mt-0.5">
+          per day
+        </p>
+      </div>
+
+      <ChevronRight className="h-5 w-5 text-muted-foreground/50 group-hover:text-accent group-hover:translate-x-0.5 transition-all" />
+    </div>
   </div>
 
-  {/* Extra info */}
-  <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-    <span className="flex items-center gap-1">
-      <Clock size={14} /> {job.working_hours}
-    </span>
+  {/* Bottom info */}
+  <div className="px-4 pb-4 flex items-center gap-4 text-sm text-muted-foreground">
+    <div className="flex items-center gap-1.5">
+      <MapPin className="h-3.5 w-3.5" />
+      <span className="truncate">{job.location}</span>
+    </div>
 
-    {job.workers_required && (
-      <span className="flex items-center gap-1">
-        <Users size={14} />
-        {job.workers_required - (job.applications?.filter((a:any) => a.status === "accepted").length || 0)} spots left
-      </span>
-    )}
+    <span className="text-border">|</span>
+
+    <div className="flex items-center gap-1.5">
+      <Clock className="h-3.5 w-3.5" />
+      <span>{job.working_hours}</span>
+    </div>
   </div>
 
   {/* Applied badge */}
   {applied && (
-    <div className="text-xs font-medium text-success">
+    <div className="px-4 pb-3 text-xs font-medium text-success">
       Applied ✓
     </div>
   )}
-
-</div>
-              </motion.div>
+</motion.div>
             );
           })}
         </AnimatePresence>
