@@ -138,72 +138,50 @@ return (
   onClick={() => setSelectedJob(job.id)}
   className="w-full text-left bg-white rounded-2xl shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08)] border border-border/60 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.12)] hover:border-border transition-all duration-300 cursor-pointer group"
 >
-  {/* Top section */}
-  <div className="p-4 space-y-3">
-    <div className="flex items-start gap-3.5">
-      
-      {/* Logo placeholder */}
-      <div className="h-12 w-12 rounded-xl bg-secondary flex items-center justify-center shrink-0">
-        <span className="text-lg font-bold text-muted-foreground">
-          {job.title.charAt(0)}
-        </span>
-      </div>
-
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          
-          <div className="min-w-0">
-            <h3 className="font-semibold text-card-foreground text-[15px] leading-snug truncate group-hover:text-foreground transition-colors">
-              {job.title}
-            </h3>
-            <p className="text-sm text-muted-foreground mt-0.5 truncate">
-              {job.location}
-            </p>
-          </div>
-
-          <StatusBadge status={job.status || "open"} />
-        </div>
-      </div>
-    </div>
+  <div className="flex items-start gap-4">
+  <div className="h-14 w-14 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0 border border-slate-200/50 shadow-sm group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+    <span className="text-xl font-bold uppercase">
+      {job.title.charAt(0)}
+    </span>
   </div>
 
-  {/* Salary highlight */}
-  <div className="px-4 pb-4">
-    <div className="flex items-center justify-between bg-primary/10 rounded-xl px-4 py-3">
-      <div>
-        <p className="text-primary font-bold text-xl tracking-tight">
-          {job.salary}
-        </p>
-        <p className="text-muted-foreground text-xs mt-0.5">
-          per day
-        </p>
-      </div>
-
-      <ChevronRight className="h-5 w-5 text-muted-foreground/50 group-hover:text-accent group-hover:translate-x-0.5 transition-all" />
+  <div className="flex-1 min-w-0 pt-0.5 space-y-1">
+    <div className="flex items-start justify-between gap-3">
+      <h3 className="font-semibold text-slate-900 text-lg leading-tight truncate group-hover:text-primary transition-colors">
+        {job.title}
+      </h3>
+      <StatusBadge status={job.status || "open"} />
     </div>
-  </div>
 
-  {/* Bottom info */}
-  <div className="px-4 pb-4 flex items-center gap-4 text-sm text-muted-foreground">
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1.5 text-sm text-slate-500">
       <MapPin className="h-3.5 w-3.5" />
       <span className="truncate">{job.location}</span>
     </div>
+  </div>
+</div>
+<div className="flex border-t border-slate-100 pt-4 mt-3 items-center justify-between">
 
-    <span className="text-border">|</span>
-
+  <div className="flex items-center gap-4 text-sm font-medium text-slate-600">
     <div className="flex items-center gap-1.5">
-      <Clock className="h-3.5 w-3.5" />
+      <Clock className="h-4 w-4 text-slate-400" />
       <span>{job.working_hours}</span>
     </div>
   </div>
 
-  {/* Applied badge */}
-  {applied && (
-    <div className="px-4 pb-3 text-xs font-medium text-success">
-      Applied ✓
+  <div className="flex items-center gap-2">
+    <div className="text-right">
+      <p className="font-bold text-[17px] tracking-tight text-slate-900">
+        {job.salary}
+      </p>
+      <p className="text-slate-400 text-[11px] font-medium uppercase mt-1">
+        per day
+      </p>
     </div>
-  )}
+
+    <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-primary group-hover:translate-x-0.5 transition-all ml-1" />
+  </div>
+
+</div>
 </motion.div>
             );
           })}
