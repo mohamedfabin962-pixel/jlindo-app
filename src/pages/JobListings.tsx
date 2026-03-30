@@ -100,9 +100,9 @@ useEffect(() => {
   const jobDetail = jobs?.find((j) => j.id === selectedJob);
 
 return (
-  <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+  <div className="min-h-screen bg-slate-50">
     <div className="container py-6 max-w-2xl space-y-5">
-      <h1 className="text-2xl font-bold tracking-tight mb-1 text-gray-900">Find Work Near You</h1>
+      <h1 className="text-2xl font-bold text-slate-900 tracking-tight mb-1">Find Work Near You</h1>
       <p className="text-gray-600 text-sm mb-4">Browse open jobs in your area</p>
 
       <div className="relative mb-6">
@@ -136,8 +136,14 @@ return (
   exit={{ opacity: 0 }}
   whileTap={{ scale: 0.98 }}
   onClick={() => setSelectedJob(job.id)}
-  className="w-full text-left bg-white rounded-2xl shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08)] border border-border/60 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.12)] hover:border-border transition-all duration-300 cursor-pointer group"
->
+className="relative w-full text-left bg-white rounded-2xl border-l-4 border-l-primary shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.12)] transition-all duration-300 cursor-pointer group">
+  {applied && (
+  <div className="absolute top-0 right-0 w-16 h-16 pointer-events-none">
+    <div className="absolute transform translate-x-4 -translate-y-4 rotate-45 bg-green-500 text-white text-[10px] font-bold py-1 w-24 text-center right-0 top-0 shadow-sm">
+      Applied
+    </div>
+  </div>
+)}
   <div className="flex items-start gap-4">
   <div className="h-14 w-14 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0 border border-slate-200/50 shadow-sm group-hover:bg-primary/10 group-hover:text-primary transition-colors">
     <span className="text-xl font-bold uppercase">
