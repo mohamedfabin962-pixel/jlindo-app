@@ -212,67 +212,115 @@ className="relative w-full text-left bg-white rounded-2xl border-l-4 border-l-pr
 
       {/* Job detail modal */}
       <Dialog open={!!selectedJob} onOpenChange={() => setSelectedJob(null)}>
- <DialogContent className="w-[95%] max-w-md rounded-2xl p-5 bg-white shadow-2xl border mx-auto backdrop-blur-none">
-        
+<DialogContent className="w-[95%] max-w-md rounded-3xl p-0 bg-white shadow-2xl border-0 overflow-hidden">        
           {jobDetail && (
             <>
-              <DialogHeader>
-                <DialogTitle className="text-xl font-bold">{jobDetail.title}</DialogTitle>
-              </DialogHeader>
-              <div className="max-h-[80vh] overflow-y-auto space-y-4 pb-2 bg-white">
+              <div className="h-28 bg-slate-900 relative flex items-end p-4">
 
-  {/* Title */}
-  <h2 className="text-lg font-bold leading-tight">
-    {jobDetail.title}
-  </h2>
-
-  {/* Location */}
-  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-    <MapPin size={16} />
-    {jobDetail.location}
+  {/* Status badge */}
+  <div className="absolute top-3 right-3 bg-white/10 backdrop-blur px-2.5 py-1 rounded-full text-white text-xs font-semibold">
+    {jobDetail.status || "open"}
   </div>
 
-  {/* Salary */}
-  <div className="text-xl font-bold text-primary">
-    {jobDetail.salary}
+  {/* Logo circle */}
+  <div className="h-14 w-14 rounded-xl bg-white flex items-center justify-center shadow-md absolute -bottom-6 left-4">
+    <span className="text-xl font-bold text-slate-900">
+      {jobDetail.title.charAt(0)}
+    </span>
   </div>
 
-  {/* Working hours */}
-  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-    <Clock size={16} />
-    {jobDetail.working_hours}
-  </div>
-
-  {/* Workers needed */}
-  {jobDetail.workers_required && (
-    <div className="text-sm text-muted-foreground">
-      Workers needed: {jobDetail.workers_required}
-    </div>
-  )}
-
-{/* Description */}
-<div className="bg-muted/40 rounded-xl p-3 text-sm leading-relaxed">
-  {jobDetail.description}
 </div>
+<div className="max-h-[85vh] overflow-y-auto bg-white">
 
-  {/* Apply section */}
-  {jobDetail?.status !== "open" ? (
-    <Button disabled className="w-full">
-      Job Closed
-    </Button>
-  ) : myApplications?.includes(jobDetail?.id) ? (
-    <Button disabled className="w-full bg-green-500 text-white rounded-xl">
-      Application Sent ✓
-    </Button>
-  ) : (
-    <Button
-  className="w-full bg-primary text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-200"
-      onClick={() => applyMutation.mutate(jobDetail.id)}
-      disabled={applyMutation.isPending}
-    >
-      {applyMutation.isPending ? "Applying…" : "Apply Now"}
-    </Button>
-  )}
+  {/* TOP CONTENT */}
+  <div className="px-6 pt-10 pb-6 space-y-6">
+
+    {/* Title */}
+    <h2 className="text-2xl font-semibold text-slate-900 leading-tight tracking-tight">
+      {jobDetail.title}
+    </h2>
+
+    {/* Meta info */}
+    <div className="flex flex-wrap gap-2 text-sm">
+
+      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 text-slate-700">
+        <MapPin className="h-4 w-4 opacity-70" />
+        {jobDetail.location}
+      </div>
+
+      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 text-slate-700">
+        <Clock className="h-4 w-4 opacity-70" />
+        {jobDetail.working_hours}
+      </div>
+
+      {jobDetail.workers_required && (
+        <div className="px-3 py-1.5 rounded-full bg-slate-100 text-slate-700">
+          {jobDetail.workers_required} needed
+        </div>
+      )}
+    </div>
+
+    {/* Salary (FOCUS ELEMENT) */}
+    <div className="relative overflow-hidden rounded-2xl bg-slate-900 p-6 shadow-lg">
+
+      <div className="absolute inset-0 opacity-10 bg-gradient-to-br from-white to-transparent" />
+
+      <div className="relative flex items-center justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-white/60 mb-1">
+            Earnings
+          </p>
+          <p className="text-3xl font-bold text-white">
+            {jobDetail.salary}
+          </p>
+        </div>
+
+        <span className="text-xs uppercase text-white/60 font-medium">
+          per day
+        </span>
+      </div>
+    </div>
+
+    {/* Divider */}
+    <div className="border-t border-slate-100" />
+
+    {/* Description */}
+    {jobDetail.description && (
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold text-slate-900 tracking-wide">
+          Role Details
+        </h3>
+
+        <p className="text-[15px] leading-relaxed text-slate-600">
+          {jobDetail.description}
+        </p>
+      </div>
+    )}
+
+  </div>
+
+  {/* ACTION AREA */}
+  <div className="p-6 border-t border-slate-100 bg-white">
+
+    {jobDetail?.status !== "open" ? (
+      <button className="w-full h-12 rounded-xl bg-slate-200 text-slate-500 font-medium">
+        Position Closed
+      </button>
+    ) : myApplications?.includes(jobDetail?.id) ? (
+      <button className="w-full h-12 rounded-xl bg-emerald-50 text-emerald-600 font-medium border border-emerald-200">
+        Application Sent ✓
+      </button>
+    ) : (
+      <button
+        className="w-full h-12 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-all active:scale-[0.98]"
+        onClick={() => applyMutation.mutate(jobDetail.id)}
+        disabled={applyMutation.isPending}
+      >
+        {applyMutation.isPending ? "Submitting…" : "Apply for this job"}
+      </button>
+    )}
+
+  </div>
 
 </div>
             </>
