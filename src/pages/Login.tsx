@@ -43,8 +43,8 @@ const handleLogin = async (e: React.FormEvent) => {
 };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-sm">
+<div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+        <Card className="w-full max-w-md bg-white rounded-2xl border border-slate-100 shadow-sm p-2">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-2">
             <Briefcase className="h-8 w-8 text-primary" />
@@ -62,7 +62,7 @@ const handleLogin = async (e: React.FormEvent) => {
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
-          <Button type="submit" className="w-full transition-all" disabled={loading}>
+          <Button type="submit" className="w-full bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 transition-all" disabled={loading}>
   {loading ? "Signing in..." : "Sign In"}
 </Button>
           </form>
