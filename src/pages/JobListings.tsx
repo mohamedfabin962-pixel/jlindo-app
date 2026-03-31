@@ -82,9 +82,20 @@ useEffect(() => {
       toast({ title: "Application sent!", description: "The employer will review your application." });
       setSelectedJob(null);
     },
-    onError: (err: any) => {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    },
+   onError: (err: any) => {
+  if (err.message?.toLowerCase().includes("duplicate")) {
+    toast({
+      title: "Already Applied",
+      description: "You have already applied for this job.",
+    });
+  } else {
+    toast({
+      title: "Error",
+      description: err.message,
+      variant: "destructive",
+    });
+  }
+}
   });
 
   const filtered = jobs?.filter((j) => {
