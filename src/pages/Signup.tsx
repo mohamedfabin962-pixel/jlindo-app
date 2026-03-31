@@ -72,16 +72,24 @@ const handleSignup = async (e: React.FormEvent) => {
 };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-2">
-            <Briefcase className="h-8 w-8 text-primary" />
-          </div>
-          <CardTitle className="text-2xl font-bold tracking-tight">Create account</CardTitle>
-          <p className="text-sm text-muted-foreground">Join JobConnect today</p>
-        </CardHeader>
-        <CardContent>
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+      <Card className="w-full max-w-md bg-white rounded-2xl border border-slate-100 shadow-sm p-2">
+        <CardHeader className="text-center space-y-2 pb-4">
+  <div className="flex justify-center mb-2">
+    <div className="h-12 w-12 rounded-xl bg-slate-100 flex items-center justify-center">
+      <Briefcase className="h-6 w-6 text-slate-900" />
+    </div>
+  </div>
+
+  <CardTitle className="text-xl font-semibold text-slate-900 tracking-tight">
+    Create account
+  </CardTitle>
+
+  <p className="text-sm text-slate-500">
+    Join and start finding jobs
+  </p>
+</CardHeader>
+        <CardContent className="space-y-4 pt-2">
           <form onSubmit={handleSignup} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="fullName">Full Name</Label>
