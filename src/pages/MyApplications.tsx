@@ -52,7 +52,7 @@ useEffect(() => {
 
 return (
   <div className="min-h-screen bg-slate-50">
-    <div className="container py-6 max-w-2xl space-y-5">
+    <div className="container max-w-2xl py-6 space-y-5">
       <h1 className="text-xl font-semibold text-slate-900 tracking-tight">My Applications</h1>
       <p className="text-sm text-slate-500">Track your job applications</p>
 

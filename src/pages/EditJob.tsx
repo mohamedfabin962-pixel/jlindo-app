@@ -98,7 +98,7 @@ export default function EditJob() {
   }
 
   return (
-    <div className="container py-6 max-w-lg">
+   <div className="container max-w-2xl py-6 space-y-5">
       <Card>
         <CardHeader>
           <CardTitle>Edit Job</CardTitle>

@@ -42,63 +42,74 @@ const handleLogin = async (e: React.FormEvent) => {
   }
 };
 
-  return (
-<div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-        <Card className="w-full max-w-md bg-white rounded-2xl border border-slate-100 shadow-sm p-2">
-        <CardHeader className="text-center space-y-2 pb-4">
-  <div className="flex justify-center mb-2">
-    <div className="h-12 w-12 rounded-xl bg-slate-100 flex items-center justify-center">
-      <Briefcase className="h-6 w-6 text-slate-900" />
-    </div>
+return (
+  <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+
+    <Card className="w-full max-w-md bg-white rounded-2xl border border-slate-100 shadow-sm p-2">
+
+      <CardHeader className="text-center space-y-2 pb-4">
+        <div className="flex justify-center mb-2">
+          <div className="h-12 w-12 rounded-xl bg-slate-100 flex items-center justify-center">
+            <Briefcase className="h-6 w-6 text-slate-900" />
+          </div>
+        </div>
+
+        <CardTitle className="text-xl font-semibold text-slate-900 tracking-tight">
+          Welcome back
+        </CardTitle>
+
+        <p className="text-sm text-slate-500">
+          Sign in to your account
+        </p>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+
+        <form onSubmit={handleLogin} className="space-y-4">
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-slate-700">Email</Label>
+            <Input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="h-11 rounded-xl border-slate-200 focus:border-slate-400"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-slate-700">Password</Label>
+            <Input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="h-11 rounded-xl border-slate-200 focus:border-slate-400"
+            />
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full h-11 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 transition-all"
+            disabled={loading}
+          >
+            {loading ? "Signing in..." : "Sign In"}
+          </Button>
+
+        </form>
+
+        <p className="text-center text-sm text-slate-500">
+          Don’t have an account?{" "}
+          <Link to="/signup" className="text-slate-900 font-medium hover:underline">
+            Sign up
+          </Link>
+        </p>
+
+      </CardContent>
+
+    </Card>
+
   </div>
-
-  <CardTitle className="text-xl font-semibold text-slate-900 tracking-tight">
-    Welcome back
-  </CardTitle>
-
-  <p className="text-sm text-slate-500">
-    Sign in to your account
-  </p>
-</CardHeader>
-        <CardContent className="space-y-4 pt-2">
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-  <Label htmlFor="email" className="text-sm font-medium text-slate-700">
-    Email
-  </Label>
-  <Input
-    id="email"
-    type="email"
-    required
-    value={email}
-    onChange={(e) => setEmail(e.target.value)}
-    className="h-11 rounded-xl border-slate-200 bg-white focus:border-slate-400 focus:ring-0"
-  />
-</div>
-
-<div className="space-y-2">
-  <Label htmlFor="password" className="text-sm font-medium text-slate-700">
-    Password
-  </Label>
-  <Input
-    id="password"
-    type="password"
-    required
-    value={password}
-    onChange={(e) => setPassword(e.target.value)}
-    className="h-11 rounded-xl border-slate-200 bg-white focus:border-slate-400 focus:ring-0"
-  />
-</div>
-          <Button type="submit" className="w-full bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 transition-all" disabled={loading}>
-  {loading ? "Signing in..." : "Sign In"}
-</Button>
-          </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            Don't have an account?{" "}
-            <Link to="/signup" className="text-primary font-medium hover:underline">Sign up</Link>
-          </p>
-        </CardContent>
-      </Card>
-    </div>
-  );
+);
 }

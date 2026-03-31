@@ -88,7 +88,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     setForm((f) => ({ ...f, [field]: e.target.value }));
 
   return (
-    <div className="container py-6 max-w-lg">
+    <div className="container max-w-2xl py-6 space-y-5">
       <Card>
         <CardHeader>
           <CardTitle className="text-xl font-bold">Post a New Job</CardTitle>

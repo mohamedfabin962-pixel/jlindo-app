@@ -128,7 +128,7 @@ const handleSignup = async (e: React.FormEvent) => {
                 </Button>
               </div>
             </div>
-            <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={loading}>
+            <Button type="submit" className="w-full h-11 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 transition-all" disabled={loading}>
               {loading ? "Creating account…" : "Sign Up"}
             </Button>
           </form>

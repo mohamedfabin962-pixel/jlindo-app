@@ -116,7 +116,7 @@ const totalApplications = applications?.length || 0;
 const openFeedback = feedbacks?.filter((f) => f.status !== "resolved").length || 0;
 
   return (
-    <div className="container py-6">
+    <div className="container max-w-2xl py-6 space-y-5">
       <h1 className="text-2xl font-bold tracking-tight mb-6">Admin Dashboard</h1>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
   <div className="p-4 rounded-xl bg-card border">

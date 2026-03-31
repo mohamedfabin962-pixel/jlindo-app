@@ -48,14 +48,23 @@ export default function FeedbackPage() {
   },
 });
 
-  return (
-    <div className="container py-6 max-w-lg">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl font-bold">Report Issue / Suggest Feature</CardTitle>
-          <p className="text-sm text-muted-foreground">Help us improve Jlindo</p>
+return (
+  <div className="min-h-screen bg-slate-50">
+    <div className="container max-w-2xl py-6 space-y-5">
+
+      <Card className="bg-white rounded-2xl border border-slate-100 shadow-sm p-2">
+
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-xl font-semibold text-slate-900 tracking-tight">
+            Report Issue / Suggest Feature
+          </CardTitle>
+          <p className="text-sm text-slate-500">
+            Help us improve Jlindo
+          </p>
         </CardHeader>
-        <CardContent>
+
+        <CardContent className="space-y-4">
+
           <AnimatePresence mode="wait">
             {submitted ? (
               <motion.div
@@ -63,48 +72,80 @@ export default function FeedbackPage() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0 }}
-                className="text-center py-8"
+                className="text-center py-8 space-y-2"
               >
-                <CheckCircle className="h-12 w-12 text-success mx-auto mb-3" />
-                <p className="font-semibold">Thanks for your feedback!</p>
+                <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-2" />
+                <p className="font-semibold text-slate-900">
+                  Thanks for your feedback!
+                </p>
+                <p className="text-sm text-slate-500">
+                  We appreciate your input 🙌
+                </p>
               </motion.div>
             ) : (
               <motion.form
-  key="form"
-  initial={{ opacity: 0 }}
-  animate={{ opacity: 1 }}
-  exit={{ opacity: 0 }}
-  onSubmit={(e) => {
-    e.preventDefault();
-    mutation.mutate();
-  }}
-  className="space-y-4"
->
+                key="form"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  mutation.mutate();
+                }}
+                className="space-y-4"
+              >
+
+                {/* Type */}
                 <div className="space-y-2">
-                  <Label>Feedback Type</Label>
+                  <Label className="text-sm font-medium text-slate-700">
+                    Feedback Type
+                  </Label>
+
                   <Select value={type} onValueChange={setType}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-11 rounded-xl border-slate-200">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="bug">Bug Report</SelectItem>
-                      <SelectItem value="feature">Feature Request</SelectItem>
-                      <SelectItem value="general">General Feedback</SelectItem>
+                    <SelectContent className="bg-white border border-slate-200 shadow-lg rounded-xl">
+                      <SelectItem  className="hover:bg-slate-100 focus:bg-slate-100 rounded-md" value="bug">Bug Report</SelectItem>
+                      <SelectItem  className="hover:bg-slate-100 focus:bg-slate-100 rounded-md" value="feature">Feature Request</SelectItem>
+                      <SelectItem  className="hover:bg-slate-100 focus:bg-slate-100 rounded-md" value="general">General Feedback</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Message */}
                 <div className="space-y-2">
-                  <Label>Message</Label>
-                  <Textarea required value={message} onChange={(e) => setMessage(e.target.value)} rows={4} placeholder="Describe the issue or suggestion…" />
+                  <Label className="text-sm font-medium text-slate-700">
+                    Message
+                  </Label>
+
+                  <Textarea
+                    required
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    rows={4}
+                    placeholder="Describe the issue or suggestion…"
+                    className="rounded-xl border-slate-200 focus:border-slate-400 resize-none"
+                  />
                 </div>
-                <Button type="submit" className="w-full" disabled={mutation.isPending || !message.trim()}>
+
+                {/* Button */}
+                <Button
+                  type="submit"
+                 className="w-full h-12 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 transition-all"
+                  disabled={mutation.isPending || !message.trim()}
+                >
                   {mutation.isPending ? "Sending…" : "Submit Feedback"}
                 </Button>
+
               </motion.form>
             )}
           </AnimatePresence>
+
         </CardContent>
       </Card>
+
     </div>
-  );
+  </div>
+);
 }

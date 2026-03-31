@@ -27,7 +27,7 @@ export default function WorkerProfile() {
   const pending = applications?.filter((a) => a.status === "pending").length || 0;
 
   return (
-    <div className="container py-6 max-w-xl space-y-4">
+    <div className="container max-w-2xl py-6 space-y-5">
       <Card>
         <CardHeader>
           <CardTitle className="text-xl font-bold">Worker Profile</CardTitle>

@@ -44,7 +44,7 @@ export default function EmployerDashboard() {
   });
 
   return (
-    <div className="container py-6 max-w-2xl">
+    <div className="container max-w-2xl py-6 space-y-5">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Your Jobs</h1>

@@ -87,8 +87,8 @@ export default function JobApplicants() {
   });
 
   return (
-    <div className="container py-6 max-w-2xl">
-      {job && (
+<div className="container max-w-2xl py-6 space-y-5">
+        {job && (
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-1">
             <h1 className="text-2xl font-bold tracking-tight">{job.title}</h1>

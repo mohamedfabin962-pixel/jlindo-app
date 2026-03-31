@@ -101,7 +101,7 @@ useEffect(() => {
 
 return (
   <div className="min-h-screen bg-slate-50">
-    <div className="container py-6 max-w-2xl space-y-5">
+    <div className="container max-w-2xl py-6 space-y-5">
       <h1 className="text-2xl font-bold text-slate-900 tracking-tight mb-1">Find Work Near You</h1>
       <p className="text-gray-600 text-sm mb-4">Browse open jobs in your area</p>
 
@@ -312,7 +312,7 @@ className="relative w-full text-left bg-white rounded-2xl border-l-4 border-l-pr
       </button>
     ) : (
       <button
-        className="w-full h-12 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-all active:scale-[0.98]"
+        className="w-full h-12 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 transition-all"
         onClick={() => applyMutation.mutate(jobDetail.id)}
         disabled={applyMutation.isPending}
       >
