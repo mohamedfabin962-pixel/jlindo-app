@@ -98,6 +98,8 @@ useEffect(() => {
 });
 
   const jobDetail = jobs?.find((j) => j.id === selectedJob);
+  const alreadyApplied = selectedJob && myApplications?.includes(selectedJob.id);
+const isClosed = selectedJob && selectedJob.status !== "open";
 return (
   <div className="min-h-screen bg-slate-50">
     <div className="container max-w-2xl py-6 space-y-5">
@@ -305,15 +307,35 @@ return (
         </div>
 
         {/* ACTION */}
-        <div className="p-5 border-t border-slate-100 bg-white">
-          <Button
-            className="w-full h-12 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 transition-all"
-            onClick={() => applyMutation.mutate(selectedJob.id)}
-          >
-            Apply for this job
-          </Button>
-        </div>
+       <div className="p-5 border-t border-slate-100 bg-white space-y-3">
 
+  {alreadyApplied && (
+    <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-xl p-3 text-center">
+      ✅ You already applied
+    </div>
+  )}
+
+  {isClosed && (
+    <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl p-3 text-center">
+      ❌ This job is no longer available
+    </div>
+  )}
+
+  <Button
+    className="w-full h-12 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 transition-all disabled:bg-slate-300 disabled:text-slate-500"
+    onClick={() => applyMutation.mutate(selectedJob.id)}
+    disabled={applyMutation.isPending || alreadyApplied || isClosed}
+  >
+    {isClosed
+      ? "Job Closed"
+      : alreadyApplied
+      ? "Already Applied"
+      : applyMutation.isPending
+      ? "Applying..."
+      : "Apply for this job"}
+  </Button>
+
+</div>
       </div>
     )}
 
