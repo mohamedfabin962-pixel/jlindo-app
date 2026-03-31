@@ -50,10 +50,11 @@ useEffect(() => {
   fetchEmployers();
 }, [applications]);
 
-  return (
-    <div className="container py-6 max-w-2xl">
-      <h1 className="text-2xl font-bold tracking-tight mb-1">My Applications</h1>
-      <p className="text-muted-foreground text-sm mb-6">Track your job applications</p>
+return (
+  <div className="min-h-screen bg-slate-50">
+    <div className="container py-6 max-w-2xl space-y-5">
+      <h1 className="text-xl font-semibold text-slate-900 tracking-tight">My Applications</h1>
+      <p className="text-sm text-slate-500">Track your job applications</p>
 
       {isLoading && (
         <div className="space-y-3">
@@ -67,22 +68,28 @@ useEffect(() => {
   const employer = employers[job?.employer_id];
 
   return (
-    <div key={app.id} className="border p-4 rounded-xl bg-card">
+    <div key={app.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-2">
       <div className="flex justify-between items-start">
-        <h3 className="font-bold">{job?.title ?? "Unknown Job"}</h3>
+        <h3 className="font-semibold text-slate-900 text-base">{job?.title ?? "Unknown Job"}</h3>
         <StatusBadge status={app.status} />
       </div>
 
       {job && (
-        <div className="mt-2 flex flex-wrap gap-3 text-muted-foreground text-sm">
-          <span>{job.location}</span>
-          <span>{job.working_hours}</span>
-          <span className="text-primary font-semibold">{job.salary}</span>
-        </div>
+        <div className="flex flex-wrap gap-3 text-sm text-slate-600">
+
+  <span>{job.location}</span>
+
+  <span>{job.working_hours}</span>
+
+  <span className="font-semibold text-slate-900">
+    {job.salary}
+  </span>
+
+</div>
       )}
 
       {app.status === "accepted" && (
-  <div className="mt-3 p-3 rounded-lg bg-success/10 border border-success/20 space-y-1">
+  <div className="mt-3 p-3 rounded-lg bg-green-50 border border-green-200 space-y-1">
     <p className="text-sm font-semibold text-success">
       ✅ You are selected for this job
     </p>
@@ -100,16 +107,32 @@ useEffect(() => {
   </div>
 )}
 
-      <p className="mt-2 text-xs text-muted-foreground">
+      <p className="text-xs text-slate-400">
         Applied {new Date(app.created_at).toLocaleDateString()}
       </p>
     </div>
   );
 })}
         {applications?.length === 0 && !isLoading && (
-          <p className="text-center text-muted-foreground py-8">No applications yet. Start browsing jobs!</p>
+          <div className="text-center py-16 px-4 space-y-4">
+  
+  <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-sm border border-slate-100">
+    <span className="text-2xl">📄</span>
+  </div>
+
+  <div className="space-y-1">
+    <h3 className="text-base font-semibold text-slate-900">
+      No applications yet
+    </h3>
+    <p className="text-sm text-slate-500">
+      Start applying for jobs to see them here
+    </p>
+  </div>
+
+</div>
         )}
       </div>
+    </div>
     </div>
   );
 }
