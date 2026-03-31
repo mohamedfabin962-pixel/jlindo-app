@@ -49,49 +49,76 @@ export default function Profile() {
     }
   };
 
-  return (
-    <div className="container py-6 max-w-lg">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl font-bold">My Profile</CardTitle>
+return (
+  <div className="min-h-screen bg-slate-50">
+    <div className="container max-w-2xl py-6 space-y-5">
+
+      <Card className="bg-white rounded-2xl border border-slate-100 shadow-sm p-2">
+
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-xl font-semibold text-slate-900 tracking-tight">
+            My Profile
+          </CardTitle>
+          <p className="text-sm text-slate-500">
+            Manage your account details
+          </p>
         </CardHeader>
 
         <CardContent className="space-y-4">
+
+          {/* Email */}
           <div className="space-y-2">
-            <Label>Email</Label>
-            <Input value={user?.email} disabled />
+            <Label className="text-sm font-medium text-slate-700">Email</Label>
+            <Input
+              value={user?.email}
+              disabled
+              className="h-11 rounded-xl border-slate-200 bg-slate-50 text-slate-500"
+            />
           </div>
 
+          {/* Full Name */}
           <div className="space-y-2">
-            <Label>Full Name</Label>
+            <Label className="text-sm font-medium text-slate-700">Full Name</Label>
             <Input
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
+              className="h-11 rounded-xl border-slate-200 focus:border-slate-400"
             />
           </div>
 
+          {/* Phone */}
           <div className="space-y-2">
-            <Label>Phone</Label>
+            <Label className="text-sm font-medium text-slate-700">Phone</Label>
             <Input
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
+              className="h-11 rounded-xl border-slate-200 focus:border-slate-400"
             />
           </div>
 
+          {/* Role */}
           <div className="space-y-2">
-            <Label>Role</Label>
-            <Input value={profile?.role} disabled />
+            <Label className="text-sm font-medium text-slate-700">Role</Label>
+            <Input
+              value={profile?.role}
+              disabled
+              className="h-11 rounded-xl border-slate-200 bg-slate-50 text-slate-500"
+            />
           </div>
 
+          {/* Button */}
           <Button
-            className="w-full"
+            className="w-full h-11 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 transition-all"
             onClick={handleSave}
             disabled={loading}
           >
             {loading ? "Saving..." : "Save Profile"}
           </Button>
+
         </CardContent>
       </Card>
+
     </div>
-  );
+  </div>
+);
 }
