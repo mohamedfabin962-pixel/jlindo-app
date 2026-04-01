@@ -91,22 +91,56 @@ const handleSignup = async (e: React.FormEvent) => {
 </CardHeader>
         <CardContent className="space-y-4 pt-2">
           <form onSubmit={handleSignup} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name</Label>
-              <Input id="fullName" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
-            </div>
+        <div className="space-y-2">
+  <Label htmlFor="fullName">Full Name</Label>
+  <Input
+    id="fullName"
+    required
+    value={fullName}
+    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+      setFullName(e.target.value)
+    }
+  />
+</div>
+
+<div className="space-y-2">
+  <Label htmlFor="email">Email</Label>
+  <Input
+    id="email"
+    type="email"
+    required
+    value={email}
+    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+      setEmail(e.target.value)
+    }
+  />
+</div>
+
+<div className="space-y-2">
+  <Label htmlFor="phone">Phone</Label>
+  <Input
+    id="phone"
+    type="tel"
+    value={phone}
+    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+      setPhone(e.target.value)
+    }
+  />
+</div>
+
+<div className="space-y-2">
+  <Label htmlFor="password">Password</Label>
+  <Input
+    id="password"
+    type="password"
+    required
+    minLength={6}
+    value={password}
+    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+      setPassword(e.target.value)
+    }
+  />
+</div>
             <div className="space-y-2">
               <Label>I am a</Label>
               <div className="grid grid-cols-2 gap-2">
