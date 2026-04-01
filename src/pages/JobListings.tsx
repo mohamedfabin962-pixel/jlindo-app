@@ -108,7 +108,7 @@ useEffect(() => {
   );
 });
 
-  const jobDetail = jobs?.find((j) => j.id === selectedJob);
+  // const jobDetail = jobs?.find((j) => j.id === selectedJob);
   const alreadyApplied = selectedJob && myApplications?.includes(selectedJob.id);
 const isClosed = selectedJob && selectedJob.status !== "open";
 return (

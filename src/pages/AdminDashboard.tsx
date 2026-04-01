@@ -1,4 +1,4 @@
-import { useState } from "react";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,7 +12,7 @@ import { Navigate } from "react-router-dom";
 
 export default function AdminDashboard() {
 
- const { user, profile, loading } = useAuth();
+ const { profile, loading } = useAuth();
 const isAdmin = profile?.role === "admin";
 
 

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { StatusBadge } from "@/components/StatusBadge";
-import { MapPin, Clock, Phone } from "lucide-react";
+import { Phone } from "lucide-react";
 
 export default function MyApplications() {
   const { user } = useAuth();
