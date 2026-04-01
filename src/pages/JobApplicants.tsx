@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function JobApplicants() {
   const { jobId } = useParams<{ jobId: string }>();
-  const { user } = useAuth();
+  // const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -102,7 +102,7 @@ export default function JobApplicants() {
       <Button
   variant="destructive"
   onClick={async () => {
-    await supabase.from("jobs").update({ status: "closed" }).eq("id", jobId);
+    await supabase.from("jobs").update({ status: "closed" }).eq("id", jobId!);
     window.location.reload();
   }}
 >

@@ -49,12 +49,12 @@ const handleSignup = async (e: React.FormEvent) => {
   // 2️⃣ Insert profile data (VERY IMPORTANT)
   if (userId) {
     const { error: profileError } = await supabase.from("profiles").insert({
-      id: userId,
-      email,
-      full_name: fullName,
-      phone,
-      role,
-    });
+  id: userId,
+  email,
+  full_name: fullName,
+  phone,
+  role,
+} as any);
 
     if (profileError) {
       console.log("PROFILE INSERT ERROR:", profileError);
