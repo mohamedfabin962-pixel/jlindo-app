@@ -1,15 +1,14 @@
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Phone, Check, X } from "lucide-react";
+import { Phone, Check, X, ArrowLeft, Users, Calendar, MapPin, DollarSign, Clock, ShieldAlert } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function JobApplicants() {
   const { jobId } = useParams<{ jobId: string }>();
-  // const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -86,92 +85,229 @@ export default function JobApplicants() {
   });
 
   return (
-<div className="container max-w-2xl py-6 space-y-5">
-        {job && (
-        <div className="mb-6">
-          <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-2xl font-bold tracking-tight">{job.title}</h1>
-            <StatusBadge status={job.status} />
-          </div>
-          <p className="text-sm text-muted-foreground">{job.location} • {job.salary} • {job.working_hours}</p>
-        </div>
-      )}
+    <>
+      <style>{`
+        .jl-applicant-card:hover {
+          box-shadow: 0 8px 32px rgba(15,10,30,0.08) !important;
+        }
+        .jl-btn-success {
+          background: #10B981 !important;
+          color: white !important;
+        }
+        .jl-btn-success:hover {
+          background: #059669 !important;
+          box-shadow: 0 4px 14px rgba(16,185,129,0.3) !important;
+        }
+        .jl-btn-danger {
+          color: #EF4444 !important;
+          border-color: rgba(239,68,68,0.2) !important;
+        }
+        .jl-btn-danger:hover {
+          background: rgba(239,68,68,0.05) !important;
+          border-color: #EF4444 !important;
+        }
+      `}</style>
 
-      <h2 className="text-lg font-semibold mb-4">Applicants</h2>
-      <Button
-  variant="destructive"
-  onClick={async () => {
-    await supabase.from("jobs").update({ status: "closed" }).eq("id", jobId!);
-    window.location.reload();
-  }}
->
-  Close Job
-</Button>
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "linear-gradient(160deg, #F8FAFC 0%, #FFF7ED 55%, #F8FAFC 100%)",
+          fontFamily: "'Inter', sans-serif",
+        }}
+      >
+        <div style={{ maxWidth: 680, margin: "0 auto", padding: "32px 16px 60px" }}>
+          
+          <Link
+            to="/employer/dashboard"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 13,
+              fontWeight: 600,
+              color: "rgba(15,10,30,0.5)",
+              textDecoration: "none",
+              marginBottom: 20,
+              transition: "color 0.2s"
+            }}
+            className="hover:text-amber-500"
+          >
+            <ArrowLeft size={16} /> Back to Dashboard
+          </Link>
 
-      {isLoading && (
-        <div className="space-y-3">
-          {[1, 2].map((i) => <div key={i} className="h-16 bg-muted animate-pulse rounded-xl" />)}
-        </div>
-      )}
-
-      <div className="space-y-3">
-        <AnimatePresence>
-          {applications?.map((app: any) => (
-            <motion.div
-              key={app.id}
-              layout
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="border p-4 rounded-xl bg-card"
+          {/* Job Details Card */}
+          {job && (
+            <div
+              style={{
+                background: "#fff",
+                borderRadius: 24,
+                border: "1px solid rgba(15,10,30,0.07)",
+                boxShadow: "0 2px 12px rgba(15,10,30,0.04)",
+                padding: "24px 28px",
+                marginBottom: 28,
+              }}
             >
-              <div className="flex items-center justify-between">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
                 <div>
-                  <p className="font-semibold">{app.profile?.full_name || "Worker"}</p>
-                  <p className="text-xs text-muted-foreground">Applied {new Date(app.created_at).toLocaleDateString()}</p>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(15,10,30,0.4)" }}>
+                      Job Listing
+                    </span>
+                  </div>
+                  <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "#0d0a1e", letterSpacing: "-0.02em" }}>
+                    {job.title}
+                  </h1>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginTop: 8, fontSize: 13, color: "rgba(15,10,30,0.48)" }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <MapPin size={14} style={{ opacity: 0.7 }} /> {job.location}
+                    </span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 4, color: "#EA580C", fontWeight: 600 }}>
+                      <DollarSign size={14} style={{ opacity: 0.7 }} /> {job.salary}
+                    </span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <Clock size={14} style={{ opacity: 0.7 }} /> {job.working_hours}
+                    </span>
+                  </div>
                 </div>
-                <StatusBadge status={app.status} />
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
+                  <StatusBadge status={job.status} />
+                  
+                  {job.status === "open" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="jl-btn-danger h-8 text-xs font-semibold rounded-lg"
+                      onClick={async () => {
+                        await supabase.from("jobs").update({ status: "closed" }).eq("id", jobId!);
+                        window.location.reload();
+                      }}
+                    >
+                      <ShieldAlert size={12} className="mr-1" /> Close Listing
+                    </Button>
+                  )}
+                </div>
               </div>
+            </div>
+          )}
 
-              {app.status === "accepted" && app.profile?.phone && (
+          {/* Applicants Title */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+            <Users size={18} className="text-amber-500" />
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: "#0d0a1e", margin: 0 }}>
+              Applicants List
+            </h2>
+          </div>
+
+          {isLoading && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {[1, 2].map((i) => (
+                <div key={i} style={{ height: 100, background: "#fff", borderRadius: 20, border: "1px solid rgba(15,10,30,0.07)" }} className="animate-pulse" />
+              ))}
+            </div>
+          )}
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <AnimatePresence>
+              {applications?.map((app: any, idx: number) => (
                 <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  className="mt-3 p-3 rounded-lg bg-success/10 border border-success/20"
+                  key={app.id}
+                  layout
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0, transition: { delay: idx * 0.04 } }}
+                  className="jl-applicant-card"
+                  style={{
+                    background: "#fff",
+                    borderRadius: 20,
+                    border: "1px solid rgba(15,10,30,0.07)",
+                    boxShadow: "0 2px 12px rgba(15,10,30,0.04)",
+                    padding: "20px 20px 20px 24px",
+                    position: "relative",
+                    transition: "all .3s ease",
+                  }}
                 >
-                  <a href={`tel:${app.profile.phone}`} className="flex items-center gap-2 text-success font-medium">
-                    <Phone size={16} /> {app.profile.phone}
-                  </a>
+                  {/* Left status accent line */}
+                  <div
+                    style={{
+                      position: "absolute", left: 0, top: 0, bottom: 0, width: 4,
+                      background: app.status === "accepted" ? "#10B981" : 
+                                  app.status === "rejected" ? "#EF4444" : 
+                                  "#F59E0B",
+                    }}
+                  />
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#0d0a1e" }}>
+                        {app.profile?.full_name || "Worker"}
+                      </p>
+                      <p style={{ margin: "4px 0 0", fontSize: 12, color: "rgba(15,10,30,0.4)" }}>
+                        Applied {new Date(app.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <StatusBadge status={app.status} />
+                  </div>
+
+                  {app.status === "accepted" && app.profile?.phone && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      style={{
+                        marginTop: 14,
+                        padding: 12,
+                        borderRadius: 12,
+                        background: "rgba(16,185,129,0.08)",
+                        border: "1px solid rgba(16,185,129,0.15)",
+                      }}
+                    >
+                      <a href={`tel:${app.profile.phone}`} style={{ display: "flex", alignItems: "center", gap: 8, color: "#059669", fontWeight: 600, fontSize: 14, textDecoration: "none" }}>
+                        <Phone size={14} /> Contact: {app.profile.phone}
+                      </a>
+                    </motion.div>
+                  )}
+
+                  {app.status === "pending" && (
+                    <div style={{ marginTop: 16, display: "flex", gap: 10 }}>
+                      <Button
+                        size="sm"
+                        className="jl-btn-success h-9 px-4 rounded-xl text-xs font-bold border-0"
+                        onClick={() => updateStatus.mutate({ appId: app.id, status: "accepted" })}
+                        disabled={updateStatus.isPending}
+                      >
+                        <Check size={14} className="mr-1" /> Accept Application
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="jl-btn-danger h-9 px-4 rounded-xl text-xs font-bold"
+                        onClick={() => updateStatus.mutate({ appId: app.id, status: "rejected" })}
+                        disabled={updateStatus.isPending}
+                      >
+                        <X size={14} className="mr-1" /> Reject
+                      </Button>
+                    </div>
+                  )}
                 </motion.div>
-              )}
+              ))}
+            </AnimatePresence>
 
-              {app.status === "pending" && (
-                <div className="mt-3 flex gap-2">
-                  <Button
-                    size="sm"
-                    className="bg-success text-success-foreground hover:bg-success/90"
-                    onClick={() => updateStatus.mutate({ appId: app.id, status: "accepted" })}
-                    disabled={updateStatus.isPending}
-                  >
-                    <Check size={14} className="mr-1" /> Accept
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => updateStatus.mutate({ appId: app.id, status: "rejected" })}
-                    disabled={updateStatus.isPending}
-                  >
-                    <X size={14} className="mr-1" /> Reject
-                  </Button>
-                </div>
-              )}
-            </motion.div>
-          ))}
-        </AnimatePresence>
-
-        {applications?.length === 0 && !isLoading && (
-          <p className="text-center text-muted-foreground py-8">No applicants yet.</p>
-        )}
+            {applications?.length === 0 && !isLoading && (
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "48px 20px",
+                  background: "#fff",
+                  borderRadius: 20,
+                  border: "1px solid rgba(15,10,30,0.07)",
+                  color: "rgba(15,10,30,0.4)"
+                }}
+              >
+                No applicants have applied to this job listing yet.
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
+

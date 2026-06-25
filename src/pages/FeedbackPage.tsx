@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, MessageSquarePlus } from "lucide-react";
 
 export default function FeedbackPage() {
   const { user } = useAuth();
@@ -19,133 +19,154 @@ export default function FeedbackPage() {
   const [submitted, setSubmitted] = useState(false);
 
   const mutation = useMutation({
-  mutationFn: async () => {
-    const { error } = await supabase.from("feedback").insert({
-      user_id: user?.id,
-      type,
-      message: message.trim(),
-    });
+    mutationFn: async () => {
+      const { error } = await supabase.from("feedback").insert({
+        user_id: user?.id,
+        type,
+        message: message.trim(),
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setSubmitted(true);
+      setMessage("");
+      toast({
+        title: "Feedback sent",
+        description: "Thanks for helping improve the product 🚀",
+      });
+      setTimeout(() => setSubmitted(false), 3000);
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      });
+    },
+  });
 
-    if (error) throw error;
-  },
-  onSuccess: () => {
-    setSubmitted(true);
-    setMessage("");
+  return (
+    <>
+      <style>{`
+        .jl-btn-primary {
+          background: linear-gradient(135deg, #F59E0B, #EA580C) !important;
+          color: white !important;
+          transition: all 0.3s ease !important;
+        }
+        .jl-btn-primary:hover:not(:disabled) {
+          background: linear-gradient(135deg, #FBBF24, #F59E0B) !important;
+          box-shadow: 0 4px 18px rgba(245,158,11,0.35) !important;
+        }
+        .jl-input:focus {
+          border-color: #F59E0B !important;
+          box-shadow: 0 0 0 3px rgba(245,158,11,0.12) !important;
+        }
+      `}</style>
 
-    toast({
-      title: "Feedback sent",
-      description: "Thanks for helping improve the product 🚀",
-    });
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "linear-gradient(160deg, #F8FAFC 0%, #FFF7ED 55%, #F8FAFC 100%)",
+          fontFamily: "'Inter', sans-serif",
+        }}
+      >
+        <div style={{ maxWidth: 580, margin: "0 auto", padding: "32px 16px 60px" }}>
+          
+          <Card
+            style={{
+              background: "#fff",
+              borderRadius: 24,
+              border: "1px solid rgba(15,10,30,0.07)",
+              boxShadow: "0 4px 20px rgba(15,10,30,0.04)",
+              overflow: "hidden",
+            }}
+          >
+            <CardHeader style={{ borderBottom: "1px solid rgba(15,10,30,0.06)", padding: "24px 28px" }}>
+              <CardTitle style={{ fontSize: 20, fontWeight: 800, color: "#0d0a1e", display: "flex", alignItems: "center", gap: 10 }}>
+                <MessageSquarePlus className="text-amber-500" size={22} />
+                Send us Feedback
+              </CardTitle>
+            </CardHeader>
 
-    setTimeout(() => setSubmitted(false), 3000);
-  },
-  onError: (err: any) => {
-    toast({
-      title: "Error",
-      description: err.message,
-      variant: "destructive",
-    });
-  },
-});
+            <CardContent style={{ padding: "28px" }}>
+              <AnimatePresence mode="wait">
+                {submitted ? (
+                  <motion.div
+                    key="success"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0 }}
+                    style={{ textAlign: "center", padding: "32px 0" }}
+                    className="space-y-2"
+                  >
+                    <CheckCircle className="h-12 w-12 text-emerald-500 mx-auto mb-2 animate-bounce" />
+                    <p style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#0d0a1e" }}>
+                      Thanks for your feedback!
+                    </p>
+                    <p style={{ margin: "4px 0 0", fontSize: 13, color: "rgba(15,10,30,0.45)" }}>
+                      We appreciate your input to improve Jlindo 🙌
+                    </p>
+                  </motion.div>
+                ) : (
+                  <motion.form
+                    key="form"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      mutation.mutate();
+                    }}
+                    className="space-y-5"
+                  >
+                    {/* Type */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold text-slate-700">
+                        Feedback Type
+                      </Label>
+                      <Select value={type} onValueChange={setType}>
+                        <SelectTrigger className="h-11 rounded-xl border-slate-200 bg-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border border-slate-200 shadow-lg rounded-xl">
+                          <SelectItem className="hover:bg-slate-100 focus:bg-slate-100 rounded-md" value="bug">Bug Report</SelectItem>
+                          <SelectItem className="hover:bg-slate-100 focus:bg-slate-100 rounded-md" value="feature">Feature Request</SelectItem>
+                          <SelectItem className="hover:bg-slate-100 focus:bg-slate-100 rounded-md" value="general">General Feedback</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-return (
-  <div className="min-h-screen bg-slate-50">
-    <div className="container max-w-2xl py-6 space-y-5">
+                    {/* Message */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold text-slate-700">
+                        Message
+                      </Label>
+                      <Textarea
+                        required
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        rows={5}
+                        placeholder="Please describe the issue or suggestion in detail…"
+                        className="jl-input rounded-xl border-slate-200 resize-none p-3"
+                      />
+                    </div>
 
-      <Card className="bg-white rounded-2xl border border-slate-100 shadow-sm p-2">
-
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-xl font-semibold text-slate-900 tracking-tight">
-            Report Issue / Suggest Feature
-          </CardTitle>
-          <p className="text-sm text-slate-500">
-            Help us improve Jlindo
-          </p>
-        </CardHeader>
-
-        <CardContent className="space-y-4">
-
-          <AnimatePresence mode="wait">
-            {submitted ? (
-              <motion.div
-                key="success"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                className="text-center py-8 space-y-2"
-              >
-                <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-2" />
-                <p className="font-semibold text-slate-900">
-                  Thanks for your feedback!
-                </p>
-                <p className="text-sm text-slate-500">
-                  We appreciate your input 🙌
-                </p>
-              </motion.div>
-            ) : (
-              <motion.form
-                key="form"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  mutation.mutate();
-                }}
-                className="space-y-4"
-              >
-
-                {/* Type */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700">
-                    Feedback Type
-                  </Label>
-
-                  <Select value={type} onValueChange={setType}>
-                    <SelectTrigger className="h-11 rounded-xl border-slate-200">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white border border-slate-200 shadow-lg rounded-xl">
-                      <SelectItem  className="hover:bg-slate-100 focus:bg-slate-100 rounded-md" value="bug">Bug Report</SelectItem>
-                      <SelectItem  className="hover:bg-slate-100 focus:bg-slate-100 rounded-md" value="feature">Feature Request</SelectItem>
-                      <SelectItem  className="hover:bg-slate-100 focus:bg-slate-100 rounded-md" value="general">General Feedback</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Message */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700">
-                    Message
-                  </Label>
-
-                  <Textarea
-                    required
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    rows={4}
-                    placeholder="Describe the issue or suggestion…"
-                    className="rounded-xl border-slate-200 focus:border-slate-400 resize-none"
-                  />
-                </div>
-
-                {/* Button */}
-                <Button
-                  type="submit"
-                 className="w-full h-12 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 transition-all"
-                  disabled={mutation.isPending || !message.trim()}
-                >
-                  {mutation.isPending ? "Sending…" : "Submit Feedback"}
-                </Button>
-
-              </motion.form>
-            )}
-          </AnimatePresence>
-
-        </CardContent>
-      </Card>
-
-    </div>
-  </div>
-);
+                    {/* Button */}
+                    <Button
+                      type="submit"
+                      className="w-full h-12 jl-btn-primary rounded-xl font-bold shadow-md border-0 mt-2"
+                      disabled={mutation.isPending || !message.trim()}
+                    >
+                      {mutation.isPending ? "Sending Feedback…" : "Submit Feedback"}
+                    </Button>
+                  </motion.form>
+                )}
+              </AnimatePresence>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </>
+  );
 }
+

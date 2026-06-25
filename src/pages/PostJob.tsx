@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, Briefcase, MapPin, DollarSign, Clock, FileText, Users } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export default function PostJob() {
   const { user } = useAuth();
@@ -23,110 +25,206 @@ export default function PostJob() {
     workers_required: "",
   });
 
-//   const handleSubmit = async (e: React.FormEvent) => {
-//     e.preventDefault();
-//     setLoading(true);
-//     const { error } = await supabase.from("jobs").insert({
-//       employer_id: user!.id,
-//       title: form.title.trim(),
-//       location: form.location.trim(),
-//       salary: form.salary.trim(),
-//       working_hours: form.working_hours.trim(),
-//       description: form.description.trim(),
-//       workers_required: form.workers_required ? parseInt(form.workers_required) : 1,
-//     });
-//     setLoading(false);
-//     if (error) {
-//       toast({ title: "Error", description: error.message, variant: "destructive" });
-//     } else {
-//       toast({ title: "Job posted!" });
-//       navigate("/employer/dashboard");
-//     }
-//   };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+    if (!form.title.trim() || !form.location.trim() || !form.salary.trim() || !form.working_hours.trim() || !form.description.trim()) {
+      toast({
+        title: "Missing fields",
+        description: "Please fill all required job details.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  if (!form.title.trim() || !form.location.trim() || !form.salary.trim() || !form.working_hours.trim() || !form.description.trim()) {
-    toast({
-      title: "Missing fields",
-      description: "Please fill all required job details.",
-      variant: "destructive",
-    });
-    return;
-  }
+    setLoading(true);
 
-  setLoading(true);
-
-  const { error } = await supabase.from("jobs").insert({
-    employer_id: user!.id,
-    title: form.title.trim(),
-    location: form.location.trim(),
-    salary: form.salary.trim(),
-    working_hours: form.working_hours.trim(),
-    description: form.description.trim(),
-    workers_required: form.workers_required ? parseInt(form.workers_required) : 1,
-    status: "open",
-  });
-
-  setLoading(false);
-
-  if (error) {
-    toast({ title: "Job post failed", description: error.message, variant: "destructive" });
-  } else {
-    toast({
-      title: "Job Posted Successfully",
-      description: "Workers can now see and apply for this job.",
+    const { error } = await supabase.from("jobs").insert({
+      employer_id: user!.id,
+      title: form.title.trim(),
+      location: form.location.trim(),
+      salary: form.salary.trim(),
+      working_hours: form.working_hours.trim(),
+      description: form.description.trim(),
+      workers_required: form.workers_required ? parseInt(form.workers_required) : 1,
+      status: "open",
     });
 
-    navigate("/jobs");   // ⭐ better UX
-  }
-};
+    setLoading(false);
 
+    if (error) {
+      toast({ title: "Job post failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({
+        title: "Job Posted Successfully",
+        description: "Workers can now see and apply for this job.",
+      });
+
+      navigate("/jobs");   // ⭐ better UX
+    }
+  };
 
   const update = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [field]: e.target.value }));
 
   return (
-    <div className="container max-w-2xl py-6 space-y-5">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl font-bold">Post a New Job</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Job Title *</Label>
-              <Input required value={form.title} onChange={update("title")} placeholder="e.g. Electrician Helper" />
-            </div>
-            <div className="space-y-2">
-              <Label>Location / Area *</Label>
-              <Input required value={form.location} onChange={update("location")} placeholder="e.g. Downtown" />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Salary *</Label>
-                <Input required value={form.salary} onChange={update("salary")} placeholder="e.g. $25/hr" />
-              </div>
-              <div className="space-y-2">
-                <Label>Working Hours *</Label>
-                <Input required value={form.working_hours} onChange={update("working_hours")} placeholder="e.g. 08:00 - 17:00" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Description *</Label>
-              <Textarea required value={form.description} onChange={update("description")} rows={4} placeholder="Describe the job requirements…" />
-            </div>
-            <div className="space-y-2">
-              <Label>Workers Required</Label>
-              <Input type="number" min="1" value={form.workers_required} onChange={update("workers_required")} placeholder="1" />
-            </div>
-            <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={loading}>
-              {loading ? "Posting…" : "Post Job"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+    <>
+      <style>{`
+        .jl-btn-primary {
+          background: linear-gradient(135deg, #F59E0B, #EA580C) !important;
+          color: white !important;
+          transition: all 0.3s ease !important;
+        }
+        .jl-btn-primary:hover:not(:disabled) {
+          background: linear-gradient(135deg, #FBBF24, #F59E0B) !important;
+          box-shadow: 0 4px 18px rgba(245,158,11,0.35) !important;
+        }
+        .jl-input:focus {
+          border-color: #F59E0B !important;
+          box-shadow: 0 0 0 3px rgba(245,158,11,0.12) !important;
+        }
+      `}</style>
+
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "linear-gradient(160deg, #F8FAFC 0%, #FFF7ED 55%, #F8FAFC 100%)",
+          fontFamily: "'Inter', sans-serif",
+        }}
+      >
+        <div style={{ maxWidth: 600, margin: "0 auto", padding: "32px 16px 60px" }}>
+          
+          <Link
+            to="/employer/dashboard"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 13,
+              fontWeight: 600,
+              color: "rgba(15,10,30,0.5)",
+              textDecoration: "none",
+              marginBottom: 20,
+              transition: "color 0.2s"
+            }}
+            className="hover:text-amber-500"
+          >
+            <ArrowLeft size={16} /> Back to Dashboard
+          </Link>
+
+          <Card
+            style={{
+              background: "#fff",
+              borderRadius: 24,
+              border: "1px solid rgba(15,10,30,0.07)",
+              boxShadow: "0 4px 20px rgba(15,10,30,0.04)",
+              overflow: "hidden",
+            }}
+          >
+            <CardHeader style={{ borderBottom: "1px solid rgba(15,10,30,0.06)", padding: "24px 28px" }}>
+              <CardTitle style={{ fontSize: 20, fontWeight: 800, color: "#0d0a1e", display: "flex", alignItems: "center", gap: 10 }}>
+                <Briefcase className="text-amber-500" size={22} />
+                Post a New Job
+              </CardTitle>
+            </CardHeader>
+            
+            <CardContent style={{ padding: "28px" }}>
+              <form onSubmit={handleSubmit} className="space-y-5">
+                
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                    Job Title <span className="text-amber-500">*</span>
+                  </Label>
+                  <Input
+                    required
+                    value={form.title}
+                    onChange={update("title")}
+                    placeholder="e.g. Electrician Helper"
+                    className="jl-input h-11 rounded-xl border-slate-200"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                    Location / Area <span className="text-amber-500">*</span>
+                  </Label>
+                  <Input
+                    required
+                    value={form.location}
+                    onChange={update("location")}
+                    placeholder="e.g. Downtown"
+                    className="jl-input h-11 rounded-xl border-slate-200"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                      Salary <span className="text-amber-500">*</span>
+                    </Label>
+                    <Input
+                      required
+                      value={form.salary}
+                      onChange={update("salary")}
+                      placeholder="e.g. $25/hr"
+                      className="jl-input h-11 rounded-xl border-slate-200"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                      Working Hours <span className="text-amber-500">*</span>
+                    </Label>
+                    <Input
+                      required
+                      value={form.working_hours}
+                      onChange={update("working_hours")}
+                      placeholder="e.g. 08:00 - 17:00"
+                      className="jl-input h-11 rounded-xl border-slate-200"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                    Description <span className="text-amber-500">*</span>
+                  </Label>
+                  <Textarea
+                    required
+                    value={form.description}
+                    onChange={update("description")}
+                    rows={4}
+                    placeholder="Describe the job requirements, responsibilities, and qualifications…"
+                    className="jl-input rounded-xl border-slate-200 resize-none p-3"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                    Workers Required
+                  </Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={form.workers_required}
+                    onChange={update("workers_required")}
+                    placeholder="1"
+                    className="jl-input h-11 rounded-xl border-slate-200"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full jl-btn-primary h-12 rounded-xl text-base font-bold shadow-md border-0 mt-2"
+                  disabled={loading}
+                >
+                  {loading ? "Posting Job Listing…" : "Post Job Listing"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </>
   );
 }
+
