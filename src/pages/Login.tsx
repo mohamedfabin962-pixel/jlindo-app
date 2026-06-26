@@ -389,12 +389,21 @@ export default function Login() {
 
                 {/* Password */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                  <Label
-                    htmlFor="login-password"
-                    style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(255,255,255,0.45)" }}
-                  >
-                    Password
-                  </Label>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <Label
+                      htmlFor="login-password"
+                      style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(255,255,255,0.45)" }}
+                    >
+                      Password
+                    </Label>
+                    <Link
+                      to="/forgot-password"
+                      className="text-xs transition-colors hover:text-amber-400"
+                      style={{ color: "rgba(255,255,255,0.45)", textDecoration: "none" }}
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
                   <Input
                     id="login-password"
                     type="password"

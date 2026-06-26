@@ -18,6 +18,8 @@ import PostJob from "./pages/PostJob";
 import JobApplicants from "./pages/JobApplicants";
 import FeedbackPage from "./pages/FeedbackPage";
 import AdminDashboard from "./pages/AdminDashboard";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 import { BrandedLoadingScreen } from "@/components/BrandedLoading";
@@ -51,6 +53,8 @@ function AppRoutes() {
       <Route path="/" element={<Index />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/jobs" element={<ProtectedRoute roles={["worker"]}><JobListings /></ProtectedRoute>} />
       <Route path="/my-applications" element={<ProtectedRoute roles={["worker"]}><MyApplications /></ProtectedRoute>} />
       <Route path="/employer/dashboard" element={<ProtectedRoute roles={["employer"]}><EmployerDashboard /></ProtectedRoute>} />
@@ -76,7 +80,7 @@ function AppRoutes() {
 function AuthGate() {
   const { loading } = useAuth();
   const location = useLocation();
-  const hideHeader = ["/login", "/signup"].includes(location.pathname);
+  const hideHeader = ["/login", "/signup", "/forgot-password", "/reset-password"].includes(location.pathname);
 
   if (loading) {
     return <BrandedLoadingScreen message="Restoring session..." />;
