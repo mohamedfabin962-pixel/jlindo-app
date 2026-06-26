@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { JobCardSkeleton } from "@/components/BrandedLoading";
 import { EmptyState } from "@/components/EmptyState";
-import { getCategoryIllustration, inferCategoryFromText } from "@/utils/jobCategories";
+import { getCategoryIllustration, inferCategoryFromText, JOB_CATEGORIES } from "@/utils/jobCategories";
 
 // We now use getCategoryIllustration and inferCategoryFromText from jobCategories.tsx
 
@@ -31,6 +31,19 @@ export default function JobListings() {
   const [selectedJob, setSelectedJob] = useState<any | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filterCategory, setFilterCategory] = useState("All");
+  const [filterStatus, setFilterStatus] = useState("All");
+  const [filterSalary, setFilterSalary] = useState("All");
+  const [filterHours, setFilterHours] = useState("All");
+
+  const activeFilterCount = [
+    filterCategory !== "All",
+    filterStatus !== "All",
+    filterSalary !== "All",
+    filterHours !== "All"
+  ].filter(Boolean).length;
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -114,11 +127,41 @@ export default function JobListings() {
 
   const filtered = jobs?.filter((j) => {
     const q = search.trim().toLowerCase();
-    return (
+    const matchesSearch =
       j.title.toLowerCase().includes(q) ||
       j.location.toLowerCase().includes(q) ||
-      (j.description && j.description.toLowerCase().includes(q))
-    );
+      (j.description && j.description.toLowerCase().includes(q));
+
+    const jCat = j.category || inferCategoryFromText(j.title, j.description);
+    const matchesCategory = filterCategory === "All" || jCat === filterCategory;
+    
+    const matchesStatus = filterStatus === "All" || 
+      (filterStatus === "Open" ? j.status === "open" : j.status !== "open");
+      
+    let matchesSalary = true;
+    if (filterSalary !== "All" && j.salary) {
+      const s = j.salary.toLowerCase();
+      const num = parseInt(s.replace(/[^0-9]/g, '')) || 0;
+      if (filterSalary === "Under ₹500") matchesSalary = num > 0 && num < 500;
+      if (filterSalary === "₹500 - ₹1000") matchesSalary = num >= 500 && num <= 1000;
+      if (filterSalary === "₹1000+") matchesSalary = num > 1000;
+    } else if (filterSalary !== "All") {
+      matchesSalary = false;
+    }
+
+    let matchesHours = true;
+    if (filterHours !== "All" && j.working_hours) {
+      const h = j.working_hours.toLowerCase();
+      if (filterHours === "Morning") matchesHours = h.includes("am") || h.includes("morning");
+      if (filterHours === "Evening") matchesHours = h.includes("pm") || h.includes("evening");
+      if (filterHours === "Night") matchesHours = h.includes("night") || h.includes("pm");
+      if (filterHours === "Full Time") matchesHours = h.includes("full") || h.includes("9") || h.includes("8") || h.includes("10");
+      if (filterHours === "Part Time") matchesHours = h.includes("part") || h.includes("4") || h.includes("5") || h.includes("6");
+    } else if (filterHours !== "All") {
+      matchesHours = false;
+    }
+
+    return matchesSearch && matchesCategory && matchesStatus && matchesSalary && matchesHours;
   });
 
   const alreadyApplied = selectedJob && myApplications?.includes(selectedJob.id);
@@ -199,13 +242,14 @@ export default function JobListings() {
             </div>
             <button
               type="button"
+              onClick={() => setIsFilterOpen(true)}
               style={{
                 height: 50,
                 padding: "0 20px",
                 borderRadius: 14,
-                border: "1px solid rgba(15,10,30,0.10)",
-                background: "#ffffff",
-                color: "#334155",
+                border: activeFilterCount > 0 ? "1px solid #F59E0B" : "1px solid rgba(15,10,30,0.10)",
+                background: activeFilterCount > 0 ? "#FFFBEB" : "#ffffff",
+                color: activeFilterCount > 0 ? "#D97706" : "#334155",
                 fontSize: 14,
                 fontWeight: 600,
                 display: "flex",
@@ -216,18 +260,155 @@ export default function JobListings() {
                 transition: "all 0.2s ease",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#F8FAFC";
-                e.currentTarget.style.borderColor = "rgba(15,10,30,0.15)";
+                if (activeFilterCount === 0) {
+                  e.currentTarget.style.background = "#F8FAFC";
+                  e.currentTarget.style.borderColor = "rgba(15,10,30,0.15)";
+                }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#ffffff";
-                e.currentTarget.style.borderColor = "rgba(15,10,30,0.10)";
+                if (activeFilterCount === 0) {
+                  e.currentTarget.style.background = "#ffffff";
+                  e.currentTarget.style.borderColor = "rgba(15,10,30,0.10)";
+                }
               }}
             >
               <SlidersHorizontal size={16} />
-              <span>Filters</span>
+              <span>Filters {activeFilterCount > 0 && `(${activeFilterCount})`}</span>
             </button>
           </div>
+
+          {/* ══ FILTER SLIDING DRAWER ══════════════════════════ */}
+          <AnimatePresence>
+            {isFilterOpen && (
+              <>
+                <motion.div
+                  variants={overlayVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  onClick={() => setIsFilterOpen(false)}
+                  style={{
+                    position: "fixed",
+                    inset: 0,
+                    background: "rgba(15, 23, 42, 0.3)",
+                    backdropFilter: "blur(4px)",
+                    WebkitBackdropFilter: "blur(4px)",
+                    zIndex: 100,
+                  }}
+                />
+                <motion.div
+                  variants={drawerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  className="fixed bottom-0 left-0 right-0 h-[85vh] md:top-0 md:left-auto md:right-0 md:bottom-0 md:h-screen w-full md:max-w-md bg-white z-[101] shadow-2xl flex flex-col rounded-t-3xl md:rounded-t-none md:rounded-l-3xl overflow-hidden border-t md:border-t-0 md:border-l border-slate-100"
+                  style={{ fontFamily: "'Inter', sans-serif" }}
+                >
+                  {/* Header */}
+                  <div className="flex items-center justify-between p-6 border-b border-slate-100 shrink-0">
+                    <h2 className="text-xl font-bold text-slate-900 m-0 tracking-tight">Filters</h2>
+                    <button 
+                      onClick={() => setIsFilterOpen(false)}
+                      className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors border border-slate-200"
+                    >
+                      <XCircle size={18} />
+                    </button>
+                  </div>
+
+                  {/* Body */}
+                  <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-8">
+                    
+                    {/* Category */}
+                    <div>
+                      <h3 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">Job Category</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {["All", ...JOB_CATEGORIES].map(cat => (
+                          <button
+                            key={cat}
+                            onClick={() => setFilterCategory(cat)}
+                            className={`px-3.5 py-2 rounded-xl text-sm font-semibold transition-all border ${filterCategory === cat ? "bg-amber-100 text-amber-700 border-amber-200 shadow-sm" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"}`}
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Status */}
+                    <div>
+                      <h3 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">Status</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {["All", "Open", "Closed"].map(st => (
+                          <button
+                            key={st}
+                            onClick={() => setFilterStatus(st)}
+                            className={`px-3.5 py-2 rounded-xl text-sm font-semibold transition-all border ${filterStatus === st ? "bg-amber-100 text-amber-700 border-amber-200 shadow-sm" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"}`}
+                          >
+                            {st}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Salary */}
+                    <div>
+                      <h3 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">Salary Range</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {["All", "Under ₹500", "₹500 - ₹1000", "₹1000+"].map(sal => (
+                          <button
+                            key={sal}
+                            onClick={() => setFilterSalary(sal)}
+                            className={`px-3.5 py-2 rounded-xl text-sm font-semibold transition-all border ${filterSalary === sal ? "bg-amber-100 text-amber-700 border-amber-200 shadow-sm" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"}`}
+                          >
+                            {sal}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Hours */}
+                    <div>
+                      <h3 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">Working Hours</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {["All", "Full Time", "Part Time", "Morning", "Evening", "Night"].map(hr => (
+                          <button
+                            key={hr}
+                            onClick={() => setFilterHours(hr)}
+                            className={`px-3.5 py-2 rounded-xl text-sm font-semibold transition-all border ${filterHours === hr ? "bg-amber-100 text-amber-700 border-amber-200 shadow-sm" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"}`}
+                          >
+                            {hr}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Footer */}
+                  <div className="p-5 border-t border-slate-100 flex gap-3 bg-white shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.02)]">
+                    <button
+                      onClick={() => {
+                        setFilterCategory("All");
+                        setFilterStatus("All");
+                        setFilterSalary("All");
+                        setFilterHours("All");
+                      }}
+                      className="flex-1 px-4 py-3.5 rounded-xl font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+                    >
+                      Clear All
+                    </button>
+                    <button
+                      onClick={() => setIsFilterOpen(false)}
+                      className="flex-1 px-4 py-3.5 rounded-xl font-bold text-[#1c0e00] shadow-[0_4px_16px_rgba(245,158,11,0.28)] hover:-translate-y-0.5 transition-transform"
+                      style={{ background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)" }}
+                    >
+                      Apply Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+                    </button>
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
 
           {/* ── LOADING SKELETONS ───────────────────────── */}
           {isLoading && (
