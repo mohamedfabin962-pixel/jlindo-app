@@ -217,12 +217,26 @@ export function AppHeader() {
                     fontWeight: 700,
                     boxShadow: "0 2px 6px rgba(245,158,11,0.24)",
                     transition: "transform 0.15s ease",
+                    overflow: "hidden",
                   }}
                   onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.05)"}
                   onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
                 >
-                  {getInitials()}
+                  {user?.user_metadata?.avatar_url ? (
+                    <img
+                      src={user.user_metadata.avatar_url}
+                      alt="Avatar"
+                      style={{
+                        height: "100%",
+                        width: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  ) : (
+                    getInitials()
+                  )}
                 </button>
+
 
                 {dropdownOpen && (
                   <>

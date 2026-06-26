@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { User, Mail, Phone, ShieldCheck, Loader2, Lock, Eye, EyeOff } from "lucide-react";
+import { User, Mail, Phone, ShieldCheck, Loader2, Lock, Eye, EyeOff, Camera, Trash2 } from "lucide-react";
 
 export default function Profile() {
   const { user, profile } = useAuth();
@@ -19,6 +19,166 @@ export default function Profile() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [updatingPassword, setUpdatingPassword] = useState(false);
+
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const getInitials = () => {
+    if (profile?.full_name) {
+      const parts = profile.full_name.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+      }
+      return parts[0].substring(0, 2).toUpperCase();
+    }
+    if (user?.email) {
+      return user.email.substring(0, 2).toUpperCase();
+    }
+    return "US";
+  };
+
+  const processImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const MAX_WIDTH = 150;
+          const MAX_HEIGHT = 150;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx?.drawImage(img, 0, 0, width, height);
+
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
+          resolve(dataUrl);
+        };
+        img.onerror = (err) => reject(err);
+        img.src = event.target?.result as string;
+      };
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid file",
+        description: "Please select an image file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 5MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+      const base64Image = await processImage(file);
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${user?.id || "user"}_${Date.now()}.${fileExt}`;
+      
+      let avatarUrlToSave = base64Image;
+
+      try {
+        const res = await fetch(base64Image);
+        const blob = await res.blob();
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("avatars")
+          .upload(fileName, blob, { upsert: true });
+
+        if (!uploadError && uploadData) {
+          const { data: urlData } = supabase.storage
+            .from("avatars")
+            .getPublicUrl(fileName);
+          if (urlData?.publicUrl) {
+            avatarUrlToSave = urlData.publicUrl;
+          }
+        }
+      } catch (storageErr) {
+        console.warn("Supabase Storage error (will fallback to user_metadata base64):", storageErr);
+      }
+
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: { avatar_url: avatarUrlToSave }
+      });
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: "Photo Uploaded",
+        description: "Your profile picture has been updated.",
+      });
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+
+    } catch (err: any) {
+      toast({
+        title: "Upload failed",
+        description: err.message || "An error occurred during upload.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    try {
+      setUploadingImage(true);
+      const { error } = await supabase.auth.updateUser({
+        data: { avatar_url: null }
+      });
+      if (error) throw error;
+
+      toast({
+        title: "Photo Removed",
+        description: "Your profile picture has been removed.",
+      });
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    } catch (err: any) {
+      toast({
+        title: "Remove failed",
+        description: err.message || "An error occurred during removal.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
 
   const handleUpdatePassword = async () => {
     if (!newPassword) {
@@ -168,6 +328,129 @@ export default function Profile() {
               
               <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                 
+                {/* ── AVATAR UPLOAD ───────────────────────────── */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, paddingBottom: 16, borderBottom: "1px solid rgba(15,10,30,0.05)" }}>
+                  <div style={{ position: "relative" }}>
+                    <div
+                      style={{
+                        height: 96,
+                        width: 96,
+                        borderRadius: "50%",
+                        background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+                        color: "#ffffff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 32,
+                        fontWeight: 800,
+                        boxShadow: "0 8px 24px rgba(245,158,11,0.18)",
+                        overflow: "hidden",
+                        border: "3px solid #ffffff",
+                        outline: "1px solid rgba(15,10,30,0.08)",
+                        position: "relative",
+                      }}
+                    >
+                      {user?.user_metadata?.avatar_url ? (
+                        <img
+                          src={user.user_metadata.avatar_url}
+                          alt="Profile Avatar"
+                          style={{
+                            height: "100%",
+                            width: "100%",
+                            objectFit: "cover",
+                          }}
+                        />
+                      ) : (
+                        getInitials()
+                      )}
+
+                      {/* Loading Spinner overlay */}
+                      {uploadingImage && (
+                        <div style={{ position: "absolute", inset: 0, background: "rgba(15, 23, 42, 0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <Loader2 className="animate-spin text-white" size={24} />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Camera icon button to change */}
+                    <label
+                      htmlFor="avatar-upload-input"
+                      style={{
+                        position: "absolute",
+                        bottom: 0,
+                        right: 0,
+                        height: 28,
+                        width: 28,
+                        borderRadius: "50%",
+                        background: "#0f172a",
+                        color: "#ffffff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        border: "2px solid #ffffff",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      <Camera size={13} />
+                    </label>
+                    <input
+                      id="avatar-upload-input"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      disabled={uploadingImage}
+                      style={{ display: "none" }}
+                    />
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                    <label
+                      htmlFor="avatar-upload-input"
+                      style={{
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        color: "#EA580C",
+                        cursor: "pointer",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                      }}
+                    >
+                      Change Photo
+                    </label>
+
+                    {user?.user_metadata?.avatar_url && (
+                      <>
+                        <span style={{ color: "rgba(15,10,30,0.15)", fontSize: 12 }}>|</span>
+                        <button
+                          type="button"
+                          onClick={handleRemovePhoto}
+                          disabled={uploadingImage}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            padding: 0,
+                            margin: 0,
+                            fontSize: 12.5,
+                            fontWeight: 700,
+                            color: "#EF4444",
+                            cursor: "pointer",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          <Trash2 size={12} />
+                          Remove
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+
                 {/* Email (Readonly) */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   <Label style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(15,10,30,0.5)" }}>
