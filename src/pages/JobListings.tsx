@@ -5,7 +5,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { 
   MapPin, Clock, Search, ArrowRight, Loader2, CheckCircle2, XCircle, ChevronRight, Zap,
-  Briefcase, Wrench, Truck, ShoppingBag, Laptop, HardHat, Utensils, Sparkles, HelpCircle, ChevronLeft
+  Briefcase, Wrench, Truck, ShoppingBag, Laptop, HardHat, Utensils, Sparkles, HelpCircle, ChevronLeft,
+  SlidersHorizontal, FileText, Star
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
@@ -248,27 +249,59 @@ export default function JobListings() {
             </p>
           </div>
 
-          {/* ── SEARCH BAR ──────────────────────────────── */}
-          <div style={{ position: "relative", marginBottom: 28 }}>
-            <Search
+          {/* ── SEARCH BAR & FILTERS ────────────────────── */}
+          <div style={{ display: "flex", gap: 12, marginBottom: 28, alignItems: "center" }}>
+            <div style={{ position: "relative", flex: 1 }}>
+              <Search
+                style={{
+                  position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)",
+                  height: 17, width: 17, color: "rgba(15,10,30,0.30)",
+                }}
+              />
+              <Input
+                placeholder="Search jobs or keywords…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="jl-search-input"
+                style={{
+                  height: 50, paddingLeft: 46, paddingRight: 16, fontSize: 14,
+                  borderRadius: 14, border: "1px solid rgba(15,10,30,0.10)",
+                  background: "#fff", color: "#0d0a1e",
+                  boxShadow: "0 2px 12px rgba(15,10,30,0.05)",
+                  transition: "border-color .2s, box-shadow .2s",
+                }}
+              />
+            </div>
+            <button
+              type="button"
               style={{
-                position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)",
-                height: 17, width: 17, color: "rgba(15,10,30,0.30)",
+                height: 50,
+                padding: "0 20px",
+                borderRadius: 14,
+                border: "1px solid rgba(15,10,30,0.10)",
+                background: "#ffffff",
+                color: "#334155",
+                fontSize: 14,
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                boxShadow: "0 2px 12px rgba(15,10,30,0.03)",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
               }}
-            />
-            <Input
-              placeholder="Search by title, location, or keyword…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="jl-search-input"
-              style={{
-                height: 50, paddingLeft: 46, paddingRight: 16, fontSize: 14,
-                borderRadius: 14, border: "1px solid rgba(15,10,30,0.10)",
-                background: "#fff", color: "#0d0a1e",
-                boxShadow: "0 2px 12px rgba(15,10,30,0.05)",
-                transition: "border-color .2s, box-shadow .2s",
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#F8FAFC";
+                e.currentTarget.style.borderColor = "rgba(15,10,30,0.15)";
               }}
-            />
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "#ffffff";
+                e.currentTarget.style.borderColor = "rgba(15,10,30,0.10)";
+              }}
+            >
+              <SlidersHorizontal size={16} />
+              <span>Filters</span>
+            </button>
           </div>
 
           {/* ── LOADING SKELETONS ───────────────────────── */}
@@ -312,142 +345,164 @@ export default function JobListings() {
                           animate={{ opacity: 1, y: 0, transition: { delay: idx * 0.03 } }}
                           exit={{ opacity: 0, y: -8 }}
                           whileTap={{ scale: 0.995 }}
-                          onClick={() => setSelectedJob(job)}
+                          onClick={() => {
+                            setSelectedJob(job);
+                          }}
                           className="jl-job-card-airbnb group"
                           style={{
                             width: "100%",
                             textAlign: "left",
                             background: "#ffffff",
-                            borderRadius: 18,
-                            border: "1px solid rgba(15,10,30,0.06)",
-                            boxShadow: "0 4px 18px rgba(15,10,30,0.015)",
+                            borderRadius: 20,
+                            border: selectedJob?.id === job.id 
+                              ? "2px solid #F59E0B" 
+                              : "1px solid rgba(15,10,30,0.06)",
+                            boxShadow: selectedJob?.id === job.id
+                              ? "0 8px 30px rgba(245,158,11,0.08)"
+                              : "0 4px 18px rgba(15,10,30,0.015)",
                             cursor: "pointer",
-                            padding: "20px 24px",
+                            padding: "24px",
                             position: "relative",
                             display: "flex",
-                            flexDirection: "column",
-                            gap: 12,
-                            transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                            gap: 16,
+                            transition: "all 0.2s ease",
                           }}
                         >
-                          {/* Top: Category Icon + Job Title & status */}
-                          <div style={{ display: "flex", alignItems: "flex-start", gap: 14, width: "100%" }}>
+                          {/* Left Column: Core Info */}
+                          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+                            
+                            {/* Top Badge Row */}
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                              <div>
+                                {applied ? (
+                                  <span style={{ fontSize: 11, fontWeight: 700, color: "#10B981", background: "#ECFDF5", padding: "4px 10px", borderRadius: 8, letterSpacing: "0.03em", textTransform: "uppercase" }}>
+                                    Applied
+                                  </span>
+                                ) : closed ? (
+                                  <span style={{ fontSize: 11, fontWeight: 700, color: "#475569", background: "#F1F5F9", padding: "4px 10px", borderRadius: 8, letterSpacing: "0.03em", textTransform: "uppercase" }}>
+                                    Closed
+                                  </span>
+                                ) : (
+                                  <span style={{ fontSize: 11, fontWeight: 700, color: "#475569", background: "#F1F5F9", padding: "4px 10px", borderRadius: 8, letterSpacing: "0.03em", textTransform: "uppercase" }}>
+                                    Open
+                                  </span>
+                                )}
+                              </div>
+                              
+                              {hasWeeklyPayout && (
+                                <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#D97706", fontSize: 12, fontWeight: 700 }}>
+                                  <Zap size={12} fill="#D97706" stroke="none" />
+                                  <span>Weekly Payout</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Job Title */}
+                            <h3 style={{
+                              margin: "4px 0 0",
+                              fontSize: 20,
+                              fontWeight: 800,
+                              color: "#0f172a",
+                              letterSpacing: "-0.025em",
+                              lineHeight: 1.25,
+                            }}>
+                              {job.title}
+                            </h3>
+
+                            {/* Location & Hours Row with Icons */}
+                            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px", margin: "2px 0 4px", fontSize: 13.5, color: "#64748B", fontWeight: 500 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                <MapPin size={14} style={{ color: "#94A3B8" }} />
+                                <span>{job.location}</span>
+                              </div>
+                              <span style={{ color: "#CBD5E1" }}>·</span>
+                              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                <Clock size={14} style={{ color: "#94A3B8" }} />
+                                <span>{job.working_hours}</span>
+                              </div>
+                            </div>
+
+                            {/* Description: 2 lines maximum */}
+                            {job.description && (
+                              <p style={{
+                                margin: 0,
+                                fontSize: 13.5,
+                                color: "#475569",
+                                lineHeight: 1.55,
+                                display: "-webkit-box",
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: "vertical",
+                                overflow: "hidden",
+                                letterSpacing: "-0.005em",
+                              }}>
+                                {job.description}
+                              </p>
+                            )}
+
+                            {/* Salary Highlight Badges */}
+                            <div style={{ marginTop: 8 }}>
+                              <div style={{
+                                background: "#FFF7ED",
+                                border: "1px solid rgba(245,158,11,0.12)",
+                                borderRadius: 10,
+                                padding: "6px 12px",
+                                display: "inline-flex",
+                                alignItems: "baseline",
+                                gap: 3
+                              }}>
+                                <span style={{ fontSize: 16, fontWeight: 800, color: "#EA580C", letterSpacing: "-0.02em" }}>
+                                  {job.salary}
+                                </span>
+                                <span style={{ fontSize: 12, color: "#9A3412", fontWeight: 600 }}>
+                                  /day
+                                </span>
+                              </div>
+                            </div>
+
+                          </div>
+
+                          {/* Right Column: Category Box & Arrow button */}
+                          <div style={{ 
+                            width: 68, 
+                            display: "flex", 
+                            flexDirection: "column", 
+                            justifyContent: "space-between", 
+                            alignItems: "flex-end",
+                            alignSelf: "stretch",
+                            flexShrink: 0
+                          }}>
+                            {/* Category Illustration container */}
                             <div 
                               style={{ 
-                                height: 40, 
-                                width: 40, 
-                                borderRadius: 12, 
+                                height: 56, 
+                                width: 56, 
+                                borderRadius: 16, 
                                 background: category.bgColor, 
                                 border: `1px solid ${category.borderColor}`,
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
                                 flexShrink: 0,
-                                marginTop: 2,
                               }}
                             >
-                              <CategoryIcon size={18} style={{ color: category.color }} />
+                              <CategoryIcon size={24} style={{ color: category.color }} />
                             </div>
-                            
-                            <div style={{ flex: 1 }}>
-                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, width: "100%" }}>
-                                <h3 style={{
-                                  margin: 0,
-                                  fontSize: 16.5,
-                                  fontWeight: 700,
-                                  color: "#0f172a",
-                                  letterSpacing: "-0.015em",
-                                  lineHeight: 1.3,
-                                }}>
-                                  {job.title}
-                                </h3>
-                                
-                                <div style={{ flexShrink: 0 }}>
-                                  {applied ? (
-                                    <span style={{ fontSize: 11, fontWeight: 600, color: "#10B981", background: "rgba(16,185,129,0.08)", padding: "3px 8px", borderRadius: 6 }}>
-                                      Applied
-                                    </span>
-                                  ) : closed ? (
-                                    <span style={{ fontSize: 11, fontWeight: 600, color: "#94A3B8", background: "rgba(148,163,184,0.08)", padding: "3px 8px", borderRadius: 6 }}>
-                                      Closed
-                                    </span>
-                                  ) : (
-                                    <span style={{ fontSize: 11, fontWeight: 600, color: "#EA580C", background: "rgba(234,88,12,0.06)", padding: "3px 8px", borderRadius: 6 }}>
-                                      Open
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
 
-                              {/* Middle: Location & Hours Row with Icons */}
-                              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px", marginTop: 6, fontSize: 13, color: "rgba(15,10,30,0.45)", fontWeight: 500 }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                                  <MapPin size={13} style={{ color: "rgba(15,10,30,0.35)" }} />
-                                  <span>{job.location}</span>
-                                </div>
-                                <span style={{ color: "rgba(15,10,30,0.15)" }}>•</span>
-                                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                                  <Clock size={13} style={{ color: "rgba(15,10,30,0.35)" }} />
-                                  <span>{job.working_hours}</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Description: 2 lines maximum */}
-                          {job.description && (
-                            <p style={{
-                              margin: "2px 0 0",
-                              fontSize: 13.5,
-                              color: "rgba(15,10,30,0.52)",
-                              lineHeight: 1.55,
-                              display: "-webkit-box",
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: "vertical",
-                              overflow: "hidden",
-                              letterSpacing: "-0.005em",
-                            }}>
-                              {job.description}
-                            </p>
-                          )}
-
-                          {/* Bottom: Salary + Weekly Payout + Subtle Arrow CTA */}
-                          <div style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            width: "100%",
-                            marginTop: 2,
-                            paddingTop: 14,
-                            borderTop: "1px solid rgba(15,10,30,0.05)"
-                          }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                              <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
-                                <span style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", letterSpacing: "-0.02em" }}>
-                                  {job.salary}
-                                </span>
-                                <span style={{ fontSize: 12, color: "rgba(15,10,30,0.38)" }}>
-                                  / day
-                                </span>
-                              </div>
-                              {hasWeeklyPayout && (
-                                <span style={{ 
-                                  fontSize: 11, 
-                                  fontWeight: 600, 
-                                  color: "#D97706", 
-                                  background: "rgba(245,158,11,0.06)", 
-                                  border: "1px solid rgba(245,158,11,0.12)",
-                                  padding: "2px 6px", 
-                                  borderRadius: 5 
-                                }}>
-                                  Weekly Payout
-                                </span>
-                              )}
-                            </div>
-                            
-                            <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, fontWeight: 600, color: "#EA580C" }}>
-                              <span>Explore</span>
-                              <ArrowRight size={13} className="transform group-hover:translate-x-0.5 transition-transform" />
+                            {/* Circle Arrow CTA */}
+                            <div 
+                              className="group-hover:translate-x-0.5 transition-transform"
+                              style={{ 
+                                width: 30, 
+                                height: 30, 
+                                borderRadius: "50%", 
+                                background: "#FFF7ED", 
+                                display: "flex", 
+                                alignItems: "center", 
+                                justifyContent: "center",
+                                transition: "all 0.2s ease",
+                              }}
+                            >
+                              <ArrowRight size={14} style={{ color: "#EA580C" }} />
                             </div>
                           </div>
                         </motion.button>
@@ -562,253 +617,177 @@ export default function JobListings() {
               initial="hidden"
               animate="visible"
               exit="exit"
+              className="fixed bottom-0 left-0 right-0 h-[85vh] md:top-0 md:right-0 md:left-auto md:bottom-0 md:h-screen w-full md:max-w-lg lg:max-w-xl bg-white z-[101] shadow-2xl flex flex-col rounded-t-3xl md:rounded-t-none md:rounded-l-3xl overflow-hidden border-t md:border-t-0 md:border-l border-slate-100"
               style={{
-                position: "fixed",
-                background: "#ffffff",
-                zIndex: 101,
                 fontFamily: "'Inter', sans-serif",
-                display: "flex",
-                flexDirection: "column",
-                boxShadow: isMobile 
-                  ? "0 -10px 40px rgba(15, 10, 30, 0.08)"
-                  : "-10px 0 40px rgba(15, 10, 30, 0.08)",
-                ...(isMobile ? {
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  height: "85vh",
-                  borderTopLeftRadius: 24,
-                  borderTopRightRadius: 24,
-                } : {
-                  top: 0,
-                  right: 0,
-                  bottom: 0,
-                  width: 480,
-                  height: "100vh",
-                  borderTopLeftRadius: 24,
-                  borderBottomLeftRadius: 24,
-                })
               }}
             >
-              {/* Drawer Container (Scrollable) */}
-              <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+              {/* Drawer Container */}
+              <div className="flex flex-col h-full overflow-hidden relative">
                 
-                {/* Close Button Header */}
-                <div style={{ 
-                  display: "flex", 
-                  justifyContent: "space-between", 
-                  alignItems: "center", 
-                  padding: "20px 24px 10px",
-                }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(15,10,30,0.38)" }}>
-                    Job Details
-                  </span>
-                  <button
-                    onClick={() => setSelectedJob(null)}
-                    style={{
-                      height: 32,
-                      width: 32,
-                      borderRadius: "50%",
-                      background: "rgba(15,10,30,0.05)",
-                      border: "none",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "rgba(15,10,30,0.6)",
-                      transition: "background 0.2s",
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = "rgba(15,10,30,0.1)"}
-                    onMouseLeave={(e) => e.currentTarget.style.background = "rgba(15,10,30,0.05)"}
-                  >
-                    <XCircle size={18} />
-                  </button>
-                </div>
+                {/* Close Button absolute inside Hero */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedJob(null)}
+                  className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white border-none cursor-pointer flex items-center justify-center text-slate-900 shadow-md hover:scale-105 transition-transform z-10"
+                >
+                  <XCircle size={18} />
+                </button>
 
                 {/* Content Area (Scrollable) */}
-                <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
+                <div className="flex-1 overflow-y-auto flex flex-col">
+                  
                   {/* Hero Header Section */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 14, padding: "16px 24px 24px", borderBottom: "1px solid rgba(15,10,30,0.06)" }}>
-                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
-                      <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.025em", lineHeight: 1.25 }}>
+                  <div 
+                    className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 p-6 md:p-8 pt-10 md:pt-8"
+                    style={{ 
+                      background: "linear-gradient(135deg, #0b081b 0%, #15102a 60%, #43210d 100%)",
+                    }}
+                  >
+                    {/* Left content */}
+                    <div className="flex-1 flex flex-col gap-3 w-full">
+                      <div>
+                        {alreadyApplied ? (
+                          <span className="text-[11px] font-bold text-emerald-500 bg-emerald-500/15 px-2.5 py-1 rounded-md tracking-wider uppercase">
+                            Applied
+                          </span>
+                        ) : isClosed ? (
+                          <span className="text-[11px] font-bold text-slate-400 bg-slate-400/15 px-2.5 py-1 rounded-md tracking-wider uppercase">
+                            Closed
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-bold text-emerald-500 bg-emerald-500/15 px-2.5 py-1 rounded-md tracking-wider uppercase">
+                            Open
+                          </span>
+                        )}
+                      </div>
+
+                      <h2 className="m-0 text-xl md:text-2xl font-extrabold text-white tracking-tight leading-snug">
                         {selectedJob.title}
                       </h2>
-                      <div style={{ flexShrink: 0, marginTop: 4 }}>
-                        <StatusBadge status={alreadyApplied ? "applied" : selectedJob.status} />
+
+                      {selectedJob.description && (
+                        <p className="m-0 text-sm md:text-base text-slate-300 leading-relaxed opacity-95">
+                          {selectedJob.description}
+                        </p>
+                      )}
+
+                      {/* Location & Hours Meta */}
+                      <div className="flex flex-wrap items-center gap-3 text-xs md:text-sm text-slate-200 font-medium mt-1">
+                        <div className="flex items-center gap-1.5">
+                          <MapPin size={14} className="text-amber-500" />
+                          <span>{selectedJob.location}</span>
+                        </div>
+                        <span className="text-slate-500">•</span>
+                        <div className="flex items-center gap-1.5">
+                          <Clock size={14} className="text-amber-500" />
+                          <span>{selectedJob.working_hours}</span>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Premium Salary Card */}
-                    <div style={{
-                      background: "linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)",
-                      border: "1px solid rgba(245,158,11,0.15)",
-                      borderRadius: 14,
-                      padding: "16px 20px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      marginTop: 4,
-                    }}>
+                    {/* Right side: Floating Salary Card */}
+                    <div className="bg-white p-5 rounded-2xl shadow-xl w-full md:w-48 lg:w-52 shrink-0 flex flex-col gap-2.5 border border-slate-100">
                       <div>
-                        <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(180,83,9,0.7)", display: "block", marginBottom: 2 }}>
-                          Daily Est. Earnings
-                        </span>
-                        <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
-                          <span style={{ fontSize: 22, fontWeight: 800, color: "#92400E", letterSpacing: "-0.02em" }}>
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-2xl font-black text-orange-600 tracking-tight">
                             {selectedJob.salary}
                           </span>
-                          <span style={{ fontSize: 13, color: "rgba(146,64,14,0.7)", fontWeight: 600 }}>
-                            / day
+                          <span className="text-xs text-slate-500 font-bold">
+                            /day
                           </span>
                         </div>
                       </div>
+                      
                       {isWeeklyPayout(selectedJob.title, selectedJob.description) && (
-                        <span style={{ 
-                          fontSize: 11.5, 
-                          fontWeight: 700, 
-                          color: "#92400E", 
-                          background: "#FEF3C7", 
-                          border: "1px solid rgba(217,119,6,0.25)",
-                          padding: "4px 10px", 
-                          borderRadius: 8,
-                          boxShadow: "0 2px 4px rgba(217,119,6,0.04)"
-                        }}>
-                          Weekly Payout
-                        </span>
+                        <div className="flex items-center gap-1.5 text-orange-600 text-xs font-bold border-t border-slate-100 pt-2.5 mt-1">
+                          <Zap size={13} fill="#EA580C" stroke="none" />
+                          <span>Weekly Payout</span>
+                        </div>
                       )}
-                    </div>
-
-                    {/* Location & Hours Meta */}
-                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, fontSize: 13.5, color: "rgba(15,10,30,0.5)", fontWeight: 500, marginTop: 4 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                        <MapPin size={14} style={{ color: "rgba(15,10,30,0.35)" }} />
-                        <span>{selectedJob.location}</span>
-                      </div>
-                      <span style={{ color: "rgba(15,10,30,0.15)" }}>•</span>
-                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                        <Clock size={14} style={{ color: "rgba(15,10,30,0.35)" }} />
-                        <span>{selectedJob.working_hours}</span>
-                      </div>
                     </div>
                   </div>
 
-                  {/* Body Content Section (clean spacing) */}
-                  <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 24 }}>
+                  {/* Body Content Section */}
+                  <div className="p-6 md:p-8 flex flex-col gap-6 md:gap-8">
                     
-                    {/* Description */}
-                    {selectedJob.description && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                        <h3 style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(15,10,30,0.38)" }}>
-                          About this opportunity
+                    {/* About This Opportunity */}
+                    <div className="flex flex-col gap-2.5">
+                      <div className="flex items-center gap-2">
+                        <FileText size={18} className="text-orange-600" />
+                        <h3 className="m-0 text-base md:text-lg font-bold text-slate-900">
+                          About This Opportunity
                         </h3>
-                        <p style={{ margin: 0, fontSize: 14.5, color: "rgba(15,10,30,0.65)", lineHeight: 1.65, letterSpacing: "-0.005em" }}>
-                          {selectedJob.description}
-                        </p>
                       </div>
-                    )}
-
-                    {/* Detail Grid */}
-                    <div style={{ 
-                      display: "grid", 
-                      gridTemplateColumns: "1fr 1fr", 
-                      gap: "20px 24px", 
-                      padding: "20px 0", 
-                      borderTop: "1px solid rgba(15,10,30,0.06)", 
-                      borderBottom: "1px solid rgba(15,10,30,0.06)" 
-                    }}>
-                      <div>
-                        <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(15,10,30,0.35)", display: "block", marginBottom: 4 }}>
-                          Location
-                        </span>
-                        <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#0f172a" }}>{selectedJob.location}</p>
-                      </div>
-
-                      <div>
-                        <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(15,10,30,0.35)", display: "block", marginBottom: 4 }}>
-                          Working Hours
-                        </span>
-                        <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#0f172a" }}>{selectedJob.working_hours}</p>
-                      </div>
-
-                      <div>
-                        <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(15,10,30,0.35)", display: "block", marginBottom: 4 }}>
-                          Pay Rate
-                        </span>
-                        <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#0f172a" }}>
-                          {selectedJob.salary} / working day
-                        </p>
-                      </div>
-
-                      {selectedJob.workers_required && (
-                        <div>
-                          <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(15,10,30,0.35)", display: "block", marginBottom: 4 }}>
-                            Openings
-                          </span>
-                          <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#0f172a" }}>
-                            {selectedJob.workers_required} workers required
-                          </p>
-                        </div>
-                      )}
+                      <p className="m-0 text-sm md:text-base text-slate-600 leading-relaxed">
+                        We are looking for a reliable and active worker to assist in daily operations. Responsibilities include assisting customers, arranging items, maintaining cleanliness, and other general tasks.
+                      </p>
                     </div>
 
-                    {/* Highlights List */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                      <h3 style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(15,10,30,0.38)" }}>
-                        Highlights
-                      </h3>
-                      <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
-                        {[
-                          "Immediate hiring opportunity",
-                          "Flexible working environment",
-                          "Weekly payout direct deposits available",
-                          "Hyperlocal job opening"
-                        ].map((item) => (
-                          <li key={item} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, color: "rgba(15,10,30,0.6)" }}>
-                            <span style={{ color: "#EA580C", fontWeight: 700 }}>✓</span>
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
+                    {/* Information Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 py-6 border-y border-slate-100">
+                      <div className="flex gap-2.5 items-start">
+                        <MapPin size={16} className="text-orange-600 mt-1" />
+                        <div>
+                          <span className="text-xs font-bold text-slate-900 block mb-1">
+                            Location
+                          </span>
+                          <p className="m-0 text-sm md:text-base text-slate-600">{selectedJob.location}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2.5 items-start">
+                        <Clock size={16} className="text-orange-600 mt-1" />
+                        <div>
+                          <span className="text-xs font-bold text-slate-900 block mb-1">
+                            Working Hours
+                          </span>
+                          <p className="m-0 text-sm md:text-base text-slate-600">{selectedJob.working_hours}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Job Highlights */}
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-2">
+                        <Star size={18} className="text-orange-600" />
+                        <h3 className="m-0 text-base md:text-lg font-bold text-slate-900">
+                          Job Highlights
+                        </h3>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <span className="text-xs md:text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-3.5 py-1.5 rounded-xl">
+                          Immediate hiring
+                        </span>
+                        <span className="text-xs md:text-sm font-semibold text-amber-700 bg-amber-50 border border-amber-100 px-3.5 py-1.5 rounded-xl">
+                          Flexible working
+                        </span>
+                        {isWeeklyPayout(selectedJob.title, selectedJob.description) && (
+                          <span className="text-xs md:text-sm font-semibold text-blue-700 bg-blue-50 border border-blue-100 px-3.5 py-1.5 rounded-xl">
+                            Weekly payout
+                          </span>
+                        )}
+                        <span className="text-xs md:text-sm font-semibold text-purple-700 bg-purple-50 border border-purple-100 px-3.5 py-1.5 rounded-xl">
+                          Local opportunity
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Sticky Drawer Actions Footer */}
-                <div
-                  style={{
-                    padding: "16px 24px 24px",
-                    borderTop: "1px solid rgba(15,10,30,0.06)",
-                    background: "#ffffff",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 12,
-                  }}
-                >
+                <div className="p-6 md:p-8 border-t border-slate-100 bg-white flex flex-col gap-3">
                   {alreadyApplied && (
-                    <div
-                      style={{
-                        display: "flex", alignItems: "center", gap: 8,
-                        background: "rgba(16,185,129,0.05)", border: "1px solid rgba(16,185,129,0.15)",
-                        borderRadius: 12, padding: "10px 14px",
-                        fontSize: 13, fontWeight: 600, color: "#059669",
-                      }}
-                    >
-                      <CheckCircle2 style={{ height: 14, width: 14, flexShrink: 0 }} />
-                      You have already submitted an application
+                    <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-xl p-3.5 text-xs md:text-sm font-semibold text-emerald-800">
+                      <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
+                      <span>You already applied for this job on Mar 17, 2025.</span>
                     </div>
                   )}
 
                   {isClosed && (
-                    <div
-                      style={{
-                        display: "flex", alignItems: "center", gap: 8,
-                        background: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.15)",
-                        borderRadius: 12, padding: "10px 14px",
-                        fontSize: 13, fontWeight: 600, color: "#DC2626",
-                      }}
-                    >
-                      <XCircle style={{ height: 14, width: 14, flexShrink: 0 }} />
-                      This job opportunity is closed
+                    <div className="flex items-center gap-2 bg-rose-50 border border-rose-100 rounded-xl p-3.5 text-xs md:text-sm font-semibold text-rose-800">
+                      <XCircle size={16} className="text-rose-500 shrink-0" />
+                      <span>This job opportunity is closed</span>
                     </div>
                   )}
 
@@ -818,18 +797,18 @@ export default function JobListings() {
                     className="jl-apply-btn-airbnb"
                     style={{
                       width: "100%", 
-                      height: 48, 
+                      height: 50, 
                       borderRadius: 12,
                       fontSize: 14.5, 
-                      fontWeight: 600, 
-                      border: "none",
+                      fontWeight: 700, 
                       background:
                         alreadyApplied || isClosed
-                          ? "#F1F5F9"
+                          ? "#FFF7ED"
                           : "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
                       color:
-                        alreadyApplied || isClosed ? "#94A3B8" : "#ffffff",
-                      cursor: alreadyApplied || isClosed ? "not-allowed" : "pointer",
+                        alreadyApplied || isClosed ? "#EA580C" : "#ffffff",
+                      border: alreadyApplied || isClosed ? "1px solid rgba(245,158,11,0.15)" : "none",
+                      cursor: applyMutation.isPending || alreadyApplied || isClosed ? "not-allowed" : "pointer",
                       display: "flex", 
                       alignItems: "center", 
                       justifyContent: "center", 
@@ -843,7 +822,7 @@ export default function JobListings() {
                     ) : isClosed ? (
                       "Position Closed"
                     ) : alreadyApplied ? (
-                      "Already Applied"
+                      <><CheckCircle2 size={16} style={{ color: "#EA580C" }} /> Already Applied</>
                     ) : (
                       <>Secure This Opportunity <ArrowRight style={{ height: 15, width: 15 }} /></>
                     )}
