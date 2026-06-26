@@ -12,6 +12,8 @@ import {
   HardHat,
   Building2,
   CheckCircle2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 /* ─────────────────────────────────────────────────────────────
@@ -123,6 +125,7 @@ export default function Signup() {
   const [phone, setPhone] = useState("");
   const [role, setRole] = useState<"worker" | "employer">("worker");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -512,16 +515,37 @@ export default function Signup() {
                   >
                     Password
                   </Label>
-                  <Input
-                    id="su-password"
-                    type="password"
-                    required
-                    minLength={6}
-                    placeholder="Min. 6 characters"
-                    value={password}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-                    className="su-input h-11 px-3.5 text-[14px]"
-                  />
+                  <div style={{ position: "relative" }}>
+                    <Input
+                      id="su-password"
+                      type={showPassword ? "text" : "password"}
+                      required
+                      minLength={6}
+                      placeholder="Min. 6 characters"
+                      value={password}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+                      className="su-input h-11 pl-3.5 pr-10 text-[14px] w-full"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{
+                        position: "absolute",
+                        right: 12,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "none",
+                        border: "none",
+                        color: "rgba(255,255,255,0.35)",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center"
+                      }}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Role selector */}
