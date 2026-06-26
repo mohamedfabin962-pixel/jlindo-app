@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,8 +8,154 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Edit3, Tag } from "lucide-react";
+import { ArrowLeft, Edit3, Tag, MapPin, Navigation, Link as LinkIcon, Clock, ChevronDown, X, Search, Check, Users, DollarSign } from "lucide-react";
 import { JOB_CATEGORIES } from "@/utils/jobCategories";
+import {
+  INDIAN_CITIES, encodeLocation, decodeLocation,
+  encodeWorkingHours, decodeWorkingHours,
+  HOURS, MINUTES, PERIODS, type Period, type TimeValue,
+} from "@/utils/locationUtils";
+
+// ─── City Combobox ────────────────────────────────────────────────────────────
+
+function CityCombobox({
+  value, onChange,
+}: { value: string; onChange: (city: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const filtered = query.trim()
+    ? INDIAN_CITIES.filter((c) => c.toLowerCase().includes(query.toLowerCase()))
+    : INDIAN_CITIES;
+
+  useEffect(() => {
+    if (open) setTimeout(() => inputRef.current?.focus(), 60);
+  }, [open]);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={`w-full flex items-center justify-between h-11 px-3.5 rounded-xl border text-sm font-medium transition-all duration-200 bg-white
+          ${open ? "border-amber-500 ring-4 ring-amber-500/10" : "border-slate-200 hover:border-slate-300"}
+          ${value ? "text-slate-800" : "text-slate-400"}`}
+      >
+        <span className="flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
+          {value || "Select a city…"}
+        </span>
+        <span className="flex items-center gap-1">
+          {value && (
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(e) => { e.stopPropagation(); onChange(""); }}
+              onKeyDown={(e) => e.key === "Enter" && (e.stopPropagation(), onChange(""))}
+              className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <X className="w-3 h-3" />
+            </span>
+          )}
+          <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+        </span>
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-[40]" onClick={() => setOpen(false)} />
+          <div className="absolute top-[calc(100%+6px)] left-0 right-0 z-[41] bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden">
+            <div className="p-2 border-b border-slate-100">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                <input
+                  ref={inputRef}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search city…"
+                  className="w-full pl-8 pr-3 py-2 text-sm bg-slate-50 rounded-xl border-0 outline-none focus:ring-2 focus:ring-amber-500/20 font-medium text-slate-800 placeholder-slate-400"
+                />
+              </div>
+            </div>
+            <ul className="max-h-52 overflow-y-auto py-1" style={{ scrollbarWidth: "thin" }}>
+              {filtered.length > 0 ? (
+                filtered.map((city) => (
+                  <li key={city}>
+                    <button
+                      type="button"
+                      onClick={() => { onChange(city); setOpen(false); setQuery(""); }}
+                      className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors flex items-center gap-2.5
+                        ${value === city ? "bg-amber-50 text-amber-700" : "text-slate-700 hover:bg-slate-50"}`}
+                    >
+                      {value === city && <Check className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />}
+                      <span className={value === city ? "ml-0" : "ml-6"}>{city}</span>
+                    </button>
+                  </li>
+                ))
+              ) : (
+                <li className="px-4 py-6 text-center text-sm text-slate-400 font-medium">
+                  No cities matching "{query}"
+                </li>
+              )}
+            </ul>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─── Time Picker ──────────────────────────────────────────────────────────────
+
+function TimePicker({
+  label, value, onChange,
+}: { label: string; value: TimeValue; onChange: (v: TimeValue) => void }) {
+  const selectCls =
+    "h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800 " +
+    "focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 " +
+    "transition-all appearance-none cursor-pointer hover:border-slate-300";
+
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-sm font-semibold text-slate-700">{label} <span className="text-amber-500">*</span></Label>
+      <div className="flex items-center gap-2">
+        <select
+          value={value.hour}
+          onChange={(e) => onChange({ ...value, hour: e.target.value })}
+          className={`${selectCls} flex-1`}
+          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", paddingRight: 28 }}
+        >
+          {HOURS.map((h) => <option key={h} value={h}>{h.padStart(2, "0")}</option>)}
+        </select>
+        <span className="text-slate-400 font-bold text-lg leading-none select-none">:</span>
+        <select
+          value={value.minute}
+          onChange={(e) => onChange({ ...value, minute: e.target.value })}
+          className={`${selectCls} flex-1`}
+          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", paddingRight: 28 }}
+        >
+          {MINUTES.map((m) => <option key={m} value={m}>{m}</option>)}
+        </select>
+        <div className="flex rounded-xl border border-slate-200 overflow-hidden">
+          {PERIODS.map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => onChange({ ...value, period: p as Period })}
+              className={`px-3 py-2 text-xs font-bold transition-all duration-150
+                ${value.period === p ? "bg-amber-500 text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function EditJob() {
   const { jobId } = useParams();
@@ -22,13 +168,18 @@ export default function EditJob() {
 
   const [form, setForm] = useState({
     title: "",
-    location: "",
     salary: "",
-    working_hours: "",
     description: "",
     workers_required: "",
     status: "open",
     category: "",
+    // location sub-fields
+    city: "",
+    exactLocation: "",
+    mapsUrl: "",
+    // working hours sub-fields
+    startTime: { hour: "9", minute: "00", period: "AM" as Period },
+    endTime:   { hour: "5", minute: "00", period: "PM" as Period },
   });
 
   useEffect(() => {
@@ -45,15 +196,23 @@ export default function EditJob() {
         return;
       }
 
+      // Decode stored location
+      const loc = decodeLocation(data.location);
+      // Decode stored working hours
+      const wh = decodeWorkingHours(data.working_hours);
+
       setForm({
-        title: data.title,
-        location: data.location,
-        salary: data.salary,
-        working_hours: data.working_hours,
-        description: data.description,
+        title: data.title || "",
+        salary: data.salary || "",
+        description: data.description || "",
         workers_required: String(data.workers_required || 1),
         status: data.status || "open",
         category: data.category || "Other",
+        city: loc.city,
+        exactLocation: loc.exactLocation,
+        mapsUrl: loc.mapsUrl,
+        startTime: wh.start,
+        endTime: wh.end,
       });
 
       setLoading(false);
@@ -67,15 +226,24 @@ export default function EditJob() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!form.city.trim() || !form.exactLocation.trim()) {
+      toast({ title: "Missing fields", description: "Please fill city and exact location.", variant: "destructive" });
+      return;
+    }
+
     setSaving(true);
+
+    const locationEncoded = encodeLocation(form.city, form.exactLocation, form.mapsUrl);
+    const workingHoursEncoded = encodeWorkingHours(form.startTime, form.endTime);
 
     const { error } = await supabase
       .from("jobs")
       .update({
         title: form.title,
-        location: form.location,
+        location: locationEncoded,
         salary: form.salary,
-        working_hours: form.working_hours,
+        working_hours: workingHoursEncoded,
         description: form.description,
         workers_required: Number(form.workers_required),
         status: form.status,
@@ -93,6 +261,10 @@ export default function EditJob() {
       navigate("/employer/dashboard");
     }
   };
+
+  const workingHoursPreview =
+    `${String(form.startTime.hour).padStart(2, "0")}:${form.startTime.minute} ${form.startTime.period} – ` +
+    `${String(form.endTime.hour).padStart(2, "0")}:${form.endTime.minute} ${form.endTime.period}`;
 
   if (loading) {
     return (
@@ -121,60 +293,40 @@ export default function EditJob() {
       `}</style>
 
       <div
+        className="min-h-screen"
         style={{
-          minHeight: "100vh",
           background: "linear-gradient(160deg, #F8FAFC 0%, #FFF7ED 55%, #F8FAFC 100%)",
           fontFamily: "'Inter', sans-serif",
         }}
       >
-        <div style={{ maxWidth: 600, margin: "0 auto", padding: "32px 16px 60px" }}>
-          
+        <div style={{ maxWidth: 640, margin: "0 auto", padding: "32px 16px 60px" }}>
+
           <Link
             to="/employer/dashboard"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              fontSize: 13,
-              fontWeight: 600,
-              color: "rgba(15,10,30,0.5)",
-              textDecoration: "none",
-              marginBottom: 20,
-              transition: "color 0.2s"
-            }}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, color: "rgba(15,10,30,0.5)", textDecoration: "none", marginBottom: 20, transition: "color 0.2s" }}
             className="hover:text-amber-500"
           >
             <ArrowLeft size={16} /> Back to Dashboard
           </Link>
 
-          <Card
-            style={{
-              background: "#fff",
-              borderRadius: 24,
-              border: "1px solid rgba(15,10,30,0.07)",
-              boxShadow: "0 4px 20px rgba(15,10,30,0.04)",
-              overflow: "hidden",
-            }}
-          >
+          <Card style={{ background: "#fff", borderRadius: 24, border: "1px solid rgba(15,10,30,0.07)", boxShadow: "0 4px 20px rgba(15,10,30,0.04)", overflow: "hidden" }}>
             <CardHeader style={{ borderBottom: "1px solid rgba(15,10,30,0.06)", padding: "24px 28px" }}>
               <CardTitle style={{ fontSize: 20, fontWeight: 800, color: "#0d0a1e", display: "flex", alignItems: "center", gap: 10 }}>
                 <Edit3 className="text-amber-500" size={22} />
                 Edit Job Details
               </CardTitle>
             </CardHeader>
-            <CardContent style={{ padding: "28px" }}>
-              <form onSubmit={handleSave} className="space-y-5">
 
+            <CardContent style={{ padding: "28px" }}>
+              <form onSubmit={handleSave} className="space-y-6">
+
+                {/* Job Title */}
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-slate-700">Job Title</Label>
-                  <Input
-                    value={form.title}
-                    onChange={update("title")}
-                    required
-                    className="jl-input h-11 rounded-xl border-slate-200"
-                  />
+                  <Label className="text-sm font-semibold text-slate-700">Job Title <span className="text-amber-500">*</span></Label>
+                  <Input value={form.title} onChange={update("title")} required className="jl-input h-11 rounded-xl border-slate-200" />
                 </div>
 
+                {/* Category */}
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
                     Job Category <span className="text-amber-500">*</span>
@@ -182,81 +334,105 @@ export default function EditJob() {
                   <select
                     required
                     value={form.category}
-                    onChange={(e) => setForm(f => ({ ...f, category: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
                     className="flex h-11 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/20 focus-visible:border-amber-500 disabled:cursor-not-allowed disabled:opacity-50 transition-all jl-input"
                   >
                     <option value="" disabled>Select a category</option>
-                    {JOB_CATEGORIES.map(cat => (
+                    {JOB_CATEGORIES.map((cat) => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>
                 </div>
 
+                {/* City */}
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-slate-700">Location</Label>
-                  <Input
-                    value={form.location}
-                    onChange={update("location")}
-                    required
-                    className="jl-input h-11 rounded-xl border-slate-200"
-                  />
+                  <Label className="text-sm font-semibold text-slate-700">City <span className="text-amber-500">*</span></Label>
+                  <CityCombobox value={form.city} onChange={(c) => setForm((f) => ({ ...f, city: c }))} />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-slate-700">Salary</Label>
+                {/* Exact Location */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-slate-700">Exact Location / Landmark <span className="text-amber-500">*</span></Label>
+                  <div className="relative">
+                    <Navigation className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                     <Input
-                      value={form.salary}
-                      onChange={update("salary")}
                       required
-                      className="jl-input h-11 rounded-xl border-slate-200"
+                      value={form.exactLocation}
+                      onChange={update("exactLocation")}
+                      placeholder="e.g. Near Lulu Mall, Edappally"
+                      className="jl-input pl-10 h-11 rounded-xl border-slate-200"
                     />
                   </div>
+                  <span className="text-xs text-slate-400">Help workers find the job site easily.</span>
+                </div>
 
+                {/* Google Maps Link */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-slate-700">
+                    Google Maps Link <span className="text-xs text-slate-400 font-normal ml-1">(optional)</span>
+                  </Label>
+                  <div className="relative">
+                    <LinkIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    <Input
+                      value={form.mapsUrl}
+                      onChange={update("mapsUrl")}
+                      type="url"
+                      placeholder="https://maps.google.com/..."
+                      className="jl-input pl-10 h-11 rounded-xl border-slate-200"
+                    />
+                  </div>
+                </div>
+
+                {/* Salary */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-slate-700">Salary / Rate <span className="text-amber-500">*</span></Label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    <Input value={form.salary} onChange={update("salary")} required className="jl-input pl-10 h-11 rounded-xl border-slate-200" placeholder="e.g. ₹600/day" />
+                  </div>
+                </div>
+
+                {/* Working Hours */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold text-slate-700">Working Hours <span className="text-amber-500">*</span></Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <TimePicker label="Start Time" value={form.startTime} onChange={(v) => setForm((f) => ({ ...f, startTime: v }))} />
+                    <TimePicker label="End Time" value={form.endTime} onChange={(v) => setForm((f) => ({ ...f, endTime: v }))} />
+                  </div>
+                  <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                    <Clock className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                    <span className="text-xs font-bold text-slate-600">Hours: </span>
+                    <span className="text-xs font-black text-slate-800">{workingHoursPreview}</span>
+                  </div>
+                </div>
+
+                {/* Workers Required */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-slate-700">Workers Needed</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={form.workers_required}
-                      onChange={update("workers_required")}
-                      className="jl-input h-11 rounded-xl border-slate-200"
-                    />
+                    <div className="relative">
+                      <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                      <Input type="number" min="1" value={form.workers_required} onChange={update("workers_required")} className="jl-input pl-10 h-11 rounded-xl border-slate-200" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-slate-700">Status</Label>
+                    <select
+                      className="w-full border border-slate-200 rounded-xl h-11 px-3 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-sm font-medium"
+                      value={form.status}
+                      onChange={update("status")}
+                    >
+                      <option value="open">Open</option>
+                      <option value="filled">Filled</option>
+                      <option value="closed">Closed</option>
+                    </select>
                   </div>
                 </div>
 
+                {/* Description */}
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-slate-700">Working Hours</Label>
-                  <Input
-                    value={form.working_hours}
-                    onChange={update("working_hours")}
-                    required
-                    className="jl-input h-11 rounded-xl border-slate-200"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-slate-700">Description</Label>
-                  <Textarea
-                    rows={4}
-                    value={form.description}
-                    onChange={update("description")}
-                    required
-                    className="jl-input rounded-xl border-slate-200 resize-none p-3"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-slate-700">Status</Label>
-                  <select
-                    className="w-full border border-slate-200 rounded-xl h-11 px-3 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-sm font-medium"
-                    value={form.status}
-                    onChange={update("status")}
-                  >
-                    <option value="open">Open</option>
-                    <option value="filled">Filled</option>
-                    <option value="closed">Closed</option>
-                  </select>
+                  <Label className="text-sm font-semibold text-slate-700">Description <span className="text-amber-500">*</span></Label>
+                  <Textarea rows={4} value={form.description} onChange={update("description")} required className="jl-input rounded-xl border-slate-200 resize-none p-3" />
                 </div>
 
                 <Button className="w-full jl-btn-primary h-12 rounded-xl text-base font-bold shadow-md border-0 mt-2" disabled={saving}>
@@ -270,4 +446,4 @@ export default function EditJob() {
       </div>
     </>
   );
-}
+}

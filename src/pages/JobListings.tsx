@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { 
   MapPin, Clock, Search, ArrowRight, Loader2, CheckCircle2, XCircle, ChevronRight, Zap,
-  ChevronLeft,
+  ChevronLeft, Navigation, ExternalLink,
   SlidersHorizontal, FileText, Star
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { JobCardSkeleton } from "@/components/BrandedLoading";
 import { EmptyState } from "@/components/EmptyState";
 import { getCategoryIllustration, inferCategoryFromText, JOB_CATEGORIES } from "@/utils/jobCategories";
+import { decodeLocation, decodeWorkingHours } from "@/utils/locationUtils";
 
 // We now use getCategoryIllustration and inferCategoryFromText from jobCategories.tsx
 
@@ -516,17 +517,23 @@ export default function JobListings() {
                             </h3>
 
                             {/* Location & Hours Row with Icons */}
-                            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px", margin: "2px 0 4px", fontSize: 13.5, color: "#64748B", fontWeight: 500 }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                                <MapPin size={14} style={{ color: "#94A3B8" }} />
-                                <span>{job.location}</span>
-                              </div>
-                              <span style={{ color: "#CBD5E1" }}>·</span>
-                              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                                <Clock size={14} style={{ color: "#94A3B8" }} />
-                                <span>{job.working_hours}</span>
-                              </div>
-                            </div>
+                             {(() => {
+                               const loc = decodeLocation(job.location);
+                               const displayCity = loc.city || job.location;
+                               return (
+                                 <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px", margin: "2px 0 4px", fontSize: 13.5, color: "#64748B", fontWeight: 500 }}>
+                                   <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                     <MapPin size={14} style={{ color: "#94A3B8" }} />
+                                     <span>{displayCity}</span>
+                                   </div>
+                                   <span style={{ color: "#CBD5E1" }}>·</span>
+                                   <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                     <Clock size={14} style={{ color: "#94A3B8" }} />
+                                     <span>{job.working_hours}</span>
+                                   </div>
+                                 </div>
+                               );
+                             })()}
 
                             {/* Description: 2 lines maximum */}
                             {job.description && (
@@ -765,17 +772,23 @@ export default function JobListings() {
                       )}
 
                       {/* Location & Hours Meta */}
-                      <div className="flex flex-wrap items-center gap-3 text-xs md:text-sm text-slate-200 font-medium mt-1">
-                        <div className="flex items-center gap-1.5">
-                          <MapPin size={14} className="text-amber-500" />
-                          <span>{selectedJob.location}</span>
-                        </div>
-                        <span className="text-slate-500">•</span>
-                        <div className="flex items-center gap-1.5">
-                          <Clock size={14} className="text-amber-500" />
-                          <span>{selectedJob.working_hours}</span>
-                        </div>
-                      </div>
+                      {(() => {
+                        const loc = decodeLocation(selectedJob.location);
+                        const displayCity = loc.city || selectedJob.location;
+                        return (
+                          <div className="flex flex-wrap items-center gap-3 text-xs md:text-sm text-slate-200 font-medium mt-1">
+                            <div className="flex items-center gap-1.5">
+                              <MapPin size={14} className="text-amber-500" />
+                              <span>{displayCity}</span>
+                            </div>
+                            <span className="text-slate-500">•</span>
+                            <div className="flex items-center gap-1.5">
+                              <Clock size={14} className="text-amber-500" />
+                              <span>{selectedJob.working_hours}</span>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* Right side: Floating Salary Card */}
@@ -817,27 +830,61 @@ export default function JobListings() {
                     </div>
 
                     {/* Information Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 py-6 border-y border-slate-100">
-                      <div className="flex gap-2.5 items-start">
-                        <MapPin size={16} className="text-orange-600 mt-1" />
-                        <div>
-                          <span className="text-xs font-bold text-slate-900 block mb-1">
-                            Location
-                          </span>
-                          <p className="m-0 text-sm md:text-base text-slate-600">{selectedJob.location}</p>
-                        </div>
-                      </div>
+                    {(() => {
+                      const loc = decodeLocation(selectedJob.location);
+                      const displayCity = loc.city || selectedJob.location;
+                      return (
+                        <div className="py-6 border-y border-slate-100 flex flex-col gap-4">
+                          {/* City */}
+                          <div className="flex gap-2.5 items-start">
+                            <MapPin size={16} className="text-orange-600 mt-1 flex-shrink-0" />
+                            <div>
+                              <span className="text-xs font-bold text-slate-900 block mb-0.5">City</span>
+                              <p className="m-0 text-sm text-slate-600 font-medium">{displayCity}</p>
+                            </div>
+                          </div>
 
-                      <div className="flex gap-2.5 items-start">
-                        <Clock size={16} className="text-orange-600 mt-1" />
-                        <div>
-                          <span className="text-xs font-bold text-slate-900 block mb-1">
-                            Working Hours
-                          </span>
-                          <p className="m-0 text-sm md:text-base text-slate-600">{selectedJob.working_hours}</p>
+                          {/* Exact Location — only when new format */}
+                          {loc.exactLocation && (
+                            <div className="flex gap-2.5 items-start">
+                              <Navigation size={16} className="text-orange-600 mt-1 flex-shrink-0" />
+                              <div>
+                                <span className="text-xs font-bold text-slate-900 block mb-0.5">Exact Location</span>
+                                <p className="m-0 text-sm text-slate-600 font-medium">{loc.exactLocation}</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Google Maps link */}
+                          {loc.mapsUrl && (
+                            <div className="flex gap-2.5 items-start">
+                              <ExternalLink size={16} className="text-orange-600 mt-1 flex-shrink-0" />
+                              <div>
+                                <span className="text-xs font-bold text-slate-900 block mb-0.5">Directions</span>
+                                <a
+                                  href={loc.mapsUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 text-sm font-bold text-orange-600 hover:text-orange-700 transition-colors"
+                                >
+                                  Open in Google Maps
+                                  <ExternalLink size={12} />
+                                </a>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Working Hours */}
+                          <div className="flex gap-2.5 items-start">
+                            <Clock size={16} className="text-orange-600 mt-1 flex-shrink-0" />
+                            <div>
+                              <span className="text-xs font-bold text-slate-900 block mb-0.5">Working Hours</span>
+                              <p className="m-0 text-sm text-slate-600 font-medium">{selectedJob.working_hours}</p>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
+                      );
+                    })()}
 
                     {/* Job Highlights */}
                     <div className="flex flex-col gap-3">
