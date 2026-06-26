@@ -370,9 +370,10 @@ export default function AdminDashboard() {
               {!feedbacks || feedbacks.length === 0 ? (
                 <EmptyState
                   icon={MessageSquare}
-                  title="No feedback yet"
+                  title="No feedback available"
                   description="User suggestions or issue reports will show up here."
                 />
+
               ) : (
                 feedbacks.map((f) => (
                   <div

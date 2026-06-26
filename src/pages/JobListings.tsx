@@ -315,10 +315,11 @@ export default function JobListings() {
           {!isLoading && filtered?.length === 0 && (
             <EmptyState
               icon={Search}
-              title="No jobs found"
-              description="Try a different search term or check back later."
+              title={search.trim() ? "Empty search results" : "No jobs found"}
+              description="We couldn't find any jobs matching your search. Try different keywords."
             />
           )}
+
 
           {/* ── JOB CARDS ───────────────────────────────── */}
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>

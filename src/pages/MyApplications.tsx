@@ -126,7 +126,7 @@ export default function MyApplications() {
              <EmptyState
                icon={Briefcase}
                title="No applications yet"
-               description="Start applying for jobs to track them here."
+               description="Start exploring opportunities and apply to your first job."
                actionText="Browse Open Jobs"
                actionLink="/jobs"
              />
