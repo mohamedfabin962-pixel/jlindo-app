@@ -3,25 +3,18 @@ import { Navigate } from "react-router-dom";
 import { Briefcase, Users, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { BrandedLoadingScreen } from "@/components/BrandedLoading";
 
 export default function Index() {
   const { user, profile, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground font-semibold">Loading Jlindo…</div>
-      </div>
-    );
+    return <BrandedLoadingScreen message="Loading Jlindo..." />;
   }
 
   if (user) {
     if (!profile) {
-      return (
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-          <div className="animate-pulse text-muted-foreground font-semibold">Loading profile…</div>
-        </div>
-      );
+      return <BrandedLoadingScreen message="Loading profile..." />;
     }
 
     if (profile.role === "admin") return <Navigate to="/admin" replace />;

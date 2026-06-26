@@ -9,50 +9,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
-
-/* ─── colour palette for job-category avatars ─── */
-const AVATAR_COLORS = [
-  ["#FEF3C7", "#D97706"],
-  ["#EDE9FE", "#7C3AED"],
-  ["#DCFCE7", "#16A34A"],
-  ["#DBEAFE", "#2563EB"],
-  ["#FCE7F3", "#DB2777"],
-  ["#FFF7ED", "#EA580C"],
-];
-
-function getAvatarColor(str: string) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-}
-
-/* ─── skeleton card ─── */
-function SkeletonCard() {
-  return (
-    <div
-      style={{
-        background: "#fff",
-        borderRadius: 20,
-        padding: "20px 20px",
-        border: "1px solid rgba(15,10,30,0.07)",
-        display: "flex", flexDirection: "column", gap: 14,
-      }}
-    >
-      <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-        <div style={{ height: 52, width: 52, borderRadius: 14, background: "#F1F5F9", flexShrink: 0 }} className="animate-pulse" />
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
-          <div style={{ height: 16, width: "55%", borderRadius: 6, background: "#F1F5F9" }} className="animate-pulse" />
-          <div style={{ height: 13, width: "35%", borderRadius: 6, background: "#F1F5F9" }} className="animate-pulse" />
-        </div>
-      </div>
-      <div style={{ height: 1, background: "#F1F5F9" }} />
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <div style={{ height: 13, width: "25%", borderRadius: 6, background: "#F1F5F9" }} className="animate-pulse" />
-        <div style={{ height: 18, width: "18%", borderRadius: 6, background: "#F1F5F9" }} className="animate-pulse" />
-      </div>
-    </div>
-  );
-}
+import { JobCardSkeleton } from "@/components/BrandedLoading";
 
 /* ─── main component ─── */
 export default function JobListings() {
@@ -203,7 +160,7 @@ export default function JobListings() {
           {/* ── LOADING SKELETONS ───────────────────────── */}
           {isLoading && (
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              {[1, 2, 3].map((i) => <SkeletonCard key={i} />)}
+              {[1, 2, 3].map((i) => <JobCardSkeleton key={i} />)}
             </div>
           )}
 

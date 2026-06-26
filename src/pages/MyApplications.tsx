@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Phone, Briefcase, MapPin, Clock, CalendarDays, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { JobCardSkeleton } from "@/components/BrandedLoading";
 
 export default function MyApplications() {
   const { user } = useAuth();
@@ -86,7 +87,7 @@ export default function MyApplications() {
           {isLoading && (
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {[1, 2, 3].map((i) => (
-                <div key={i} style={{ height: 130, background: "#fff", borderRadius: 20, border: "1px solid rgba(15,10,30,0.07)" }} className="animate-pulse" />
+                <JobCardSkeleton key={i} />
               ))}
             </div>
           )}

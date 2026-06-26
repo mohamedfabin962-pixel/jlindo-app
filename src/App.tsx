@@ -20,6 +20,8 @@ import FeedbackPage from "./pages/FeedbackPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
+import { BrandedLoadingScreen } from "@/components/BrandedLoading";
+
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
@@ -27,11 +29,7 @@ function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?
 
   // ⭐ wait until auth fully loads
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Checking session…</div>
-      </div>
-    );
+    return <BrandedLoadingScreen message="Checking session..." />;
   }
 
   // ⭐ if still no user → go login
@@ -81,11 +79,7 @@ function AuthGate() {
   const hideHeader = ["/login", "/signup"].includes(location.pathname);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Restoring session…</div>
-      </div>
-    );
+    return <BrandedLoadingScreen message="Restoring session..." />;
   }
 
   return (
