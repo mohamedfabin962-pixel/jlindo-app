@@ -20,8 +20,9 @@ import { Link } from "react-router-dom";
 import { JOB_CATEGORIES, getCategoryIllustration } from "@/utils/jobCategories";
 import {
   INDIAN_CITIES, encodeLocation, encodeWorkingHours,
-  HOURS, MINUTES, PERIODS, type Period, type TimeValue,
+  type Period, type TimeValue,
 } from "@/utils/locationUtils";
+import { PremiumTimePicker } from "@/components/PremiumTimePicker";
 import { motion } from "framer-motion";
 
 // ─── City Combobox ────────────────────────────────────────────────────────────
@@ -127,71 +128,6 @@ function CityCombobox({
   );
 }
 
-// ─── Time Picker ──────────────────────────────────────────────────────────────
-
-function TimePicker({
-  label, value, onChange, required = true,
-}: {
-  label: string;
-  value: TimeValue;
-  onChange: (v: TimeValue) => void;
-  required?: boolean;
-}) {
-  const selectCls =
-    "h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800 " +
-    "focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 " +
-    "transition-all appearance-none cursor-pointer hover:border-slate-300";
-
-  return (
-    <div className="space-y-1.5">
-      <Label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
-        {label} {required && <span className="text-amber-500">*</span>}
-      </Label>
-      <div className="flex items-center gap-2">
-        {/* Hour */}
-        <select
-          value={value.hour}
-          onChange={(e) => onChange({ ...value, hour: e.target.value })}
-          className={`${selectCls} flex-1`}
-          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", paddingRight: 28 }}
-        >
-          {HOURS.map((h) => <option key={h} value={h}>{h.padStart(2, "0")}</option>)}
-        </select>
-
-        <span className="text-slate-400 font-bold text-lg leading-none select-none">:</span>
-
-        {/* Minute */}
-        <select
-          value={value.minute}
-          onChange={(e) => onChange({ ...value, minute: e.target.value })}
-          className={`${selectCls} flex-1`}
-          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", paddingRight: 28 }}
-        >
-          {MINUTES.map((m) => <option key={m} value={m}>{m}</option>)}
-        </select>
-
-        {/* AM/PM */}
-        <div className="flex rounded-xl border border-slate-200 overflow-hidden">
-          {PERIODS.map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => onChange({ ...value, period: p as Period })}
-              className={`px-3 py-2 text-xs font-bold transition-all duration-150
-                ${value.period === p
-                  ? "bg-amber-500 text-white"
-                  : "bg-white text-slate-500 hover:bg-slate-50"
-                }
-              `}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -510,15 +446,15 @@ export default function PostJob() {
                         <span className="text-xs text-slate-400 pl-1">E.g., daily rate or monthly salary.</span>
                       </div>
 
-                      {/* Working Hours — dual time picker */}
+                      {/* Working Hours — dual premium time picker */}
                       <div className="space-y-3">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <TimePicker
+                          <PremiumTimePicker
                             label="Start Time"
                             value={form.startTime}
                             onChange={(v) => setForm((f) => ({ ...f, startTime: v }))}
                           />
-                          <TimePicker
+                          <PremiumTimePicker
                             label="End Time"
                             value={form.endTime}
                             onChange={(v) => setForm((f) => ({ ...f, endTime: v }))}
