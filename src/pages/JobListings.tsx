@@ -130,18 +130,21 @@ export default function JobListings() {
   return (
     <>
       <style>{`
-        .jl-job-card:hover { box-shadow: 0 8px 32px rgba(15,10,30,0.10) !important; }
+        .jl-job-card-airbnb:hover {
+          border-color: rgba(15,10,30,0.12) !important;
+          box-shadow: 0 10px 30px rgba(15,10,30,0.05) !important;
+          transform: translateY(-2px);
+        }
+        .jl-apply-btn-airbnb:not(:disabled):hover {
+          background: #1e293b !important;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(15,10,30,0.08) !important;
+        }
         .jl-search-input:focus-visible {
           outline: none !important;
           border-color: #F59E0B !important;
           box-shadow: 0 0 0 3px rgba(245,158,11,0.14) !important;
         }
-        .jl-apply-btn:not(:disabled):hover {
-          background: linear-gradient(135deg, #FBBF24, #F59E0B) !important;
-          box-shadow: 0 6px 24px rgba(245,158,11,0.42) !important;
-        }
-        .jl-apply-btn:not(:disabled):active { transform: scale(0.97); }
-        .jl-close-btn:hover { background: rgba(15,10,30,0.06) !important; }
       `}</style>
 
       <div
@@ -235,7 +238,6 @@ export default function JobListings() {
               {filtered?.map((job, idx) => {
                 const applied = myApplications?.includes(job.id);
                 const closed = job.status !== "open";
-                const [avatarBg, avatarText] = getAvatarColor(job.title);
 
                 return (
                   <motion.button
@@ -245,127 +247,102 @@ export default function JobListings() {
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0, transition: { delay: idx * 0.04 } }}
                     exit={{ opacity: 0, y: -8 }}
-                    whileTap={{ scale: 0.985 }}
+                    whileTap={{ scale: 0.99 }}
                     onClick={() => setSelectedJob(job)}
-                    className="jl-job-card"
+                    className="jl-job-card-airbnb group"
                     style={{
                       width: "100%",
                       textAlign: "left",
-                      background: "#fff",
+                      background: "#ffffff",
                       borderRadius: 20,
-                      border: "1px solid rgba(15,10,30,0.07)",
-                      boxShadow: "0 2px 12px rgba(15,10,30,0.05)",
+                      border: "1px solid rgba(15,10,30,0.06)",
+                      boxShadow: "0 4px 18px rgba(15,10,30,0.02)",
                       cursor: "pointer",
-                      overflow: "hidden",
-                      transition: "box-shadow .2s",
-                      padding: 0,
+                      padding: 24,
                       position: "relative",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 12,
+                      transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
                     }}
                   >
-                    {/* Amber left accent */}
-                    <div
-                      style={{
-                        position: "absolute", left: 0, top: 0, bottom: 0, width: 4,
-                        background: applied
-                          ? "linear-gradient(180deg, #10B981, #059669)"
-                          : closed
-                          ? "#94A3B8"
-                          : "linear-gradient(180deg, #F59E0B, #D97706)",
-                        borderRadius: "20px 0 0 20px",
-                      }}
-                    />
-
-                    {/* Applied badge */}
-                    {applied && (
-                      <div
-                        style={{
-                          position: "absolute", top: 14, right: 14,
-                          display: "flex", alignItems: "center", gap: 5,
-                          background: "#DCFCE7", border: "1px solid #BBF7D0",
-                          borderRadius: 999, padding: "3px 10px",
-                          fontSize: 11, fontWeight: 700, color: "#16A34A",
-                        }}
-                      >
-                        <CheckCircle2 style={{ height: 11, width: 11 }} />
-                        Applied
-                      </div>
-                    )}
-
-                    {/* Card content */}
-                    <div style={{ padding: "18px 18px 0 22px" }}>
-                      <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-
-                        {/* Avatar */}
-                        <div
-                          style={{
-                            height: 50, width: 50, borderRadius: 14, flexShrink: 0,
-                            background: avatarBg,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                          }}
-                        >
-                          <span style={{ fontSize: 20, fontWeight: 800, color: avatarText }}>
-                            {job.title.charAt(0).toUpperCase()}
+                    {/* Top: Job Title & status */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, width: "100%" }}>
+                      <h3 style={{
+                        margin: 0,
+                        fontSize: 18,
+                        fontWeight: 700,
+                        color: "#0f172a",
+                        letterSpacing: "-0.015em",
+                        lineHeight: 1.3,
+                        flex: 1,
+                      }}>
+                        {job.title}
+                      </h3>
+                      
+                      <div style={{ flexShrink: 0 }}>
+                        {applied ? (
+                          <span style={{ fontSize: 11, fontWeight: 600, color: "#10B981", background: "rgba(16,185,129,0.08)", padding: "3px 8px", borderRadius: 6 }}>
+                            Applied
                           </span>
-                        </div>
-
-                        {/* Title + location */}
-                        <div style={{ flex: 1, minWidth: 0, paddingRight: applied ? 70 : 8 }}>
-                          <h3
-                            style={{
-                              margin: 0, fontSize: 15, fontWeight: 700,
-                              color: "#0d0a1e", letterSpacing: "-0.01em",
-                              whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                            }}
-                          >
-                            {job.title}
-                          </h3>
-                          <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 5 }}>
-                            <MapPin style={{ height: 12, width: 12, color: "rgba(15,10,30,0.30)", flexShrink: 0 }} />
-                            <span
-                              style={{
-                                fontSize: 13, color: "rgba(15,10,30,0.42)",
-                                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                              }}
-                            >
-                              {job.location}
-                            </span>
-                          </div>
-                        </div>
+                        ) : closed ? (
+                          <span style={{ fontSize: 11, fontWeight: 600, color: "#94A3B8", background: "rgba(148,163,184,0.08)", padding: "3px 8px", borderRadius: 6 }}>
+                            Closed
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: 11, fontWeight: 600, color: "#EA580C", background: "rgba(234,88,12,0.06)", padding: "3px 8px", borderRadius: 6 }}>
+                            Open
+                          </span>
+                        )}
                       </div>
                     </div>
 
-                    {/* Bottom row */}
-                    <div
-                      style={{
-                        display: "flex", alignItems: "center", justifyContent: "space-between",
-                        padding: "14px 18px 18px 22px",
-                        marginTop: 14,
-                        borderTop: "1px solid rgba(15,10,30,0.05)",
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                        <Clock style={{ height: 13, width: 13, color: "rgba(15,10,30,0.28)" }} />
-                        <span style={{ fontSize: 12, color: "rgba(15,10,30,0.42)" }}>{job.working_hours}</span>
-                      </div>
+                    {/* Middle: Location & Hours Row */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "rgba(15,10,30,0.42)", fontWeight: 500 }}>
+                      <span>{job.location}</span>
+                      <span style={{ color: "rgba(15,10,30,0.2)" }}>•</span>
+                      <span>{job.working_hours}</span>
+                    </div>
 
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div style={{ textAlign: "right" }}>
-                          <p style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#0d0a1e", letterSpacing: "-0.02em" }}>
-                            {job.salary}
-                          </p>
-                          <p style={{ margin: 0, fontSize: 10, fontWeight: 600, color: "rgba(15,10,30,0.30)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                            per day
-                          </p>
-                        </div>
-                        <div
-                          style={{
-                            height: 30, width: 30, borderRadius: 8,
-                            background: "rgba(245,158,11,0.10)",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                          }}
-                        >
-                          <ChevronRight style={{ height: 15, width: 15, color: "#D97706" }} />
-                        </div>
+                    {/* Description: 2 lines maximum */}
+                    {job.description && (
+                      <p style={{
+                        margin: 0,
+                        fontSize: 13.5,
+                        color: "rgba(15,10,30,0.52)",
+                        lineHeight: 1.55,
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                        letterSpacing: "-0.005em",
+                      }}>
+                        {job.description}
+                      </p>
+                    )}
+
+                    {/* Bottom: Salary + Subtle Arrow CTA */}
+                    <div style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      width: "100%",
+                      marginTop: 4,
+                      paddingTop: 16,
+                      borderTop: "1px solid rgba(15,10,30,0.05)"
+                    }}>
+                      <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
+                        <span style={{ fontSize: 17, fontWeight: 700, color: "#0f172a", letterSpacing: "-0.02em" }}>
+                          {job.salary}
+                        </span>
+                        <span style={{ fontSize: 12, color: "rgba(15,10,30,0.38)" }}>
+                          / day
+                        </span>
+                      </div>
+                      
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, fontWeight: 600, color: "#EA580C" }}>
+                        <span>Explore</span>
+                        <ArrowRight size={13} className="transform group-hover:translate-x-0.5 transition-transform" />
                       </div>
                     </div>
                   </motion.button>
@@ -381,9 +358,9 @@ export default function JobListings() {
         <DialogContent
           className="w-[95%] max-w-lg p-0 overflow-hidden"
           style={{
-            borderRadius: 28,
+            borderRadius: 24,
             border: "none",
-            boxShadow: "0 32px 80px rgba(15,10,30,0.22)",
+            boxShadow: "0 32px 80px rgba(15,10,30,0.18)",
             background: "#fff",
             fontFamily: "'Inter', sans-serif",
           }}
@@ -391,148 +368,121 @@ export default function JobListings() {
           {selectedJob && (
             <div style={{ display: "flex", flexDirection: "column", maxHeight: "88vh", overflowY: "auto" }}>
 
-              {/* DIALOG HEADER */}
-              <div
-                style={{
-                  padding: "24px 24px 20px",
-                  background: "linear-gradient(135deg, #0d0a1e 0%, #1e1040 100%)",
-                  position: "relative",
-                  overflow: "hidden",
-                }}
-              >
-                {/* Amber glow */}
-                <div
-                  style={{
-                    position: "absolute", top: -40, right: -40, width: 180, height: 180, borderRadius: "50%",
-                    background: "radial-gradient(circle, rgba(245,158,11,0.25) 0%, transparent 70%)",
-                    pointerEvents: "none",
-                  }}
-                />
-
-                <div style={{ position: "relative", zIndex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
-                    <h2 style={{ margin: 0, fontSize: 19, fontWeight: 800, color: "#fff", letterSpacing: "-0.02em", lineHeight: 1.25 }}>
-                      {selectedJob.title}
-                    </h2>
-                    <StatusBadge status={selectedJob.status || "open"} />
+              {/* HEADER HERO SECTION */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 14, padding: "32px 32px 24px", borderBottom: "1px solid rgba(15,10,30,0.06)" }}>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+                  <h2 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.03em", lineHeight: 1.25 }}>
+                    {selectedJob.title}
+                  </h2>
+                  <div style={{ flexShrink: 0 }}>
+                    <StatusBadge status={alreadyApplied ? "applied" : selectedJob.status} />
                   </div>
+                </div>
 
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 14 }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: "rgba(255,255,255,0.60)" }}>
-                      <MapPin style={{ height: 13, width: 13, color: "#F59E0B" }} />
-                      {selectedJob.location}
-                    </span>
-                    <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: "rgba(255,255,255,0.60)" }}>
-                      <Clock style={{ height: 13, width: 13, color: "#F59E0B" }} />
-                      {selectedJob.working_hours}
-                    </span>
-                  </div>
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, fontSize: 14, color: "rgba(15,10,30,0.45)", fontWeight: 500 }}>
+                  <span>{selectedJob.location}</span>
+                  <span style={{ color: "rgba(15,10,30,0.2)" }}>•</span>
+                  <span>{selectedJob.working_hours}</span>
+                  <span style={{ color: "rgba(15,10,30,0.2)" }}>•</span>
+                  <span style={{ color: "#EA580C", fontWeight: 700 }}>{selectedJob.salary} / day</span>
                 </div>
               </div>
 
-              {/* DIALOG BODY */}
-              <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16, flex: 1 }}>
-
-                {/* Salary hero */}
-                <div
-                  style={{
-                    background: "linear-gradient(135deg, #FEF3C7 0%, #FFF7ED 100%)",
-                    border: "1px solid rgba(245,158,11,0.20)",
-                    borderRadius: 18,
-                    padding: "16px 20px",
-                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                  }}
-                >
-                  <div>
-                    <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "rgba(217,119,6,0.70)" }}>
-                      Daily Pay
-                    </p>
-                    <p style={{ margin: "4px 0 0", fontSize: 26, fontWeight: 800, color: "#0d0a1e", letterSpacing: "-0.03em" }}>
-                      {selectedJob.salary}
-                    </p>
-                  </div>
-                  <div
-                    style={{
-                      height: 44, width: 44, borderRadius: 12,
-                      background: "rgba(245,158,11,0.15)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}
-                  >
-                    <Zap style={{ height: 20, width: 20, color: "#D97706" }} strokeWidth={2.5} />
-                  </div>
-                </div>
-
-                {/* Details grid */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                  {[
-                    { label: "Location", value: selectedJob.location },
-                    { label: "Working Hours", value: selectedJob.working_hours },
-                    ...(selectedJob.workers_required
-                      ? [{ label: "Workers Needed", value: selectedJob.workers_required, full: true }]
-                      : []),
-                  ].map(({ label, value, full }) => (
-                    <div
-                      key={label}
-                      style={{
-                        gridColumn: full ? "1 / -1" : undefined,
-                        background: "#F8FAFC",
-                        border: "1px solid rgba(15,10,30,0.07)",
-                        borderRadius: 14,
-                        padding: "12px 14px",
-                      }}
-                    >
-                      <p style={{ margin: 0, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.10em", color: "rgba(15,10,30,0.35)" }}>
-                        {label}
-                      </p>
-                      <p style={{ margin: "5px 0 0", fontSize: 14, fontWeight: 600, color: "#0d0a1e" }}>
-                        {value}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-
+              {/* BODY SECTION (Clean Layout, no excessive boxes) */}
+              <div style={{ padding: "28px 32px", display: "flex", flexDirection: "column", gap: 24 }}>
+                
                 {/* Description */}
                 {selectedJob.description && (
-                  <div
-                    style={{
-                      background: "#F8FAFC",
-                      border: "1px solid rgba(15,10,30,0.07)",
-                      borderRadius: 14,
-                      padding: "14px 16px",
-                    }}
-                  >
-                    <p style={{ margin: "0 0 8px", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.10em", color: "rgba(15,10,30,0.35)" }}>
-                      About this Job
-                    </p>
-                    <p style={{ margin: 0, fontSize: 14, color: "rgba(15,10,30,0.62)", lineHeight: 1.65 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <h3 style={{ margin: 0, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(15,10,30,0.38)" }}>
+                      About this opportunity
+                    </h3>
+                    <p style={{ margin: 0, fontSize: 14.5, color: "rgba(15,10,30,0.65)", lineHeight: 1.65, letterSpacing: "-0.005em" }}>
                       {selectedJob.description}
                     </p>
                   </div>
                 )}
+
+                {/* Details Section */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px 32px", padding: "16px 0", borderTop: "1px solid rgba(15,10,30,0.06)", borderBottom: "1px solid rgba(15,10,30,0.06)" }}>
+                  <div>
+                    <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(15,10,30,0.35)", display: "block", marginBottom: 6 }}>
+                      Location
+                    </span>
+                    <p style={{ margin: 0, fontSize: 14.5, fontWeight: 600, color: "#0f172a" }}>{selectedJob.location}</p>
+                  </div>
+
+                  <div>
+                    <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(15,10,30,0.35)", display: "block", marginBottom: 6 }}>
+                      Working Hours
+                    </span>
+                    <p style={{ margin: 0, fontSize: 14.5, fontWeight: 600, color: "#0f172a" }}>{selectedJob.working_hours}</p>
+                  </div>
+
+                  <div>
+                    <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(15,10,30,0.35)", display: "block", marginBottom: 6 }}>
+                      Pay Details
+                    </span>
+                    <p style={{ margin: 0, fontSize: 14.5, fontWeight: 600, color: "#0f172a" }}>
+                      {selectedJob.salary} per working day
+                    </p>
+                  </div>
+
+                  {selectedJob.workers_required && (
+                    <div>
+                      <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(15,10,30,0.35)", display: "block", marginBottom: 6 }}>
+                        Openings
+                      </span>
+                      <p style={{ margin: 0, fontSize: 14.5, fontWeight: 600, color: "#0f172a" }}>
+                        {selectedJob.workers_required} workers required
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Highlights List */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <h3 style={{ margin: 0, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(15,10,30,0.38)" }}>
+                    Highlights
+                  </h3>
+                  <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
+                    {[
+                      "Immediate hiring opportunity",
+                      "Flexible working environment",
+                      "Weekly payout direct deposits available",
+                      "Hyperlocal job opening"
+                    ].map((item) => (
+                      <li key={item} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "rgba(15,10,30,0.6)" }}>
+                        <span style={{ color: "#EA580C", fontWeight: 700 }}>✓</span>
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
 
-              {/* DIALOG ACTIONS */}
+              {/* DIALOG ACTIONS (CTA Section) */}
               <div
                 style={{
-                  padding: "16px 24px 24px",
-                  borderTop: "1px solid rgba(15,10,30,0.07)",
+                  padding: "16px 32px 32px",
+                  borderTop: "1px solid rgba(15,10,30,0.06)",
                   background: "#fff",
                   display: "flex",
                   flexDirection: "column",
-                  gap: 10,
+                  gap: 12,
                 }}
               >
                 {alreadyApplied && (
                   <div
                     style={{
                       display: "flex", alignItems: "center", gap: 8,
-                      background: "#F0FDF4", border: "1px solid #BBF7D0",
-                      borderRadius: 12, padding: "10px 14px",
-                      fontSize: 13, fontWeight: 600, color: "#16A34A",
+                      background: "rgba(16,185,129,0.05)", border: "1px solid rgba(16,185,129,0.15)",
+                      borderRadius: 12, padding: "12px 16px",
+                      fontSize: 13.5, fontWeight: 600, color: "#059669",
                     }}
                   >
-                    <CheckCircle2 style={{ height: 16, width: 16 }} />
-                    You already applied for this job
+                    <CheckCircle2 style={{ height: 15, width: 15 }} />
+                    You have already submitted an application for this position
                   </div>
                 )}
 
@@ -540,46 +490,42 @@ export default function JobListings() {
                   <div
                     style={{
                       display: "flex", alignItems: "center", gap: 8,
-                      background: "#FEF2F2", border: "1px solid #FECACA",
-                      borderRadius: 12, padding: "10px 14px",
-                      fontSize: 13, fontWeight: 600, color: "#DC2626",
+                      background: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.15)",
+                      borderRadius: 12, padding: "12px 16px",
+                      fontSize: 13.5, fontWeight: 600, color: "#DC2626",
                     }}
                   >
-                    <XCircle style={{ height: 16, width: 16 }} />
-                    This position is no longer available
+                    <XCircle style={{ height: 15, width: 15 }} />
+                    This job opportunity is closed
                   </div>
                 )}
 
                 <Button
                   onClick={() => applyMutation.mutate(selectedJob.id)}
                   disabled={applyMutation.isPending || alreadyApplied || isClosed}
-                  className="jl-apply-btn"
+                  className="jl-apply-btn-airbnb"
                   style={{
-                    width: "100%", height: 50, borderRadius: 14,
-                    fontSize: 15, fontWeight: 700, border: "none",
+                    width: "100%", height: 50, borderRadius: 12,
+                    fontSize: 15, fontWeight: 600, border: "none",
                     background:
                       alreadyApplied || isClosed
-                        ? "#E2E8F0"
-                        : "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+                        ? "#F1F5F9"
+                        : "#0f172a",
                     color:
-                      alreadyApplied || isClosed ? "#94A3B8" : "#1c0e00",
-                    boxShadow:
-                      alreadyApplied || isClosed
-                        ? "none"
-                        : "0 4px 18px rgba(245,158,11,0.32)",
+                      alreadyApplied || isClosed ? "#94A3B8" : "#ffffff",
                     cursor: alreadyApplied || isClosed ? "not-allowed" : "pointer",
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                    transition: "all .18s",
+                    transition: "all 0.2s ease",
                   }}
                 >
                   {applyMutation.isPending ? (
-                    <><Loader2 style={{ height: 16, width: 16 }} className="animate-spin" /> Applying…</>
+                    <><Loader2 style={{ height: 16, width: 16 }} className="animate-spin" /> Submitting application…</>
                   ) : isClosed ? (
                     "Position Closed"
                   ) : alreadyApplied ? (
-                    <><CheckCircle2 style={{ height: 16, width: 16 }} /> Already Applied</>
+                    "Already Applied"
                   ) : (
-                    <>Apply for this Job <ArrowRight style={{ height: 16, width: 16 }} strokeWidth={2.5} /></>
+                    <>Secure This Opportunity <ArrowRight style={{ height: 15, width: 15 }} /></>
                   )}
                 </Button>
               </div>
