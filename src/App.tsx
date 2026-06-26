@@ -21,6 +21,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import About from "./pages/About";
 
 import { BrandedLoadingScreen } from "@/components/BrandedLoading";
 
@@ -71,6 +72,7 @@ function AppRoutes() {
     </ProtectedRoute>
   }
 />
+      <Route path="/about" element={<About />} />
       <Route path="*" element={<NotFound />} />
       <Route path="/profile" element={<ProtectedRoute roles={["worker"]}><WorkerProfile /></ProtectedRoute>} />
     </Routes>

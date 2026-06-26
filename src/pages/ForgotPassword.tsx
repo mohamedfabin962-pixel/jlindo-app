@@ -190,7 +190,7 @@ export default function ForgotPassword() {
                 </form>
               </>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", py: 8 }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "32px 0" }}>
                 <div
                   style={{
                     height: 56, width: 56, borderRadius: "50%",

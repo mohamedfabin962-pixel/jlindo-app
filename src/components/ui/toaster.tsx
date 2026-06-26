@@ -8,21 +8,23 @@ export function Toaster() {
   return (
     <ToastProvider>
       {toasts.map(function ({ id, title, description, action, variant, ...props }) {
-        // Detect success vs error vs info using variant and title text keywords
-        const isSuccess = variant === "success" || 
-                          title?.toLowerCase().includes("success") || 
-                          title?.toLowerCase().includes("sent") || 
-                          title?.toLowerCase().includes("updated") || 
-                          title?.toLowerCase().includes("done") || 
-                          title?.toLowerCase().includes("saved") || 
-                          title?.toLowerCase().includes("successful") || 
-                          description?.toLowerCase().includes("success");
+        const titleString = typeof title === 'string' ? title.toLowerCase() : '';
+        const descString = typeof description === 'string' ? description.toLowerCase() : '';
+
+        const isSuccess = (variant as any) === "success" || 
+                          titleString.includes("success") || 
+                          titleString.includes("sent") || 
+                          titleString.includes("updated") || 
+                          titleString.includes("done") || 
+                          titleString.includes("saved") || 
+                          titleString.includes("successful") || 
+                          descString.includes("success");
                           
         const isDestructive = variant === "destructive" || 
-                              title?.toLowerCase().includes("fail") || 
-                              title?.toLowerCase().includes("error") ||
-                              description?.toLowerCase().includes("fail") ||
-                              description?.toLowerCase().includes("error");
+                              titleString.includes("fail") || 
+                              titleString.includes("error") ||
+                              descString.includes("fail") ||
+                              descString.includes("error");
 
         let icon = <Info className="h-5 w-5 text-amber-500" />;
         let iconBg = "rgba(245, 158, 11, 0.08)";

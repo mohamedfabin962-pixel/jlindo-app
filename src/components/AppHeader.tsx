@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, Menu, X, Briefcase, LayoutDashboard, Search, User, MessageSquare, PlusCircle } from "lucide-react";
+import { LogOut, Menu, X, Briefcase, LayoutDashboard, Search, User, MessageSquare, PlusCircle, Info } from "lucide-react";
 import { useState } from "react";
 import { BrandedConfirmDialog } from "@/components/BrandedConfirmDialog";
 import { motion } from "framer-motion";
@@ -173,6 +173,11 @@ export function AppHeader() {
                 Feedback
               </Link>
 
+              <Link to="/about" className="jl-nav-link" style={navLinkStyle("/about")}>
+                <Info style={{ height: 14, width: 14 }} />
+                About
+              </Link>
+
               {/* Divider */}
               <div style={{ width: 1, height: 20, background: "rgba(15,10,30,0.10)", margin: "0 12px" }} />
 
@@ -342,6 +347,17 @@ export function AppHeader() {
           {!user && (
             <div style={{ display: "flex", gap: 8 }}>
               <Link
+                to="/about"
+                style={{
+                  padding: "7px 16px", borderRadius: 8, fontSize: 14, fontWeight: 500,
+                  color: "rgba(15,10,30,0.55)", textDecoration: "none",
+                  border: "1px solid rgba(15,10,30,0.10)", background: "transparent",
+                  transition: "all .15s",
+                }}
+              >
+                About
+              </Link>
+              <Link
                 to="/login"
                 style={{
                   padding: "7px 16px", borderRadius: 8, fontSize: 14, fontWeight: 500,
@@ -494,6 +510,21 @@ export function AppHeader() {
             >
               <MessageSquare style={{ height: 16, width: 16 }} />
               Feedback
+            </Link>
+
+            <Link
+              to="/about"
+              onClick={() => setMobileOpen(false)}
+              className="jl-mobile-link"
+              style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "10px 12px", borderRadius: 10,
+                fontSize: 14, fontWeight: 500,
+                color: "rgba(15,10,30,0.55)", textDecoration: "none", transition: "all .15s",
+              }}
+            >
+              <Info style={{ height: 16, width: 16 }} />
+              About
             </Link>
 
             <div style={{ height: 1, background: "rgba(15,10,30,0.07)", margin: "4px 0" }} />
