@@ -1,14 +1,43 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Phone, Briefcase, MapPin, Clock, CalendarDays, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { JobCardSkeleton } from "@/components/BrandedLoading";
+import { EmptyState } from "@/components/EmptyState";
+import { BrandedConfirmDialog } from "@/components/BrandedConfirmDialog";
 
 export default function MyApplications() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [withdrawTargetId, setWithdrawTargetId] = useState<string | null>(null);
+
+  const withdrawMutation = useMutation({
+    mutationFn: async (appId: string) => {
+      const { error } = await supabase.from("applications").delete().eq("id", appId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-applications-detail"] });
+      queryClient.invalidateQueries({ queryKey: ["my-applications"] });
+      toast({
+        title: "Application withdrawn",
+        description: "Your application was successfully withdrawn.",
+      });
+      setWithdrawTargetId(null);
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Error withdrawing",
+        description: err.message,
+        variant: "destructive",
+      });
+    }
+  });
 
   const { data: applications, isLoading } = useQuery({
     queryKey: ["my-applications-detail"],
@@ -94,27 +123,13 @@ export default function MyApplications() {
 
           {/* ── EMPTY STATE ─────────────────────────────── */}
           {applications?.length === 0 && !isLoading && (
-             <div
-               style={{
-                 textAlign: "center", padding: "60px 20px",
-                 background: "#fff", borderRadius: 24,
-                 border: "1px solid rgba(15,10,30,0.07)",
-               }}
-             >
-               <div
-                 style={{
-                   height: 56, width: 56, borderRadius: 16, margin: "0 auto 16px",
-                   background: "rgba(245,158,11,0.10)",
-                   display: "flex", alignItems: "center", justifyContent: "center",
-                 }}
-               >
-                 <Briefcase style={{ height: 24, width: 24, color: "#F59E0B" }} />
-               </div>
-               <p style={{ fontSize: 16, fontWeight: 700, color: "#0d0a1e", margin: 0 }}>No applications yet</p>
-               <p style={{ fontSize: 13, color: "rgba(15,10,30,0.42)", marginTop: 6 }}>
-                 Start applying for jobs to track them here
-               </p>
-             </div>
+             <EmptyState
+               icon={Briefcase}
+               title="No applications yet"
+               description="Start applying for jobs to track them here."
+               actionText="Browse Open Jobs"
+               actionLink="/jobs"
+             />
           )}
 
           {/* ── LIST ────────────────────────────────────── */}
@@ -208,9 +223,31 @@ export default function MyApplications() {
                       )}
 
                       {/* Footer */}
-                      <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: "rgba(15,10,30,0.35)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                        <CalendarDays style={{ height: 12, width: 12 }} />
-                        Applied {new Date(app.created_at).toLocaleDateString()}
+                      <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: "rgba(15,10,30,0.35)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                          <CalendarDays style={{ height: 12, width: 12 }} />
+                          Applied {new Date(app.created_at).toLocaleDateString()}
+                        </div>
+                        {app.status === "pending" && (
+                          <button
+                            type="button"
+                            onClick={() => setWithdrawTargetId(app.id)}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              fontSize: 12,
+                              fontWeight: 600,
+                              color: "#EF4444",
+                              cursor: "pointer",
+                              padding: "4px 8px",
+                              borderRadius: 6,
+                              transition: "background .15s",
+                            }}
+                            className="hover:bg-red-50"
+                          >
+                            Withdraw
+                          </button>
+                        )}
                       </div>
                     </div>
                   </motion.div>
@@ -220,6 +257,17 @@ export default function MyApplications() {
           </div>
         </div>
       </div>
+
+      <BrandedConfirmDialog
+        isOpen={!!withdrawTargetId}
+        onClose={() => setWithdrawTargetId(null)}
+        onConfirm={() => withdrawTargetId && withdrawMutation.mutate(withdrawTargetId)}
+        title="Withdraw Application"
+        description="Are you sure you want to withdraw this application? This action cannot be undone."
+        confirmText="Withdraw"
+        isDestructive
+        isLoading={withdrawMutation.isPending}
+      />
     </>
   );
 }

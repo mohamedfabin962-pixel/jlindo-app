@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { JobCardSkeleton } from "@/components/BrandedLoading";
+import { EmptyState } from "@/components/EmptyState";
 
 /* ─── main component ─── */
 export default function JobListings() {
@@ -166,27 +167,11 @@ export default function JobListings() {
 
           {/* ── EMPTY STATE ─────────────────────────────── */}
           {!isLoading && filtered?.length === 0 && (
-            <div
-              style={{
-                textAlign: "center", padding: "60px 20px",
-                background: "#fff", borderRadius: 24,
-                border: "1px solid rgba(15,10,30,0.07)",
-              }}
-            >
-              <div
-                style={{
-                  height: 56, width: 56, borderRadius: 16, margin: "0 auto 16px",
-                  background: "rgba(245,158,11,0.10)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}
-              >
-                <Search style={{ height: 24, width: 24, color: "#F59E0B" }} />
-              </div>
-              <p style={{ fontSize: 16, fontWeight: 700, color: "#0d0a1e", margin: 0 }}>No jobs found</p>
-              <p style={{ fontSize: 13, color: "rgba(15,10,30,0.42)", marginTop: 6 }}>
-                Try a different search term or check back later
-              </p>
-            </div>
+            <EmptyState
+              icon={Search}
+              title="No jobs found"
+              description="Try a different search term or check back later."
+            />
           )}
 
           {/* ── JOB CARDS ───────────────────────────────── */}

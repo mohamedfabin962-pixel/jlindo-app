@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, Ban, Users, Briefcase, FileCheck, MessageSquare, ShieldCheck, Check } from "lucide-react";
 import { Navigate } from "react-router-dom";
+import { EmptyState } from "@/components/EmptyState";
 
 export default function AdminDashboard() {
   const { profile, loading } = useAuth();
@@ -217,177 +218,209 @@ export default function AdminDashboard() {
 
             {/* USERS TAB */}
             <TabsContent value="users" className="space-y-3">
-              {users?.map((u) => (
-                <div
-                  key={u.id}
-                  className="jl-admin-card"
-                  style={{
-                    background: "#fff",
-                    borderRadius: 16,
-                    border: "1px solid rgba(15,10,30,0.06)",
-                    padding: "16px 20px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    transition: "box-shadow 0.2s",
-                  }}
-                >
-                  <div>
-                    <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#0d0a1e" }}>
-                      {u.full_name || "No name"}
-                    </p>
-                    <p style={{ margin: "2px 0 0", fontSize: 12, color: "rgba(15,10,30,0.4)" }}>
-                      Role: <strong style={{ textTransform: "capitalize" }}>{u.role}</strong> {u.phone && `• ${u.phone}`}
-                    </p>
+              {!users || users.length === 0 ? (
+                <EmptyState
+                  icon={Users}
+                  title="No users registered"
+                  description="Registered worker or employer accounts will appear here."
+                />
+              ) : (
+                users.map((u) => (
+                  <div
+                    key={u.id}
+                    className="jl-admin-card"
+                    style={{
+                      background: "#fff",
+                      borderRadius: 16,
+                      border: "1px solid rgba(15,10,30,0.06)",
+                      padding: "16px 20px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      transition: "box-shadow 0.2s",
+                    }}
+                  >
+                    <div>
+                      <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#0d0a1e" }}>
+                        {u.full_name || "No name"}
+                      </p>
+                      <p style={{ margin: "2px 0 0", fontSize: 12, color: "rgba(15,10,30,0.4)" }}>
+                        Role: <strong style={{ textTransform: "capitalize" }}>{u.role}</strong> {u.phone && `• ${u.phone}`}
+                      </p>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      {u.is_blocked && <StatusBadge status="blocked" />}
+                      <Button
+                        size="sm"
+                        variant={u.is_blocked ? "default" : "outline"}
+                        style={{
+                          borderRadius: 10,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          height: 32,
+                          borderColor: u.is_blocked ? undefined : "rgba(15,10,30,0.08)",
+                          color: u.is_blocked ? undefined : "rgba(15,10,30,0.6)"
+                        }}
+                        onClick={() => toggleBlockUser.mutate({ userId: u.user_id, blocked: !u.is_blocked })}
+                      >
+                        <Ban size={13} className="mr-1" /> {u.is_blocked ? "Unblock" : "Block"}
+                      </Button>
+                    </div>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    {u.is_blocked && <StatusBadge status="blocked" />}
-                    <Button
-                      size="sm"
-                      variant={u.is_blocked ? "default" : "outline"}
-                      style={{
-                        borderRadius: 10,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        height: 32,
-                        borderColor: u.is_blocked ? undefined : "rgba(15,10,30,0.08)",
-                        color: u.is_blocked ? undefined : "rgba(15,10,30,0.6)"
-                      }}
-                      onClick={() => toggleBlockUser.mutate({ userId: u.user_id, blocked: !u.is_blocked })}
-                    >
-                      <Ban size={13} className="mr-1" /> {u.is_blocked ? "Unblock" : "Block"}
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </TabsContent>
 
             {/* JOBS TAB */}
             <TabsContent value="jobs" className="space-y-3">
-              {jobs?.map((j) => (
-                <div
-                  key={j.id}
-                  className="jl-admin-card"
-                  style={{
-                    background: "#fff",
-                    borderRadius: 16,
-                    border: "1px solid rgba(15,10,30,0.06)",
-                    padding: "16px 20px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    transition: "box-shadow 0.2s",
-                  }}
-                >
-                  <div>
-                    <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#0d0a1e" }}>{j.title}</p>
-                    <p style={{ margin: "2px 0 0", fontSize: 12, color: "rgba(15,10,30,0.4)" }}>
-                      {j.location} • <span style={{ color: "#EA580C", fontWeight: 600 }}>{j.salary}</span>
-                    </p>
+              {!jobs || jobs.length === 0 ? (
+                <EmptyState
+                  icon={Briefcase}
+                  title="No jobs posted yet"
+                  description="Active and closed job opportunities will be listed here."
+                />
+              ) : (
+                jobs.map((j) => (
+                  <div
+                    key={j.id}
+                    className="jl-admin-card"
+                    style={{
+                      background: "#fff",
+                      borderRadius: 16,
+                      border: "1px solid rgba(15,10,30,0.06)",
+                      padding: "16px 20px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      transition: "box-shadow 0.2s",
+                    }}
+                  >
+                    <div>
+                      <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#0d0a1e" }}>{j.title}</p>
+                      <p style={{ margin: "2px 0 0", fontSize: 12, color: "rgba(15,10,30,0.4)" }}>
+                        {j.location} • <span style={{ color: "#EA580C", fontWeight: 600 }}>{j.salary}</span>
+                      </p>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <Select value={j.status} onValueChange={(s) => updateJobStatus.mutate({ jobId: j.id, status: s })}>
+                        <SelectTrigger className="w-28 h-8.5 text-xs rounded-lg border-slate-200">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="open">Open</SelectItem>
+                          <SelectItem value="filled">Filled</SelectItem>
+                          <SelectItem value="blocked">Blocked</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-destructive h-8.5 w-8.5 p-0 rounded-lg"
+                        style={{ borderColor: "rgba(239,68,68,0.15)", background: "rgba(239,68,68,0.02)" }}
+                        onClick={() => deleteJob.mutate(j.id)}
+                      >
+                        <Trash2 size={13} />
+                      </Button>
+                    </div>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <Select value={j.status} onValueChange={(s) => updateJobStatus.mutate({ jobId: j.id, status: s })}>
-                      <SelectTrigger className="w-28 h-8.5 text-xs rounded-lg border-slate-200">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="open">Open</SelectItem>
-                        <SelectItem value="filled">Filled</SelectItem>
-                        <SelectItem value="blocked">Blocked</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-destructive h-8.5 w-8.5 p-0 rounded-lg"
-                      style={{ borderColor: "rgba(239,68,68,0.15)", background: "rgba(239,68,68,0.02)" }}
-                      onClick={() => deleteJob.mutate(j.id)}
-                    >
-                      <Trash2 size={13} />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </TabsContent>
 
             {/* APPLICATIONS TAB */}
             <TabsContent value="applications" className="space-y-3">
-              {applications?.map((a: any) => (
-                <div
-                  key={a.id}
-                  className="jl-admin-card"
-                  style={{
-                    background: "#fff",
-                    borderRadius: 16,
-                    border: "1px solid rgba(15,10,30,0.06)",
-                    padding: "16px 20px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    transition: "box-shadow 0.2s",
-                  }}
-                >
-                  <div>
-                    <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#0d0a1e" }}>
-                      {a.jobs?.title || "Unknown Job"}
-                    </p>
-                    <p style={{ margin: "2px 0 0", fontSize: 12, color: "rgba(15,10,30,0.4)" }}>
-                      Worker ID: {a.worker_id.slice(0, 8)}…
-                    </p>
+              {!applications || applications.length === 0 ? (
+                <EmptyState
+                  icon={FileCheck}
+                  title="No applications submitted"
+                  description="Job applications submitted by workers will appear here."
+                />
+              ) : (
+                applications.map((a: any) => (
+                  <div
+                    key={a.id}
+                    className="jl-admin-card"
+                    style={{
+                      background: "#fff",
+                      borderRadius: 16,
+                      border: "1px solid rgba(15,10,30,0.06)",
+                      padding: "16px 20px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      transition: "box-shadow 0.2s",
+                    }}
+                  >
+                    <div>
+                      <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#0d0a1e" }}>
+                        {a.jobs?.title || "Unknown Job"}
+                      </p>
+                      <p style={{ margin: "2px 0 0", fontSize: 12, color: "rgba(15,10,30,0.4)" }}>
+                        Worker ID: {a.worker_id.slice(0, 8)}…
+                      </p>
+                    </div>
+                    <StatusBadge status={a.status} />
                   </div>
-                  <StatusBadge status={a.status} />
-                </div>
-              ))}
+                ))
+              )}
             </TabsContent>
 
             {/* FEEDBACK TAB */}
             <TabsContent value="feedback" className="space-y-3">
-              {feedbacks?.map((f) => (
-                <div
-                  key={f.id}
-                  className="jl-admin-card"
-                  style={{
-                    background: "#fff",
-                    borderRadius: 16,
-                    border: "1px solid rgba(15,10,30,0.06)",
-                    padding: "16px 20px",
-                    transition: "box-shadow 0.2s",
-                  }}
-                >
-                  <div style={{ display: "flex", itemsCenter: "center", gap: 8, marginBottom: 8 }}>
-                    <StatusBadge status={f.status === "resolved" ? "success" : "pending"} />
-                    <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "rgba(15,10,30,0.4)" }}>
-                      {f.type}
-                    </span>
-                    <span style={{ fontSize: 11, color: "rgba(15,10,30,0.35)", marginLeft: "auto" }}>
-                      {new Date(f.created_at).toLocaleDateString()}
-                    </span>
+              {!feedbacks || feedbacks.length === 0 ? (
+                <EmptyState
+                  icon={MessageSquare}
+                  title="No feedback yet"
+                  description="User suggestions or issue reports will show up here."
+                />
+              ) : (
+                feedbacks.map((f) => (
+                  <div
+                    key={f.id}
+                    className="jl-admin-card"
+                    style={{
+                      background: "#fff",
+                      borderRadius: 16,
+                      border: "1px solid rgba(15,10,30,0.06)",
+                      padding: "16px 20px",
+                      transition: "box-shadow 0.2s",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                      <StatusBadge status={f.status === "resolved" ? "success" : "pending"} />
+                      <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "rgba(15,10,30,0.4)" }}>
+                        {f.type}
+                      </span>
+                      <span style={{ fontSize: 11, color: "rgba(15,10,30,0.35)", marginLeft: "auto" }}>
+                        {new Date(f.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    <p style={{ margin: "8px 0 14px", fontSize: 13.5, color: "rgba(15,10,30,0.8)" }}>{f.message}</p>
+
+                    {f.status !== "resolved" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-xs font-semibold rounded-lg"
+                        style={{
+                          borderColor: "rgba(16,185,129,0.2)",
+                          color: "#059669",
+                          background: "rgba(16,185,129,0.03)"
+                        }}
+                        onClick={() =>
+                          updateFeedbackStatus.mutate({
+                            id: f.id,
+                            status: "resolved",
+                          })
+                        }
+                      >
+                        <Check size={12} className="mr-1" /> Mark Resolved
+                      </Button>
+                    )}
                   </div>
-
-                  <p style={{ margin: "8px 0 14px", fontSize: 13.5, color: "rgba(15,10,30,0.8)" }}>{f.message}</p>
-
-                  {f.status !== "resolved" && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 text-xs font-semibold rounded-lg"
-                      style={{
-                        borderColor: "rgba(16,185,129,0.2)",
-                        color: "#059669",
-                        background: "rgba(16,185,129,0.03)"
-                      }}
-                      onClick={() =>
-                        updateFeedbackStatus.mutate({
-                          id: f.id,
-                          status: "resolved",
-                        })
-                      }
-                    >
-                      <Check size={12} className="mr-1" /> Mark Resolved
-                    </Button>
-                  )}
-                </div>
-              ))}
+                ))
+              )}
             </TabsContent>
           </Tabs>
         </div>

@@ -2,6 +2,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { LogOut, Zap, Menu, X, Briefcase, LayoutDashboard, Search, User, MessageSquare, PlusCircle } from "lucide-react";
 import { useState } from "react";
+import { BrandedConfirmDialog } from "@/components/BrandedConfirmDialog";
 
 export function AppHeader() {
   const { user, profile, isAdmin, signOut } = useAuth();
@@ -9,9 +10,12 @@ export function AppHeader() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
   const handleSignOut = async () => {
     await signOut();
     navigate("/login");
+    setShowLogoutConfirm(false);
   };
 
   const role = profile?.role;
@@ -146,7 +150,7 @@ export function AppHeader() {
               <div style={{ width: 1, height: 20, background: "rgba(15,10,30,0.10)", margin: "0 6px" }} />
 
               <button
-                onClick={handleSignOut}
+                onClick={() => setShowLogoutConfirm(true)}
                 className="jl-signout"
                 style={{
                   display: "inline-flex", alignItems: "center", gap: 6,
@@ -324,8 +328,11 @@ export function AppHeader() {
 
             <div style={{ height: 1, background: "rgba(15,10,30,0.07)", margin: "4px 0" }} />
 
-            <button
-              onClick={handleSignOut}
+             <button
+               onClick={() => {
+                 setMobileOpen(false);
+                 setShowLogoutConfirm(true);
+               }}
               style={{
                 display: "flex", alignItems: "center", gap: 10,
                 padding: "10px 12px", borderRadius: 10,
@@ -341,6 +348,16 @@ export function AppHeader() {
           </div>
         )}
       </header>
+
+      <BrandedConfirmDialog
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={handleSignOut}
+        title="Sign Out"
+        description="Are you sure you want to log out of your session?"
+        confirmText="Sign Out"
+        isDestructive
+      />
     </>
   );
 }
