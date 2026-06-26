@@ -1,9 +1,10 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, Zap, Menu, X, Briefcase, LayoutDashboard, Search, User, MessageSquare, PlusCircle } from "lucide-react";
+import { LogOut, Menu, X, Briefcase, LayoutDashboard, Search, User, MessageSquare, PlusCircle } from "lucide-react";
 import { useState } from "react";
 import { BrandedConfirmDialog } from "@/components/BrandedConfirmDialog";
 import { motion } from "framer-motion";
+import { JlindoLogo } from "@/components/JlindoLogo";
 
 export function AppHeader() {
   const { user, profile, isAdmin, signOut } = useAuth();
@@ -124,31 +125,9 @@ export function AppHeader() {
           {/* Brand */}
           <Link
             to="/"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              textDecoration: "none",
-              flexShrink: 0,
-            }}
+            style={{ textDecoration: "none", flexShrink: 0 }}
           >
-            <div
-              style={{
-                height: 30,
-                width: 30,
-                borderRadius: 8,
-                background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 2px 8px rgba(245,158,11,0.30)",
-              }}
-            >
-              <Zap style={{ height: 15, width: 15, color: "#fff" }} strokeWidth={2.5} />
-            </div>
-            <span style={{ fontSize: 15, fontWeight: 700, color: "#0d0a1e", letterSpacing: "-0.02em" }}>
-              Jlindo
-            </span>
+            <JlindoLogo size="sm" variant="color" showTagline={false} />
           </Link>
 
 

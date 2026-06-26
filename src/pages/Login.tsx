@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowRight, Loader2, Zap, MapPin, HardHat, Wrench, Eye, EyeOff } from "lucide-react";
+import { ArrowRight, Loader2, MapPin, HardHat, Wrench, Eye, EyeOff } from "lucide-react";
+import { JlindoLogo } from "@/components/JlindoLogo";
 
 /* ─────────────────────────────────────────────────────────────
    Floating decorative job chip
@@ -177,18 +178,7 @@ export default function Login() {
 
           {/* Brand */}
           <div className="jl-1 flex items-center gap-3">
-            <div
-              className="h-9 w-9 rounded-xl flex items-center justify-center shadow-lg"
-              style={{
-                background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
-                boxShadow: "0 4px 14px rgba(245,158,11,0.35)",
-              }}
-            >
-              <Zap style={{ height: 18, width: 18, color: "#fff" }} strokeWidth={2.5} />
-            </div>
-            <span style={{ color: "rgba(255,255,255,0.88)", fontSize: 15, fontWeight: 700, letterSpacing: "-0.01em" }}>
-              Jlindo
-            </span>
+            <JlindoLogo size="sm" variant="white" showTagline={false} />
           </div>
 
           {/* ── HERO TEXT BLOCK ─────────────────────────── */}
@@ -304,18 +294,7 @@ export default function Login() {
             {/* ── MOBILE ONLY: brand + headline ─────────── */}
             <div className="lg:hidden mb-8">
               <div className="jl-1 flex items-center gap-2.5 mb-8">
-                <div
-                  className="h-8 w-8 rounded-lg flex items-center justify-center"
-                  style={{
-                    background: "linear-gradient(135deg, #F59E0B, #D97706)",
-                    boxShadow: "0 4px 12px rgba(245,158,11,0.35)",
-                  }}
-                >
-                  <Zap style={{ height: 16, width: 16, color: "#fff" }} strokeWidth={2.5} />
-                </div>
-                <span style={{ color: "rgba(255,255,255,0.88)", fontWeight: 700, letterSpacing: "-0.01em" }}>
-                  Jlindo
-                </span>
+                <JlindoLogo size="sm" variant="white" showTagline={false} />
               </div>
 
               <h1 className="jl-2" style={{ margin: 0 }}>

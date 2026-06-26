@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Custom premium CSS styles injected into the document head
@@ -108,20 +107,28 @@ export function BrandedLoadingScreen({ message, customMessages }: BrandedLoading
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 24, maxWidth: 320, textAlign: "center" }}>
         
         {/* Animated Branded Logo Container */}
-        <div
+        <motion.div
           className="jl-logo-anim"
           style={{
             height: 72,
             width: 72,
             borderRadius: 20,
-            background: "linear-gradient(135deg, #F59E0B 0%, #EA580C 100%)",
+            background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            boxShadow: "0 8px 28px rgba(245,158,11,0.30)",
+            flexShrink: 0,
           }}
         >
-          <Zap className="jl-zap-anim" style={{ height: 36, width: 36, color: "#ffffff" }} strokeWidth={2.2} />
-        </div>
+          {/* Pure path J lettermark */}
+          <svg width="44" height="44" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* J vertical stem */}
+            <rect x="10" y="1" width="5" height="13" rx="2.5" fill="white"/>
+            {/* J hook at bottom */}
+            <path d="M10 12 Q10 17.5 5 17.5 Q2.5 17.5 2 16" stroke="white" strokeWidth="3" strokeLinecap="round" fill="none"/>
+          </svg>
+        </motion.div>
 
         {/* Brand Text */}
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -196,7 +203,11 @@ export function BrandedLoadingState({ message = "Updating workspace...", minHeig
             justifyContent: "center",
           }}
         >
-          <Zap className="jl-zap-anim" style={{ height: 24, width: 24, color: "#ffffff" }} strokeWidth={2.2} />
+          {/* J lettermark */}
+          <svg width="26" height="26" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="10" y="1" width="5" height="13" rx="2.5" fill="white"/>
+            <path d="M10 12 Q10 17.5 5 17.5 Q2.5 17.5 2 16" stroke="white" strokeWidth="3" strokeLinecap="round" fill="none"/>
+          </svg>
         </div>
         <span style={{ fontSize: 13, fontWeight: 550, color: "rgba(15,10,30,0.45)" }}>
           {message}

@@ -8,13 +8,13 @@ import { useToast } from "@/hooks/use-toast";
 import {
   ArrowRight,
   Loader2,
-  Zap,
   HardHat,
   Building2,
   CheckCircle2,
   Eye,
   EyeOff,
 } from "lucide-react";
+import { JlindoLogo } from "@/components/JlindoLogo";
 
 /* ─────────────────────────────────────────────────────────────
    Role card — premium selectable tile
@@ -278,18 +278,7 @@ export default function Signup() {
 
           {/* Brand */}
           <div className="su-1 flex items-center gap-3">
-            <div
-              className="h-9 w-9 rounded-xl flex items-center justify-center"
-              style={{
-                background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
-                boxShadow: "0 4px 14px rgba(245,158,11,0.35)",
-              }}
-            >
-              <Zap style={{ height: 18, width: 18, color: "#fff" }} strokeWidth={2.5} />
-            </div>
-            <span style={{ color: "rgba(255,255,255,0.88)", fontSize: 15, fontWeight: 700, letterSpacing: "-0.01em" }}>
-              Jlindo
-            </span>
+            <JlindoLogo size="sm" variant="white" showTagline={false} />
           </div>
 
           {/* Hero copy */}
@@ -399,17 +388,7 @@ export default function Signup() {
             {/* Mobile: brand + headline */}
             <div className="lg:hidden mb-7">
               <div className="su-1 flex items-center gap-2.5 mb-7">
-                <div
-                  style={{
-                    height: 32, width: 32, borderRadius: 10,
-                    background: "linear-gradient(135deg, #F59E0B, #D97706)",
-                    boxShadow: "0 4px 12px rgba(245,158,11,0.35)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}
-                >
-                  <Zap style={{ height: 15, width: 15, color: "#fff" }} strokeWidth={2.5} />
-                </div>
-                <span style={{ color: "rgba(255,255,255,0.88)", fontWeight: 700, letterSpacing: "-0.01em" }}>Jlindo</span>
+                <JlindoLogo size="sm" variant="white" showTagline={false} />
               </div>
 
               <h1 className="su-2" style={{ margin: 0 }}>
