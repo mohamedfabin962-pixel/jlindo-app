@@ -16,7 +16,7 @@ import {
 import { JlindoLogo } from "@/components/JlindoLogo";
 
 /* ─── Animation variants ─────────────────────────── */
-const fadeUp = {
+const fadeUp: any = {
   hidden: { opacity: 0, y: 32 },
   visible: (i = 0) => ({
     opacity: 1,
@@ -25,7 +25,7 @@ const fadeUp = {
   }),
 };
 
-const staggerParent = {
+const staggerParent: any = {
   hidden: {},
   visible: { transition: { staggerChildren: 0.07 } },
 };

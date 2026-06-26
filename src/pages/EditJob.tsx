@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Edit3 } from "lucide-react";
+import { ArrowLeft, Edit3, Tag } from "lucide-react";
+import { JOB_CATEGORIES } from "@/utils/jobCategories";
 
 export default function EditJob() {
   const { jobId } = useParams();
@@ -27,6 +28,7 @@ export default function EditJob() {
     description: "",
     workers_required: "",
     status: "open",
+    category: "",
   });
 
   useEffect(() => {
@@ -51,6 +53,7 @@ export default function EditJob() {
         description: data.description,
         workers_required: String(data.workers_required || 1),
         status: data.status || "open",
+        category: data.category || "Other",
       });
 
       setLoading(false);
@@ -76,6 +79,7 @@ export default function EditJob() {
         description: form.description,
         workers_required: Number(form.workers_required),
         status: form.status,
+        category: form.category,
       })
       .eq("id", jobId)
       .eq("employer_id", user!.id);
@@ -169,6 +173,23 @@ export default function EditJob() {
                     required
                     className="jl-input h-11 rounded-xl border-slate-200"
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                    Job Category <span className="text-amber-500">*</span>
+                  </Label>
+                  <select
+                    required
+                    value={form.category}
+                    onChange={(e) => setForm(f => ({ ...f, category: e.target.value }))}
+                    className="flex h-11 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/20 focus-visible:border-amber-500 disabled:cursor-not-allowed disabled:opacity-50 transition-all jl-input"
+                  >
+                    <option value="" disabled>Select a category</option>
+                    {JOB_CATEGORIES.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="space-y-2">

@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Briefcase, MapPin, DollarSign, Clock, FileText, Users } from "lucide-react";
+import { ArrowLeft, Briefcase, MapPin, DollarSign, Clock, FileText, Users, Tag } from "lucide-react";
 import { Link } from "react-router-dom";
+import { JOB_CATEGORIES } from "@/utils/jobCategories";
 
 export default function PostJob() {
   const { user } = useAuth();
@@ -23,12 +24,13 @@ export default function PostJob() {
     working_hours: "",
     description: "",
     workers_required: "",
+    category: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!form.title.trim() || !form.location.trim() || !form.salary.trim() || !form.working_hours.trim() || !form.description.trim()) {
+    if (!form.title.trim() || !form.category || !form.location.trim() || !form.salary.trim() || !form.working_hours.trim() || !form.description.trim()) {
       toast({
         title: "Missing fields",
         description: "Please fill all required job details.",
@@ -46,6 +48,7 @@ export default function PostJob() {
       salary: form.salary.trim(),
       working_hours: form.working_hours.trim(),
       description: form.description.trim(),
+      category: form.category,
       workers_required: form.workers_required ? parseInt(form.workers_required) : 1,
       status: "open",
     });
@@ -142,6 +145,23 @@ export default function PostJob() {
                     placeholder="e.g. Electrician Helper"
                     className="jl-input h-11 rounded-xl border-slate-200"
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                    Job Category <span className="text-amber-500">*</span>
+                  </Label>
+                  <select
+                    required
+                    value={form.category}
+                    onChange={(e) => setForm(f => ({ ...f, category: e.target.value }))}
+                    className="flex h-11 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/20 focus-visible:border-amber-500 disabled:cursor-not-allowed disabled:opacity-50 transition-all jl-input"
+                  >
+                    <option value="" disabled>Select a category</option>
+                    {JOB_CATEGORIES.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="space-y-2">

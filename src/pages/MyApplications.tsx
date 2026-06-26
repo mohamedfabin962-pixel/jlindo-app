@@ -261,7 +261,7 @@ export default function MyApplications() {
       <BrandedConfirmDialog
         isOpen={!!withdrawTargetId}
         onClose={() => setWithdrawTargetId(null)}
-        onConfirm={() => withdrawTargetId && withdrawMutation.mutate(withdrawTargetId)}
+        onConfirm={() => { if (withdrawTargetId) withdrawMutation.mutate(withdrawTargetId); }}
         title="Withdraw Application"
         description="Are you sure you want to withdraw this application? This action cannot be undone."
         confirmText="Withdraw"

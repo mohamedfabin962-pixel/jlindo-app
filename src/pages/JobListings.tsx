@@ -5,92 +5,17 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { 
   MapPin, Clock, Search, ArrowRight, Loader2, CheckCircle2, XCircle, ChevronRight, Zap,
-  Briefcase, Wrench, Truck, ShoppingBag, Laptop, HardHat, Utensils, Sparkles, HelpCircle, ChevronLeft,
+  ChevronLeft,
   SlidersHorizontal, FileText, Star
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/StatusBadge";
 import { JobCardSkeleton } from "@/components/BrandedLoading";
 import { EmptyState } from "@/components/EmptyState";
+import { getCategoryIllustration, inferCategoryFromText } from "@/utils/jobCategories";
 
-const getCategoryDetails = (title: string = "", description: string = "") => {
-  const t = title.toLowerCase();
-  const d = description.toLowerCase();
-  
-  if (t.includes("clean") || t.includes("maid") || t.includes("housekeep") || d.includes("clean") || t.includes("dust")) {
-    return {
-      icon: Sparkles,
-      color: "#059669",
-      bgColor: "rgba(16,185,129,0.08)",
-      borderColor: "rgba(16,185,129,0.15)",
-      label: "Cleaning",
-    };
-  }
-  if (t.includes("deliver") || t.includes("driver") || t.includes("truck") || t.includes("courier") || t.includes("transport") || d.includes("deliver")) {
-    return {
-      icon: Truck,
-      color: "#2563EB",
-      bgColor: "rgba(37,99,235,0.08)",
-      borderColor: "rgba(37,99,235,0.15)",
-      label: "Delivery",
-    };
-  }
-  if (t.includes("construct") || t.includes("build") || t.includes("labor") || t.includes("paint") || t.includes("mason") || t.includes("carpenter") || d.includes("construction")) {
-    return {
-      icon: HardHat,
-      color: "#D97706",
-      bgColor: "rgba(245,158,11,0.08)",
-      borderColor: "rgba(245,158,11,0.15)",
-      label: "Construction",
-    };
-  }
-  if (t.includes("kitchen") || t.includes("cook") || t.includes("chef") || t.includes("wait") || t.includes("food") || t.includes("dish") || t.includes("restaurant") || t.includes("cafe")) {
-    return {
-      icon: Utensils,
-      color: "#E11D48",
-      bgColor: "rgba(225,29,72,0.08)",
-      borderColor: "rgba(225,29,72,0.15)",
-      label: "Food Service",
-    };
-  }
-  if (t.includes("repair") || t.includes("plumb") || t.includes("electr") || t.includes("fix") || t.includes("wrench") || t.includes("technician")) {
-    return {
-      icon: Wrench,
-      color: "#4F46E5",
-      bgColor: "rgba(79,70,229,0.08)",
-      borderColor: "rgba(79,70,229,0.15)",
-      label: "Maintenance",
-    };
-  }
-  if (t.includes("retail") || t.includes("store") || t.includes("shop") || t.includes("cashier") || t.includes("sales") || t.includes("merchandis")) {
-    return {
-      icon: ShoppingBag,
-      color: "#7C3AED",
-      bgColor: "rgba(124,58,237,0.08)",
-      borderColor: "rgba(124,58,237,0.15)",
-      label: "Retail",
-    };
-  }
-  if (t.includes("office") || t.includes("admin") || t.includes("tech") || t.includes("comput") || t.includes("design") || t.includes("writ") || t.includes("assist")) {
-    return {
-      icon: Laptop,
-      color: "#475569",
-      bgColor: "rgba(71,85,105,0.08)",
-      borderColor: "rgba(71,85,105,0.15)",
-      label: "Office",
-    };
-  }
-  
-  return {
-    icon: Briefcase,
-    color: "#EA580C",
-    bgColor: "rgba(234,88,12,0.08)",
-    borderColor: "rgba(234,88,12,0.15)",
-    label: "General Work",
-  };
-};
+// We now use getCategoryIllustration and inferCategoryFromText from jobCategories.tsx
 
 const isWeeklyPayout = (title: string = "", description: string = "") => {
   const text = (title + " " + description).toLowerCase();
@@ -118,13 +43,13 @@ export default function JobListings() {
     setCurrentPage(1);
   }, [search]);
 
-  const overlayVariants = {
+  const overlayVariants: any = {
     hidden: { opacity: 0 },
     visible: { opacity: 1 },
     exit: { opacity: 0 }
   };
 
-  const drawerVariants = {
+  const drawerVariants: any = {
     hidden: isMobile ? { y: "100%", x: 0 } : { x: "100%", y: 0 },
     visible: { 
       y: 0, 
@@ -333,8 +258,7 @@ export default function JobListings() {
                     {paginatedJobs.map((job, idx) => {
                       const applied = myApplications?.includes(job.id);
                       const closed = job.status !== "open";
-                      const category = getCategoryDetails(job.title, job.description);
-                      const CategoryIcon = category.icon;
+                      const categoryValue = job.category || inferCategoryFromText(job.title, job.description);
                       const hasWeeklyPayout = isWeeklyPayout(job.title, job.description);
 
                       return (
@@ -473,21 +397,7 @@ export default function JobListings() {
                             flexShrink: 0
                           }}>
                             {/* Category Illustration container */}
-                            <div 
-                              style={{ 
-                                height: 56, 
-                                width: 56, 
-                                borderRadius: 16, 
-                                background: category.bgColor, 
-                                border: `1px solid ${category.borderColor}`,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                flexShrink: 0,
-                              }}
-                            >
-                              <CategoryIcon size={24} style={{ color: category.color }} />
-                            </div>
+                            {getCategoryIllustration(categoryValue)}
 
                             {/* Circle Arrow CTA */}
                             <div 
