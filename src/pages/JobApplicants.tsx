@@ -208,7 +208,13 @@ export default function JobApplicants() {
                     </div>
                   </div>
                   <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start w-full sm:w-auto gap-3 mt-3 sm:mt-0 pt-4 sm:pt-0 border-t sm:border-0 border-slate-100">
-                    <StatusBadge status={job.status} />
+                    <div className="flex items-center sm:items-end gap-2 sm:flex-col">
+                      <StatusBadge status={job.status} />
+                      <div className="text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-md flex items-center gap-1">
+                        <Users size={10} className="text-amber-600" />
+                        <span>{applications?.length || 0} Applicants</span>
+                      </div>
+                    </div>
                     
                     {job.status === "open" && (
                       <Button
@@ -230,7 +236,7 @@ export default function JobApplicants() {
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
             <Users size={18} className="text-amber-500" />
             <h2 style={{ fontSize: 16, fontWeight: 700, color: "#0d0a1e", margin: 0 }}>
-              Applicants List
+              Applicants List ({applications?.length || 0} Applicants)
             </h2>
           </div>
 

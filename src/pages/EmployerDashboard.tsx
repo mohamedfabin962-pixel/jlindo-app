@@ -266,8 +266,12 @@ export default function EmployerDashboard() {
                             </span>
                           </div>
                         </div>
-                        <div className="w-fit self-start sm:self-auto">
+                        <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 self-start sm:self-auto shrink-0">
                           <StatusBadge status={job.status} />
+                          <div className="text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-md flex items-center gap-1">
+                            <Users size={10} className="text-amber-600" />
+                            <span>{appCounts?.[job.id] || 0} Applicants</span>
+                          </div>
                         </div>
                       </div>
 
