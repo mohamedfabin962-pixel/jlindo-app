@@ -46,26 +46,46 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
       password,
     });
 
-    setLoading(false);
-
     if (error) {
+      setLoading(false);
       toast({
         title: "Login failed",
         description: error.message,
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Login successful",
-        description: "Redirecting...",
-      });
-      window.location.href = "/"; // ⭐ ONLY THIS
+      return;
     }
+
+    if (data?.user) {
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .maybeSingle();
+
+      if (profileData && profileData.role === "admin") {
+        await supabase.auth.signOut();
+        setLoading(false);
+        toast({
+          title: "Access Denied",
+          description: "Admin accounts must use the dedicated Admin Login portal.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    setLoading(false);
+    toast({
+      title: "Login successful",
+      description: "Redirecting...",
+    });
+    window.location.href = "/"; // ⭐ ONLY THIS
   };
 
   return (

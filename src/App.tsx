@@ -18,6 +18,7 @@ import PostJob from "./pages/PostJob";
 import JobApplicants from "./pages/JobApplicants";
 import FeedbackPage from "./pages/FeedbackPage";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminLogin from "./pages/AdminLogin";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
@@ -48,6 +49,20 @@ function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?
   return <>{children}</>;
 }
 
+function AdminProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, profile, loading } = useAuth();
+
+  if (loading) {
+    return <BrandedLoadingScreen message="Checking admin session..." />;
+  }
+
+  if (!user || (profile && profile.role !== "admin")) {
+    return <Navigate to="/admin/login" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 function AppRoutes() {
   return (
     <Routes>
@@ -63,7 +78,8 @@ function AppRoutes() {
       <Route path="/employer/job/:jobId" element={<ProtectedRoute roles={["employer"]}><JobApplicants /></ProtectedRoute>} />
       <Route path="/feedback" element={<ProtectedRoute><FeedbackPage /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-      <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
+      <Route path="/admin/login" element={<AdminLogin />} />
       <Route
   path="/employer/edit-job/:jobId"
   element={
@@ -82,7 +98,7 @@ function AppRoutes() {
 function AuthGate() {
   const { loading } = useAuth();
   const location = useLocation();
-  const hideHeader = ["/login", "/signup", "/forgot-password", "/reset-password"].includes(location.pathname);
+  const hideHeader = ["/login", "/signup", "/forgot-password", "/reset-password", "/admin/login"].includes(location.pathname);
 
   if (loading) {
     return <BrandedLoadingScreen message="Restoring session..." />;
