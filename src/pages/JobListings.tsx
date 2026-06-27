@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { 
   MapPin, Clock, Search, ArrowRight, Loader2, CheckCircle2, XCircle, ChevronRight, Zap,
   ChevronLeft, Navigation, ExternalLink,
-  SlidersHorizontal, FileText, Star
+  SlidersHorizontal, FileText, Star, Share2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,7 @@ export default function JobListings() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [selectedJob, setSelectedJob] = useState<any | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const getDescPreview = (desc: string) => {
     if (!desc) return "";
@@ -48,6 +50,23 @@ export default function JobListings() {
       requirements: parts[1]?.trim() || "",
     };
   };
+
+  const handleShareJob = () => {
+    if (!selectedJob) return;
+    const shareUrl = `${window.location.origin}/jobs?jobId=${selectedJob.id}`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      toast({
+        title: "Job link copied successfully.",
+      });
+    }).catch(() => {
+      toast({
+        title: "Failed to copy job link.",
+        variant: "destructive",
+      });
+    });
+  };
+
+
   const [currentPage, setCurrentPage] = useState(1);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
@@ -117,6 +136,38 @@ export default function JobListings() {
     };
     loadJobs();
   }, []);
+
+  const initialAutoOpenAttempted = useRef(false);
+
+  // Synchronize URL search params and auto-open details drawer
+  useEffect(() => {
+    if (isLoading || !jobs || jobs.length === 0) return;
+
+    if (!initialAutoOpenAttempted.current) {
+      initialAutoOpenAttempted.current = true;
+      const urlJobId = searchParams.get("jobId");
+      if (urlJobId) {
+        const matchedJob = jobs.find((j) => j.id === urlJobId);
+        if (matchedJob) {
+          setSelectedJob(matchedJob);
+          return;
+        } else {
+          searchParams.delete("jobId");
+          setSearchParams(searchParams, { replace: true });
+        }
+      }
+    }
+
+    if (selectedJob) {
+      setSearchParams({ jobId: selectedJob.id }, { replace: true });
+    } else {
+      const urlJobId = searchParams.get("jobId");
+      if (urlJobId) {
+        searchParams.delete("jobId");
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [selectedJob, jobs, isLoading, searchParams]);
 
   const { data: myApplications } = useQuery({
     queryKey: ["my-applications"],
@@ -998,42 +1049,56 @@ export default function JobListings() {
                     </div>
                   )}
 
-                  <Button
-                    onClick={() => applyMutation.mutate(selectedJob.id)}
-                    disabled={applyMutation.isPending || alreadyApplied || isClosed}
-                    className="jl-apply-btn-airbnb"
-                    style={{
-                      width: "100%", 
-                      height: 50, 
-                      borderRadius: 12,
-                      fontSize: 14.5, 
-                      fontWeight: 700, 
-                      background:
-                        alreadyApplied || isClosed
-                          ? "#FFF7ED"
-                          : "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
-                      color:
-                        alreadyApplied || isClosed ? "#EA580C" : "#ffffff",
-                      border: alreadyApplied || isClosed ? "1px solid rgba(245,158,11,0.15)" : "none",
-                      cursor: applyMutation.isPending || alreadyApplied || isClosed ? "not-allowed" : "pointer",
-                      display: "flex", 
-                      alignItems: "center", 
-                      justifyContent: "center", 
-                      gap: 8,
-                      boxShadow: alreadyApplied || isClosed ? "none" : "0 4px 12px rgba(245,158,11,0.2)",
-                      transition: "all 0.2s ease",
-                    }}
-                  >
-                    {applyMutation.isPending ? (
-                      <><Loader2 style={{ height: 16, width: 16 }} className="animate-spin" /> Submitting application…</>
-                    ) : isClosed ? (
-                      "Position Closed"
-                    ) : alreadyApplied ? (
-                      <><CheckCircle2 size={16} style={{ color: "#EA580C" }} /> Already Applied</>
-                    ) : (
-                      <>Secure This Opportunity <ArrowRight style={{ height: 15, width: 15 }} /></>
-                    )}
-                  </Button>
+                  <div className="flex gap-3 w-full">
+                    {/* Share Job Button */}
+                    <Button
+                      onClick={handleShareJob}
+                      variant="outline"
+                      className="border-slate-200 hover:bg-slate-50 rounded-xl shrink-0 flex items-center justify-center gap-2 h-[50px] font-semibold text-sm text-slate-700 px-4"
+                      style={{
+                        borderRadius: 12,
+                      }}
+                    >
+                      <Share2 size={16} className="text-slate-500" />
+                      <span className="hidden sm:inline">Share Job</span>
+                    </Button>
+
+                    <Button
+                      onClick={() => applyMutation.mutate(selectedJob.id)}
+                      disabled={applyMutation.isPending || alreadyApplied || isClosed}
+                      className="jl-apply-btn-airbnb flex-1"
+                      style={{
+                        height: 50, 
+                        borderRadius: 12,
+                        fontSize: 14.5, 
+                        fontWeight: 700, 
+                        background:
+                          alreadyApplied || isClosed
+                            ? "#FFF7ED"
+                            : "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+                        color:
+                          alreadyApplied || isClosed ? "#EA580C" : "#ffffff",
+                        border: alreadyApplied || isClosed ? "1px solid rgba(245,158,11,0.15)" : "none",
+                        cursor: applyMutation.isPending || alreadyApplied || isClosed ? "not-allowed" : "pointer",
+                        display: "flex", 
+                        alignItems: "center", 
+                        justifyContent: "center", 
+                        gap: 8,
+                        boxShadow: alreadyApplied || isClosed ? "none" : "0 4px 12px rgba(245,158,11,0.2)",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      {applyMutation.isPending ? (
+                        <><Loader2 style={{ height: 16, width: 16 }} className="animate-spin" /> Submitting application…</>
+                      ) : isClosed ? (
+                        "Position Closed"
+                      ) : alreadyApplied ? (
+                        <><CheckCircle2 size={16} style={{ color: "#EA580C" }} /> Already Applied</>
+                      ) : (
+                        <>Secure This Opportunity <ArrowRight style={{ height: 15, width: 15 }} /></>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </motion.div>
