@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   MapPin, Clock, Search, ArrowRight, Loader2, CheckCircle2, XCircle, ChevronRight, Zap,
   ChevronLeft, Navigation, ExternalLink,
-  SlidersHorizontal, FileText, Star, Share2
+  SlidersHorizontal, FileText, Star, Share2, Check
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
@@ -51,16 +51,18 @@ export default function JobListings() {
     };
   };
 
+  const [isCopied, setIsCopied] = useState(false);
+
   const handleShareJob = () => {
     if (!selectedJob) return;
     const shareUrl = `${window.location.origin}/jobs?jobId=${selectedJob.id}`;
     navigator.clipboard.writeText(shareUrl).then(() => {
-      toast({
-        title: "Job link copied successfully.",
-      });
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
     }).catch(() => {
       toast({
-        title: "Failed to copy job link.",
+        title: "Unable to Copy",
+        description: "Please try again.",
         variant: "destructive",
       });
     });
@@ -1054,13 +1056,22 @@ export default function JobListings() {
                     <Button
                       onClick={handleShareJob}
                       variant="outline"
-                      className="border-slate-200 hover:bg-slate-50 rounded-xl shrink-0 flex items-center justify-center gap-2 h-[50px] font-semibold text-sm text-slate-700 px-4"
+                      className="border-slate-200 hover:bg-slate-50 rounded-xl shrink-0 flex items-center justify-center gap-2 h-[50px] font-semibold text-sm text-slate-700 px-4 transition-all duration-200"
                       style={{
                         borderRadius: 12,
+                        borderColor: isCopied ? "#10B981" : undefined,
+                        color: isCopied ? "#10B981" : undefined,
+                        background: isCopied ? "rgba(16, 185, 129, 0.04)" : undefined,
                       }}
                     >
-                      <Share2 size={16} className="text-slate-500" />
-                      <span className="hidden sm:inline">Share Job</span>
+                      {isCopied ? (
+                        <Check size={16} className="text-emerald-500" />
+                      ) : (
+                        <Share2 size={16} className="text-slate-500" />
+                      )}
+                      <span className="hidden sm:inline">
+                        {isCopied ? "Copied!" : "Share Job"}
+                      </span>
                     </Button>
 
                     <Button

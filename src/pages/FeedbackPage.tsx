@@ -30,10 +30,6 @@ export default function FeedbackPage() {
     onSuccess: () => {
       setSubmitted(true);
       setMessage("");
-      toast({
-        title: "Feedback sent",
-        description: "Thanks for helping improve the product 🚀",
-      });
       setTimeout(() => setSubmitted(false), 3000);
     },
     onError: (err: any) => {
