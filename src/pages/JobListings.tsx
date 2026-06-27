@@ -30,6 +30,24 @@ export default function JobListings() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [selectedJob, setSelectedJob] = useState<any | null>(null);
+  
+  const getDescPreview = (desc: string) => {
+    if (!desc) return "";
+    const cleanDesc = desc.split("---REQUIREMENTS---")[0]?.trim() || "";
+    if (cleanDesc.length > 55) {
+      return cleanDesc.slice(0, 55).trim() + "...";
+    }
+    return cleanDesc;
+  };
+
+  const parseDescription = (rawDescription: string) => {
+    if (!rawDescription) return { description: "", requirements: "" };
+    const parts = rawDescription.split("---REQUIREMENTS---");
+    return {
+      description: parts[0]?.trim() || "",
+      requirements: parts[1]?.trim() || "",
+    };
+  };
   const [currentPage, setCurrentPage] = useState(1);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
@@ -561,7 +579,7 @@ export default function JobListings() {
                                 overflow: "hidden",
                                 letterSpacing: "-0.005em",
                               }}>
-                                {job.description}
+                                {getDescPreview(job.description)}
                               </p>
                             )}
 
@@ -778,11 +796,15 @@ export default function JobListings() {
                         {selectedJob.title}
                       </h2>
 
-                      {selectedJob.description && (
-                        <p className="m-0 text-sm md:text-base text-slate-300 leading-relaxed opacity-95">
-                          {selectedJob.description}
-                        </p>
-                      )}
+                      {(() => {
+                        const { description: fullDesc } = parseDescription(selectedJob.description || "");
+                        if (!fullDesc) return null;
+                        return (
+                          <p className="m-0 text-sm md:text-base text-slate-300 leading-relaxed opacity-95">
+                            {getDescPreview(fullDesc)}
+                          </p>
+                        );
+                      })()}
 
                       {/* Location & Hours Meta */}
                       {(() => {
@@ -829,18 +851,51 @@ export default function JobListings() {
                   {/* Body Content Section */}
                   <div className="p-6 md:p-8 flex flex-col gap-6 md:gap-8">
                     
-                    {/* About This Opportunity */}
-                    <div className="flex flex-col gap-2.5">
-                      <div className="flex items-center gap-2">
-                        <FileText size={18} className="text-orange-600" />
-                        <h3 className="m-0 text-base md:text-lg font-bold text-slate-900">
-                          About This Opportunity
-                        </h3>
-                      </div>
-                      <p className="m-0 text-sm md:text-base text-slate-600 leading-relaxed">
-                        We are looking for a reliable and active worker to assist in daily operations. Responsibilities include assisting customers, arranging items, maintaining cleanliness, and other general tasks.
-                      </p>
-                    </div>
+                    {(() => {
+                      const { description: fullDesc, requirements: reqRules } = parseDescription(selectedJob.description || "");
+                      return (
+                        <>
+                          {/* About This Job */}
+                          <div className="flex flex-col gap-2.5">
+                            <div className="flex items-center gap-2">
+                              <FileText size={18} className="text-orange-600" />
+                              <h3 className="m-0 text-base md:text-lg font-bold text-slate-900">
+                                About This Job
+                              </h3>
+                            </div>
+                            <p 
+                              className="m-0 text-sm md:text-base text-slate-600 leading-relaxed"
+                              style={{ whiteSpace: "pre-line" }}
+                            >
+                              {fullDesc || "No description provided."}
+                            </p>
+                          </div>
+
+                          {/* Requirements & Rules */}
+                          {reqRules && (
+                            <div className="flex flex-col gap-3.5 p-5 rounded-2xl bg-amber-50/50 border border-amber-100/60 shadow-[0_2px_12px_rgba(245,158,11,0.02)]">
+                              <div className="flex items-center gap-2">
+                                <CheckCircle2 size={18} className="text-amber-600" />
+                                <h3 className="m-0 text-base font-bold text-slate-900">
+                                  Requirements & Rules
+                                </h3>
+                              </div>
+                              <ul className="m-0 p-0 list-none flex flex-col gap-2.5">
+                                {reqRules.split(/\r?\n/).map(line => line.trim()).filter(Boolean).map((line, idx) => {
+                                  const cleanLine = line.replace(/^[•\-\*\✓\s]+/, "").trim();
+                                  return (
+                                    <li key={idx} className="flex items-start gap-2.5 text-sm text-slate-700 leading-relaxed font-semibold">
+                                      <span className="text-amber-500 font-bold text-base shrink-0 leading-none">✓</span>
+                                      <span>{cleanLine}</span>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
 
                     {/* Information Grid */}
                     {(() => {

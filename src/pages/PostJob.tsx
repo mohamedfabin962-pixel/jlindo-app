@@ -143,6 +143,7 @@ export default function PostJob() {
     title: "",
     salary: "",
     description: "",
+    requirements: "",
     workers_required: "",
     category: "",
     // location sub-fields
@@ -175,13 +176,17 @@ export default function PostJob() {
     const locationEncoded = encodeLocation(form.city, form.exactLocation, form.mapsUrl);
     const workingHoursEncoded = encodeWorkingHours(form.startTime, form.endTime);
 
+    const fullDescription = form.requirements.trim()
+      ? `${form.description.trim()}\n\n---REQUIREMENTS---\n${form.requirements.trim()}`
+      : form.description.trim();
+
     const { error } = await supabase.from("jobs").insert({
       employer_id: user!.id,
       title: form.title.trim(),
       location: locationEncoded,
       salary: form.salary.trim(),
       working_hours: workingHoursEncoded,
-      description: form.description.trim(),
+      description: fullDescription,
       category: form.category,
       workers_required: form.workers_required ? parseInt(form.workers_required) : 1,
       status: "open",
@@ -502,6 +507,23 @@ export default function PostJob() {
                         />
                         <span className="text-xs text-slate-400 pl-1">
                           Be descriptive — clear roles attract better-matched applicants.
+                        </span>
+                      </div>
+
+                      {/* Requirements & Rules */}
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                          Requirements & Rules <span className="text-slate-400 font-normal">(Optional)</span>
+                        </Label>
+                        <Textarea
+                          value={form.requirements}
+                          onChange={update("requirements")}
+                          rows={4}
+                          placeholder={"• Must arrive on time\n• Previous experience preferred\n• Must speak Malayalam\n• Uniform mandatory"}
+                          className="jl-input rounded-xl border-slate-200 text-sm font-medium text-slate-800 resize-none p-3.5 leading-relaxed"
+                        />
+                        <span className="text-xs text-slate-400 pl-1">
+                          List specific rules, dress codes, language criteria, or guidelines (one per line).
                         </span>
                       </div>
 

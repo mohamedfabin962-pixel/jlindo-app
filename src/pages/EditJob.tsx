@@ -124,6 +124,7 @@ export default function EditJob() {
     title: "",
     salary: "",
     description: "",
+    requirements: "",
     workers_required: "",
     status: "open",
     category: "",
@@ -175,10 +176,22 @@ export default function EditJob() {
         // Decode stored working hours
         const wh = decodeWorkingHours(data.working_hours);
 
+        const parseDescription = (rawDescription: string) => {
+          if (!rawDescription) return { description: "", requirements: "" };
+          const parts = rawDescription.split("---REQUIREMENTS---");
+          return {
+            description: parts[0]?.trim() || "",
+            requirements: parts[1]?.trim() || "",
+          };
+        };
+
+        const parsedDesc = parseDescription(data.description || "");
+
         setForm({
           title: data.title || "",
           salary: data.salary || "",
-          description: data.description || "",
+          description: parsedDesc.description,
+          requirements: parsedDesc.requirements,
           workers_required: String(data.workers_required || 1),
           status: data.status || "open",
           category: data.category || "Other",
@@ -219,6 +232,10 @@ export default function EditJob() {
     const locationEncoded = encodeLocation(form.city, form.exactLocation, form.mapsUrl);
     const workingHoursEncoded = encodeWorkingHours(form.startTime, form.endTime);
 
+    const fullDescription = form.requirements.trim()
+      ? `${form.description.trim()}\n\n---REQUIREMENTS---\n${form.requirements.trim()}`
+      : form.description.trim();
+
     const { error: updateError } = await supabase
       .from("jobs")
       .update({
@@ -226,7 +243,7 @@ export default function EditJob() {
         location: locationEncoded,
         salary: form.salary,
         working_hours: workingHoursEncoded,
-        description: form.description,
+        description: fullDescription,
         workers_required: Number(form.workers_required),
         status: form.status,
         category: form.category,
@@ -470,6 +487,19 @@ export default function EditJob() {
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold text-slate-700">Description <span className="text-amber-500">*</span></Label>
                   <Textarea rows={4} value={form.description} onChange={update("description")} required className="jl-input rounded-xl border-slate-200 resize-none p-3" />
+                </div>
+
+                {/* Requirements & Rules */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-slate-700">Requirements & Rules <span className="text-xs text-slate-400 font-normal ml-1">(optional)</span></Label>
+                  <Textarea
+                    rows={4}
+                    value={form.requirements}
+                    onChange={update("requirements")}
+                    placeholder={"• Must arrive on time\n• Previous experience preferred\n• Must speak Malayalam\n• Uniform mandatory"}
+                    className="jl-input rounded-xl border-slate-200 resize-none p-3"
+                  />
+                  <span className="text-xs text-slate-400">List specific rules, dress codes, language criteria, or guidelines (one per line).</span>
                 </div>
 
                 <Button className="w-full jl-btn-primary h-12 rounded-xl text-base font-bold shadow-md border-0 mt-2" disabled={saving}>
