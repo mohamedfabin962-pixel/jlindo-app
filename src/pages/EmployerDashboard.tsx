@@ -4,7 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Plus, Users, MapPin, DollarSign, Calendar, ArrowRight, PenSquare, Lock, Briefcase, Activity, XCircle } from "lucide-react";
+import { Plus, Users, MapPin, DollarSign, Calendar, ArrowRight, PenSquare, Lock, Briefcase, Activity, XCircle, ExternalLink } from "lucide-react";
+import { decodeLocation } from "@/utils/locationUtils";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function EmployerDashboard() {
@@ -84,7 +85,7 @@ export default function EmployerDashboard() {
         <div style={{ maxWidth: 680, margin: "0 auto", padding: "32px 16px 60px" }}>
           
           {/* Header Section */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 28 }}>
+          <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-5 mb-7">
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                 <div
@@ -105,7 +106,7 @@ export default function EmployerDashboard() {
               </p>
             </div>
             
-            <Button className="jl-btn-primary shadow-sm rounded-xl h-11 px-5 font-medium flex items-center gap-2 border-0" asChild>
+            <Button className="jl-btn-primary shadow-sm rounded-xl h-11 px-5 font-medium flex items-center gap-2 border-0 w-full sm:w-auto justify-center" asChild>
               <Link to="/employer/post-job">
                 <Plus className="h-4.5 w-4.5" /> Post Job
               </Link>
@@ -183,99 +184,122 @@ export default function EmployerDashboard() {
           {/* Jobs List */}
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <AnimatePresence>
-              {jobs?.map((job, idx) => (
-                <motion.div
-                  key={job.id}
-                  layout
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0, transition: { delay: idx * 0.04 } }}
-                  className="jl-employer-card"
-                  style={{
-                    background: "#fff",
-                    borderRadius: 20,
-                    border: "1px solid rgba(15,10,30,0.07)",
-                    boxShadow: "0 2px 12px rgba(15,10,30,0.04)",
-                    overflow: "hidden",
-                    transition: "all .3s ease",
-                    position: "relative",
-                  }}
-                >
-                  {/* Left status accent line */}
-                  <div
+              {jobs?.map((job, idx) => {
+                const loc = decodeLocation(job.location);
+                return (
+                  <motion.div
+                    key={job.id}
+                    layout
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0, transition: { delay: idx * 0.04 } }}
+                    className="jl-employer-card"
                     style={{
-                      position: "absolute", left: 0, top: 0, bottom: 0, width: 4,
-                      background: job.status === "open" ? "#10B981" : 
-                                  job.status === "filled" ? "#6B7280" : 
-                                  "#EF4444",
+                      background: "#fff",
+                      borderRadius: 20,
+                      border: "1px solid rgba(15,10,30,0.07)",
+                      boxShadow: "0 2px 12px rgba(15,10,30,0.04)",
+                      overflow: "hidden",
+                      transition: "all .3s ease",
+                      position: "relative",
                     }}
-                  />
+                  >
+                    {/* Left status accent line */}
+                    <div
+                      style={{
+                        position: "absolute", left: 0, top: 0, bottom: 0, width: 4,
+                        background: job.status === "open" ? "#10B981" : 
+                                    job.status === "filled" ? "#6B7280" : 
+                                    "#EF4444",
+                      }}
+                    />
 
-                  <div style={{ padding: "20px 20px 20px 24px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-                      <div>
-                        <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: "#0d0a1e", letterSpacing: "-0.01em" }}>
-                          {job.title}
-                        </h3>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginTop: 8, fontSize: 13, color: "rgba(15,10,30,0.48)" }}>
-                          <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                            <MapPin size={14} style={{ opacity: 0.7 }} /> {job.location}
-                          </span>
-                          <span style={{ display: "flex", alignItems: "center", gap: 4, color: "#EA580C", fontWeight: 600 }}>
-                            <DollarSign size={14} style={{ opacity: 0.7 }} /> {job.salary}
-                          </span>
-                          <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                            <Calendar size={14} style={{ opacity: 0.7 }} /> {job.working_hours}
-                          </span>
+                    <div className="p-5 pl-6">
+                      <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3">
+                        <div className="min-w-0">
+                          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: "#0d0a1e", letterSpacing: "-0.01em" }} className="break-words">
+                            {job.title}
+                          </h3>
+                          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-4 mt-2 text-xs sm:text-[13px] text-slate-500 font-medium">
+                            <span className="flex flex-col sm:flex-row sm:items-center gap-1 min-w-0">
+                              <span className="flex items-center gap-1.5 min-w-0">
+                                <MapPin size={14} className="text-slate-400 flex-shrink-0" />
+                                <span className="truncate">{loc.city}</span>
+                              </span>
+                              {loc.exactLocation && (
+                                <span className="text-slate-400 truncate sm:pl-1">
+                                  ({loc.exactLocation})
+                                </span>
+                              )}
+                              {loc.mapsUrl && (
+                                <a
+                                  href={loc.mapsUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100/80 px-2 py-0.5 rounded-md transition-colors w-fit sm:ml-1 mt-1 sm:mt-0"
+                                >
+                                  <ExternalLink size={10} /> Open in Maps
+                                </a>
+                              )}
+                            </span>
+                            <span className="flex items-center gap-1.5 text-amber-600 font-semibold">
+                              <DollarSign size={14} className="flex-shrink-0" /> {job.salary}
+                            </span>
+                            <span className="flex items-center gap-1.5 text-slate-500">
+                              <Calendar size={14} className="flex-shrink-0" /> {job.working_hours}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="w-fit self-start sm:self-auto">
+                          <StatusBadge status={job.status} />
                         </div>
                       </div>
-                      <StatusBadge status={job.status} />
-                    </div>
 
-                    <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid rgba(15,10,30,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <Link
-                        to={`/employer/job/${job.id}`}
-                        style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, color: "#F59E0B", textDecoration: "none" }}
-                      >
-                        <Users size={16} />
-                        <span>{appCounts?.[job.id] || 0} Applicants</span>
-                        <ArrowRight size={14} />
-                      </Link>
-
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          style={{ color: "rgba(15,10,30,0.6)", borderRadius: 10 }}
-                          asChild
+                      <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col sm:flex-row justify-between sm:items-center gap-3.5">
+                        <Link
+                          to={`/employer/job/${job.id}`}
+                          className="flex items-center gap-1.5 text-[13px] font-bold text-amber-500 hover:text-amber-600 w-fit"
                         >
-                          <Link to={`/employer/edit-job/${job.id}`}>
-                            <PenSquare size={14} className="mr-1.5" /> Edit
-                          </Link>
-                        </Button>
+                          <Users size={16} />
+                          <span>{appCounts?.[job.id] || 0} Applicants</span>
+                          <ArrowRight size={14} />
+                        </Link>
 
-                        {job.status === "open" && (
+                        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                           <Button
                             size="sm"
-                            variant="outline"
-                            style={{ borderColor: "rgba(15,10,30,0.08)", color: "#EF4444", background: "transparent", borderRadius: 10 }}
-                            onClick={async (e) => {
-                              e.preventDefault();
-                              await supabase
-                                .from("jobs")
-                                .update({ status: "closed" })
-                                .eq("id", job.id);
-
-                              window.location.reload();
-                            }}
+                            variant="ghost"
+                            className="text-slate-600 hover:text-slate-800 rounded-xl flex-1 sm:flex-initial justify-center"
+                            asChild
                           >
-                            <Lock size={14} className="mr-1.5" /> Close Job
+                            <Link to={`/employer/edit-job/${job.id}`}>
+                              <PenSquare size={14} className="mr-1.5" /> Edit
+                            </Link>
                           </Button>
-                        )}
+
+                          {job.status === "open" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-slate-100 text-rose-500 hover:bg-rose-50/50 hover:text-rose-600 rounded-xl flex-1 sm:flex-initial justify-center bg-transparent"
+                              onClick={async (e) => {
+                                e.preventDefault();
+                                await supabase
+                                  .from("jobs")
+                                  .update({ status: "closed" })
+                                  .eq("id", job.id);
+
+                                window.location.reload();
+                              }}
+                            >
+                              <Lock size={14} className="mr-1.5" /> Close Job
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
 
             {jobs?.length === 0 && !isLoading && (

@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Phone, Check, X, ArrowLeft, Users, MapPin, DollarSign, Clock, ShieldAlert } from "lucide-react";
+import { Phone, Check, X, ArrowLeft, Users, MapPin, DollarSign, Clock, ShieldAlert, ExternalLink } from "lucide-react";
+import { decodeLocation } from "@/utils/locationUtils";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function JobApplicants() {
@@ -136,59 +137,80 @@ export default function JobApplicants() {
           </Link>
 
           {/* Job Details Card */}
-          {job && (
-            <div
-              style={{
-                background: "#fff",
-                borderRadius: 24,
-                border: "1px solid rgba(15,10,30,0.07)",
-                boxShadow: "0 2px 12px rgba(15,10,30,0.04)",
-                padding: "24px 28px",
-                marginBottom: 28,
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(15,10,30,0.4)" }}>
-                      Job Listing
-                    </span>
+          {job && (() => {
+            const loc = decodeLocation(job.location);
+            return (
+              <div
+                style={{
+                  background: "#fff",
+                  borderRadius: 24,
+                  border: "1px solid rgba(15,10,30,0.07)",
+                  boxShadow: "0 2px 12px rgba(15,10,30,0.04)",
+                  padding: "24px 28px",
+                  marginBottom: 28,
+                }}
+              >
+                <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
+                  <div className="min-w-0">
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(15,10,30,0.4)" }}>
+                        Job Listing
+                      </span>
+                    </div>
+                    <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "#0d0a1e", letterSpacing: "-0.02em" }} className="break-words">
+                      {job.title}
+                    </h1>
+                    <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-4 mt-2 text-xs sm:text-[13px] text-slate-500 font-medium">
+                      <span className="flex flex-col sm:flex-row sm:items-center gap-1 min-w-0">
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <MapPin size={14} className="text-slate-400 flex-shrink-0" />
+                          <span className="truncate">{loc.city}</span>
+                        </span>
+                        {loc.exactLocation && (
+                          <span className="text-slate-400 truncate sm:pl-1">
+                            ({loc.exactLocation})
+                          </span>
+                        )}
+                        {loc.mapsUrl && (
+                          <a
+                            href={loc.mapsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100/80 px-2 py-0.5 rounded-md transition-colors w-fit sm:ml-1 mt-1 sm:mt-0"
+                          >
+                            <ExternalLink size={10} /> Open in Maps
+                          </a>
+                        )}
+                      </span>
+                      <span className="flex items-center gap-1.5 text-amber-600 font-semibold">
+                        <DollarSign size={14} className="flex-shrink-0" /> {job.salary}
+                      </span>
+                      <span className="flex items-center gap-1.5 text-slate-500">
+                        <Clock size={14} className="flex-shrink-0" /> {job.working_hours}
+                      </span>
+                    </div>
                   </div>
-                  <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "#0d0a1e", letterSpacing: "-0.02em" }}>
-                    {job.title}
-                  </h1>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginTop: 8, fontSize: 13, color: "rgba(15,10,30,0.48)" }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <MapPin size={14} style={{ opacity: 0.7 }} /> {job.location}
-                    </span>
-                    <span style={{ display: "flex", alignItems: "center", gap: 4, color: "#EA580C", fontWeight: 600 }}>
-                      <DollarSign size={14} style={{ opacity: 0.7 }} /> {job.salary}
-                    </span>
-                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <Clock size={14} style={{ opacity: 0.7 }} /> {job.working_hours}
-                    </span>
+                  <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start w-full sm:w-auto gap-3 mt-3 sm:mt-0 pt-4 sm:pt-0 border-t sm:border-0 border-slate-100">
+                    <StatusBadge status={job.status} />
+                    
+                    {job.status === "open" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="jl-btn-danger h-8 text-xs font-semibold rounded-lg"
+                        onClick={async () => {
+                          await supabase.from("jobs").update({ status: "closed" }).eq("id", jobId!);
+                          window.location.reload();
+                        }}
+                      >
+                        <ShieldAlert size={12} className="mr-1" /> Close Listing
+                      </Button>
+                    )}
                   </div>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
-                  <StatusBadge status={job.status} />
-                  
-                  {job.status === "open" && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="jl-btn-danger h-8 text-xs font-semibold rounded-lg"
-                      onClick={async () => {
-                        await supabase.from("jobs").update({ status: "closed" }).eq("id", jobId!);
-                        window.location.reload();
-                      }}
-                    >
-                      <ShieldAlert size={12} className="mr-1" /> Close Listing
-                    </Button>
-                  )}
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Applicants Title */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
@@ -266,10 +288,10 @@ export default function JobApplicants() {
                   )}
 
                   {app.status === "pending" && (
-                    <div style={{ marginTop: 16, display: "flex", gap: 10 }}>
+                    <div className="mt-4 flex flex-wrap gap-2">
                       <Button
                         size="sm"
-                        className="jl-btn-success h-9 px-4 rounded-xl text-xs font-bold border-0"
+                        className="jl-btn-success h-9 px-4 rounded-xl text-xs font-bold border-0 flex-1 sm:flex-initial justify-center"
                         onClick={() => updateStatus.mutate({ appId: app.id, status: "accepted" })}
                         disabled={updateStatus.isPending}
                       >
@@ -278,7 +300,7 @@ export default function JobApplicants() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="jl-btn-danger h-9 px-4 rounded-xl text-xs font-bold"
+                        className="jl-btn-danger h-9 px-4 rounded-xl text-xs font-bold flex-1 sm:flex-initial justify-center"
                         onClick={() => updateStatus.mutate({ appId: app.id, status: "rejected" })}
                         disabled={updateStatus.isPending}
                       >
