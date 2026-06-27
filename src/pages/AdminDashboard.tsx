@@ -1,6 +1,7 @@
-
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { BrandedConfirmDialog } from "@/components/BrandedConfirmDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ export default function AdminDashboard() {
   const isAdmin = profile?.role === "admin";
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [deleteJobId, setDeleteJobId] = useState<string | null>(null);
 
   const { data: users } = useQuery({
     queryKey: ["admin-users"],
@@ -317,7 +319,7 @@ export default function AdminDashboard() {
                         variant="outline"
                         className="text-destructive h-8.5 w-8.5 p-0 rounded-lg"
                         style={{ borderColor: "rgba(239,68,68,0.15)", background: "rgba(239,68,68,0.02)" }}
-                        onClick={() => deleteJob.mutate(j.id)}
+                        onClick={() => setDeleteJobId(j.id)}
                       >
                         <Trash2 size={13} />
                       </Button>
@@ -426,6 +428,21 @@ export default function AdminDashboard() {
           </Tabs>
         </div>
       </div>
+      <BrandedConfirmDialog
+        isOpen={!!deleteJobId}
+        onClose={() => setDeleteJobId(null)}
+        onConfirm={() => {
+          if (deleteJobId) {
+            deleteJob.mutate(deleteJobId);
+            setDeleteJobId(null);
+          }
+        }}
+        title="Delete Job Listing"
+        description="Are you sure you want to permanently delete this job listing? This action cannot be undone."
+        confirmText="Delete"
+        isDestructive
+        isLoading={deleteJob.isPending}
+      />
     </>
   );
 }

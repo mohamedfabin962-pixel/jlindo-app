@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { BrandedConfirmDialog } from "@/components/BrandedConfirmDialog";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -12,6 +14,21 @@ export default function JobApplicants() {
   const { jobId } = useParams<{ jobId: string }>();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [closingJob, setClosingJob] = useState(false);
+
+  const handleCloseListing = async () => {
+    setClosingJob(true);
+    const { error } = await supabase
+      .from("jobs")
+      .update({ status: "closed" })
+      .eq("id", jobId!);
+    setClosingJob(false);
+    setShowCloseConfirm(false);
+    if (!error) {
+      window.location.reload();
+    }
+  };
 
   const { data: job } = useQuery({
     queryKey: ["job", jobId],
@@ -198,10 +215,7 @@ export default function JobApplicants() {
                         size="sm"
                         variant="outline"
                         className="jl-btn-danger h-8 text-xs font-semibold rounded-lg"
-                        onClick={async () => {
-                          await supabase.from("jobs").update({ status: "closed" }).eq("id", jobId!);
-                          window.location.reload();
-                        }}
+                        onClick={() => setShowCloseConfirm(true)}
                       >
                         <ShieldAlert size={12} className="mr-1" /> Close Listing
                       </Button>
@@ -329,6 +343,16 @@ export default function JobApplicants() {
           </div>
         </div>
       </div>
+      <BrandedConfirmDialog
+        isOpen={showCloseConfirm}
+        onClose={() => setShowCloseConfirm(false)}
+        onConfirm={handleCloseListing}
+        title="Close Job Listing"
+        description="Are you sure you want to close this job listing? This action cannot be undone."
+        confirmText="Close Listing"
+        isDestructive
+        isLoading={closingJob}
+      />
     </>
   );
 }

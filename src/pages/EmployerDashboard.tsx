@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,10 +8,26 @@ import { Link } from "react-router-dom";
 import { Plus, Users, MapPin, DollarSign, Calendar, ArrowRight, PenSquare, Lock, Briefcase, Activity, XCircle, ExternalLink } from "lucide-react";
 import { decodeLocation } from "@/utils/locationUtils";
 import { motion, AnimatePresence } from "framer-motion";
+import { BrandedConfirmDialog } from "@/components/BrandedConfirmDialog";
 
 export default function EmployerDashboard() {
   const { user } = useAuth();
+  const [closeJobId, setCloseJobId] = useState<string | null>(null);
+  const [closingJob, setClosingJob] = useState(false);
 
+  const handleCloseJob = async () => {
+    if (!closeJobId) return;
+    setClosingJob(true);
+    const { error } = await supabase
+      .from("jobs")
+      .update({ status: "closed" })
+      .eq("id", closeJobId);
+    setClosingJob(false);
+    setCloseJobId(null);
+    if (!error) {
+      window.location.reload();
+    }
+  };
   const { data: jobs, isLoading } = useQuery({
     queryKey: ["employer-jobs"],
     queryFn: async () => {
@@ -281,14 +298,9 @@ export default function EmployerDashboard() {
                               size="sm"
                               variant="outline"
                               className="border-slate-100 text-rose-500 hover:bg-rose-50/50 hover:text-rose-600 rounded-xl flex-1 sm:flex-initial justify-center bg-transparent"
-                              onClick={async (e) => {
+                              onClick={(e) => {
                                 e.preventDefault();
-                                await supabase
-                                  .from("jobs")
-                                  .update({ status: "closed" })
-                                  .eq("id", job.id);
-
-                                window.location.reload();
+                                setCloseJobId(job.id);
                               }}
                             >
                               <Lock size={14} className="mr-1.5" /> Close Job
@@ -335,6 +347,16 @@ export default function EmployerDashboard() {
           </div>
         </div>
       </div>
+      <BrandedConfirmDialog
+        isOpen={!!closeJobId}
+        onClose={() => setCloseJobId(null)}
+        onConfirm={handleCloseJob}
+        title="Close Job Listing"
+        description="Are you sure you want to close this job listing? This action cannot be undone."
+        confirmText="Close Job"
+        isDestructive
+        isLoading={closingJob}
+      />
     </>
   );
 }
