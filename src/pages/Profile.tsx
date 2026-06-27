@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { User, Mail, Phone, ShieldCheck, Loader2, Lock, Eye, EyeOff, Camera, Trash2 } from "lucide-react";
+import { User, Mail, Phone, ShieldCheck, Loader2, Lock, Eye, EyeOff, Camera, Trash2, Building2, Map, FileText, MapPin } from "lucide-react";
 
 export default function Profile() {
   const { user, profile } = useAuth();
@@ -14,6 +14,13 @@ export default function Profile() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Employer states
+  const [companyName, setCompanyName] = useState("");
+  const [companyPhone, setCompanyPhone] = useState("");
+  const [companyCity, setCompanyCity] = useState("");
+  const [companyAddress, setCompanyAddress] = useState("");
+  const [companyDescription, setCompanyDescription] = useState("");
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -237,7 +244,14 @@ export default function Profile() {
       setFullName(profile.full_name || "");
       setPhone(profile.phone || "");
     }
-  }, [profile]);
+    if (user?.user_metadata) {
+      setCompanyName(user.user_metadata.company_name || "");
+      setCompanyPhone(user.user_metadata.company_phone || profile?.phone || "");
+      setCompanyCity(user.user_metadata.city || "");
+      setCompanyAddress(user.user_metadata.exact_address || "");
+      setCompanyDescription(user.user_metadata.description || "");
+    }
+  }, [profile, user]);
 
   const handleSave = async () => {
     setLoading(true);
@@ -246,24 +260,51 @@ export default function Profile() {
       .from("profiles")
       .update({
         full_name: fullName,
-        phone: phone,
+        phone: profile?.role === "employer" ? companyPhone : phone,
       })
       .eq("id", user?.id);
 
-    setLoading(false);
-
     if (error) {
+      setLoading(false);
       toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Profile Updated",
-        description: "Your details saved successfully",
-      });
+      return;
     }
+
+    if (profile?.role === "employer") {
+      const { error: authError } = await supabase.auth.updateUser({
+        data: {
+          company_name: companyName,
+          company_phone: companyPhone,
+          city: companyCity,
+          exact_address: companyAddress,
+          description: companyDescription,
+        }
+      });
+
+      if (authError) {
+        setLoading(false);
+        toast({
+          title: "Error",
+          description: authError.message,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    setLoading(false);
+    toast({
+      title: "Profile Updated",
+      description: "Your details saved successfully",
+    });
+
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
   };
 
   return (
@@ -312,255 +353,529 @@ export default function Profile() {
           </div>
 
           {/* ── PROFILE CARD ────────────────────────────── */}
-          <div
-            style={{
-              background: "#fff",
-              borderRadius: 24,
-              border: "1px solid rgba(15,10,30,0.07)",
-              boxShadow: "0 4px 24px rgba(15,10,30,0.04)",
-              overflow: "hidden",
-            }}
-          >
-            {/* Top accent */}
-            <div style={{ height: 6, background: "linear-gradient(90deg, #F59E0B, #D97706)" }} />
-            
-            <div style={{ padding: "28px 24px" }}>
+          {profile?.role === "employer" ? (
+            /* ── EMPLOYER PROFILE CARD ──────────────────── */
+            <div
+              style={{
+                background: "#fff",
+                borderRadius: 24,
+                border: "1px solid rgba(15,10,30,0.07)",
+                boxShadow: "0 4px 24px rgba(15,10,30,0.04)",
+                overflow: "hidden",
+              }}
+            >
+              {/* Top accent */}
+              <div style={{ height: 6, background: "linear-gradient(90deg, #F59E0B, #D97706)" }} />
               
-              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              <div style={{ padding: "28px 24px" }}>
                 
-                {/* ── AVATAR UPLOAD ───────────────────────────── */}
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, paddingBottom: 16, borderBottom: "1px solid rgba(15,10,30,0.05)" }}>
-                  <div style={{ position: "relative" }}>
-                    <div
-                      style={{
-                        height: 96,
-                        width: 96,
-                        borderRadius: "50%",
-                        background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
-                        color: "#ffffff",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 32,
-                        fontWeight: 800,
-                        boxShadow: "0 8px 24px rgba(245,158,11,0.18)",
-                        overflow: "hidden",
-                        border: "3px solid #ffffff",
-                        outline: "1px solid rgba(15,10,30,0.08)",
-                        position: "relative",
-                      }}
-                    >
-                      {user?.user_metadata?.avatar_url ? (
-                        <img
-                          src={user.user_metadata.avatar_url}
-                          alt="Profile Avatar"
-                          style={{
-                            height: "100%",
-                            width: "100%",
-                            objectFit: "cover",
-                          }}
-                        />
-                      ) : (
-                        getInitials()
-                      )}
+                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                  
+                  {/* ── AVATAR UPLOAD (Company logo) ──────────── */}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, paddingBottom: 16, borderBottom: "1px solid rgba(15,10,30,0.05)" }}>
+                    <div style={{ position: "relative" }}>
+                      <div
+                        style={{
+                          height: 96,
+                          width: 96,
+                          borderRadius: 20,
+                          background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+                          color: "#ffffff",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 32,
+                          fontWeight: 800,
+                          boxShadow: "0 8px 24px rgba(245,158,11,0.18)",
+                          overflow: "hidden",
+                          border: "3px solid #ffffff",
+                          outline: "1px solid rgba(15,10,30,0.08)",
+                          position: "relative",
+                        }}
+                      >
+                        {user?.user_metadata?.avatar_url ? (
+                          <img
+                            src={user.user_metadata.avatar_url}
+                            alt="Company Logo"
+                            style={{
+                              height: "100%",
+                              width: "100%",
+                              objectFit: "cover",
+                            }}
+                          />
+                        ) : (
+                          getInitials()
+                        )}
 
-                      {/* Loading Spinner overlay */}
-                      {uploadingImage && (
-                        <div style={{ position: "absolute", inset: 0, background: "rgba(15, 23, 42, 0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <Loader2 className="animate-spin text-white" size={24} />
-                        </div>
-                      )}
+                        {/* Loading Spinner overlay */}
+                        {uploadingImage && (
+                          <div style={{ position: "absolute", inset: 0, background: "rgba(15, 23, 42, 0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Loader2 className="animate-spin text-white" size={24} />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Camera icon button to change */}
+                      <label
+                        htmlFor="avatar-upload-input"
+                        style={{
+                          position: "absolute",
+                          bottom: -6,
+                          right: -6,
+                          height: 28,
+                          width: 28,
+                          borderRadius: "50%",
+                          background: "#0f172a",
+                          color: "#ffffff",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          cursor: "pointer",
+                          border: "2px solid #ffffff",
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        <Camera size={13} />
+                      </label>
+                      <input
+                        id="avatar-upload-input"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        disabled={uploadingImage}
+                        style={{ display: "none" }}
+                      />
                     </div>
 
-                    {/* Camera icon button to change */}
-                    <label
-                      htmlFor="avatar-upload-input"
-                      style={{
-                        position: "absolute",
-                        bottom: 0,
-                        right: 0,
-                        height: 28,
-                        width: 28,
-                        borderRadius: "50%",
-                        background: "#0f172a",
-                        color: "#ffffff",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        cursor: "pointer",
-                        border: "2px solid #ffffff",
-                        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                        transition: "all 0.15s ease",
-                      }}
-                    >
-                      <Camera size={13} />
-                    </label>
-                    <input
-                      id="avatar-upload-input"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                      disabled={uploadingImage}
-                      style={{ display: "none" }}
-                    />
+                    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                      <label
+                        htmlFor="avatar-upload-input"
+                        style={{
+                          fontSize: 12.5,
+                          fontWeight: 700,
+                          color: "#EA580C",
+                          cursor: "pointer",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                        }}
+                      >
+                        Change Logo
+                      </label>
+
+                      {user?.user_metadata?.avatar_url && (
+                        <>
+                          <span style={{ color: "rgba(15,10,30,0.15)", fontSize: 12 }}>|</span>
+                          <button
+                            type="button"
+                            onClick={handleRemovePhoto}
+                            disabled={uploadingImage}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              padding: 0,
+                              margin: 0,
+                              fontSize: 12.5,
+                              fontWeight: 700,
+                              color: "#EF4444",
+                              cursor: "pointer",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                          >
+                            <Trash2 size={12} />
+                            Remove
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
 
-                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                    <label
-                      htmlFor="avatar-upload-input"
-                      style={{
-                        fontSize: 12.5,
-                        fontWeight: 700,
-                        color: "#EA580C",
-                        cursor: "pointer",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.05em",
-                      }}
-                    >
-                      Change Photo
-                    </label>
-
-                    {user?.user_metadata?.avatar_url && (
-                      <>
-                        <span style={{ color: "rgba(15,10,30,0.15)", fontSize: 12 }}>|</span>
-                        <button
-                          type="button"
-                          onClick={handleRemovePhoto}
-                          disabled={uploadingImage}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            padding: 0,
-                            margin: 0,
-                            fontSize: 12.5,
-                            fontWeight: 700,
-                            color: "#EF4444",
-                            cursor: "pointer",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.05em",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 4,
-                          }}
-                        >
-                          <Trash2 size={12} />
-                          Remove
-                        </button>
-                      </>
-                    )}
+                  {/* Company Name */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <Label style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(15,10,30,0.7)" }}>
+                      Company / Shop Name
+                    </Label>
+                    <div style={{ position: "relative" }}>
+                      <Building2 style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", height: 16, width: 16, color: "rgba(15,10,30,0.3)" }} />
+                      <Input
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        className="jl-profile-input"
+                        placeholder="e.g. Acme Corp or Supermart"
+                        style={{
+                          height: 48, paddingLeft: 42, fontSize: 14,
+                          borderRadius: 12, border: "1px solid rgba(15,10,30,0.1)",
+                          background: "#fff", color: "#0d0a1e", fontWeight: 500,
+                          transition: "all .2s",
+                        }}
+                      />
+                    </div>
                   </div>
+
+                  {/* Contact Number */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <Label style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(15,10,30,0.7)" }}>
+                      Contact Number
+                    </Label>
+                    <div style={{ position: "relative" }}>
+                      <Phone style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", height: 16, width: 16, color: "rgba(15,10,30,0.3)" }} />
+                      <Input
+                        value={companyPhone}
+                        onChange={(e) => setCompanyPhone(e.target.value)}
+                        className="jl-profile-input"
+                        placeholder="e.g. +91 9876543210"
+                        style={{
+                          height: 48, paddingLeft: 42, fontSize: 14,
+                          borderRadius: 12, border: "1px solid rgba(15,10,30,0.1)",
+                          background: "#fff", color: "#0d0a1e", fontWeight: 500,
+                          transition: "all .2s",
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* City */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <Label style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(15,10,30,0.7)" }}>
+                      City
+                    </Label>
+                    <div style={{ position: "relative" }}>
+                      <MapPin style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", height: 16, width: 16, color: "rgba(15,10,30,0.3)" }} />
+                      <Input
+                        value={companyCity}
+                        onChange={(e) => setCompanyCity(e.target.value)}
+                        className="jl-profile-input"
+                        placeholder="e.g. Thrissur"
+                        style={{
+                          height: 48, paddingLeft: 42, fontSize: 14,
+                          borderRadius: 12, border: "1px solid rgba(15,10,30,0.1)",
+                          background: "#fff", color: "#0d0a1e", fontWeight: 500,
+                          transition: "all .2s",
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Exact Address */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <Label style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(15,10,30,0.7)" }}>
+                      Exact Address
+                    </Label>
+                    <div style={{ position: "relative" }}>
+                      <Map style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", height: 16, width: 16, color: "rgba(15,10,30,0.3)" }} />
+                      <Input
+                        value={companyAddress}
+                        onChange={(e) => setCompanyAddress(e.target.value)}
+                        className="jl-profile-input"
+                        placeholder="e.g. 1st Floor, Main Road"
+                        style={{
+                          height: 48, paddingLeft: 42, fontSize: 14,
+                          borderRadius: 12, border: "1px solid rgba(15,10,30,0.1)",
+                          background: "#fff", color: "#0d0a1e", fontWeight: 500,
+                          transition: "all .2s",
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Description / About Company */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <Label style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(15,10,30,0.7)" }}>
+                      Description / About Company
+                    </Label>
+                    <div style={{ position: "relative" }}>
+                      <FileText style={{ position: "absolute", left: 14, top: 16, height: 16, width: 16, color: "rgba(15,10,30,0.3)" }} />
+                      <textarea
+                        value={companyDescription}
+                        onChange={(e) => setCompanyDescription(e.target.value)}
+                        placeholder="Write a brief intro about your company or shop..."
+                        className="w-full pl-11 pr-4 py-3 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 bg-white text-slate-800 font-medium placeholder-slate-400 min-h-[100px] transition-all resize-y"
+                      />
+                    </div>
+                  </div>
+
                 </div>
+              </div>
 
-                {/* Email (Readonly) */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <Label style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(15,10,30,0.5)" }}>
-                    Email Address
-                  </Label>
-                  <div style={{ position: "relative" }}>
-                    <Mail style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", height: 16, width: 16, color: "rgba(15,10,30,0.3)" }} />
-                    <Input
-                      value={user?.email || ""}
-                      disabled
-                      style={{
-                        height: 48, paddingLeft: 42, fontSize: 14,
-                        borderRadius: 12, border: "1px solid rgba(15,10,30,0.1)",
-                        background: "#F8FAFC", color: "rgba(15,10,30,0.5)",
-                        cursor: "not-allowed",
-                      }}
-                    />
-                  </div>
-                </div>
+              {/* Actions footer */}
+              <div style={{ padding: "16px 24px 24px" }}>
+                <Button
+                  onClick={handleSave}
+                  disabled={loading}
+                  className="jl-save-btn"
+                  style={{
+                    width: "100%", height: 50, borderRadius: 14,
+                    fontSize: 15, fontWeight: 700, border: "none",
+                    background: loading ? "rgba(245,158,11,0.5)" : "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+                    color: loading ? "rgba(255,255,255,0.8)" : "#1c0e00",
+                    boxShadow: loading ? "none" : "0 4px 18px rgba(245,158,11,0.32)",
+                    transition: "all .18s",
+                  }}
+                >
+                  {loading ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving Changes...</>
+                  ) : (
+                    "Save Company Profile"
+                  )}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            /* ── ORIGINAL WORKER PROFILE CARD ─────────────── */
+            <div
+              style={{
+                background: "#fff",
+                borderRadius: 24,
+                border: "1px solid rgba(15,10,30,0.07)",
+                boxShadow: "0 4px 24px rgba(15,10,30,0.04)",
+                overflow: "hidden",
+              }}
+            >
+              {/* Top accent */}
+              <div style={{ height: 6, background: "linear-gradient(90deg, #F59E0B, #D97706)" }} />
+              
+              <div style={{ padding: "28px 24px" }}>
+                
+                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                  
+                  {/* ── AVATAR UPLOAD ───────────────────────────── */}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, paddingBottom: 16, borderBottom: "1px solid rgba(15,10,30,0.05)" }}>
+                    <div style={{ position: "relative" }}>
+                      <div
+                        style={{
+                          height: 96,
+                          width: 96,
+                          borderRadius: "50%",
+                          background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+                          color: "#ffffff",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 32,
+                          fontWeight: 800,
+                          boxShadow: "0 8px 24px rgba(245,158,11,0.18)",
+                          overflow: "hidden",
+                          border: "3px solid #ffffff",
+                          outline: "1px solid rgba(15,10,30,0.08)",
+                          position: "relative",
+                        }}
+                      >
+                        {user?.user_metadata?.avatar_url ? (
+                          <img
+                            src={user.user_metadata.avatar_url}
+                            alt="Profile Avatar"
+                            style={{
+                              height: "100%",
+                              width: "100%",
+                              objectFit: "cover",
+                            }}
+                          />
+                        ) : (
+                          getInitials()
+                        )}
 
-                {/* Full Name */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <Label style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(15,10,30,0.7)" }}>
-                    Full Name
-                  </Label>
-                  <div style={{ position: "relative" }}>
-                    <User style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", height: 16, width: 16, color: "rgba(15,10,30,0.3)" }} />
-                    <Input
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="jl-profile-input"
-                      style={{
-                        height: 48, paddingLeft: 42, fontSize: 14,
-                        borderRadius: 12, border: "1px solid rgba(15,10,30,0.1)",
-                        background: "#fff", color: "#0d0a1e", fontWeight: 500,
-                        transition: "all .2s",
-                      }}
-                    />
-                  </div>
-                </div>
+                        {/* Loading Spinner overlay */}
+                        {uploadingImage && (
+                          <div style={{ position: "absolute", inset: 0, background: "rgba(15, 23, 42, 0.6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Loader2 className="animate-spin text-white" size={24} />
+                          </div>
+                        )}
+                      </div>
 
-                {/* Phone */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <Label style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(15,10,30,0.7)" }}>
-                    Phone Number
-                  </Label>
-                  <div style={{ position: "relative" }}>
-                    <Phone style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", height: 16, width: 16, color: "rgba(15,10,30,0.3)" }} />
-                    <Input
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="jl-profile-input"
-                      style={{
-                        height: 48, paddingLeft: 42, fontSize: 14,
-                        borderRadius: 12, border: "1px solid rgba(15,10,30,0.1)",
-                        background: "#fff", color: "#0d0a1e", fontWeight: 500,
-                        transition: "all .2s",
-                      }}
-                    />
-                  </div>
-                </div>
+                      {/* Camera icon button to change */}
+                      <label
+                        htmlFor="avatar-upload-input"
+                        style={{
+                          position: "absolute",
+                          bottom: 0,
+                          right: 0,
+                          height: 28,
+                          width: 28,
+                          borderRadius: "50%",
+                          background: "#0f172a",
+                          color: "#ffffff",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          cursor: "pointer",
+                          border: "2px solid #ffffff",
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        <Camera size={13} />
+                      </label>
+                      <input
+                        id="avatar-upload-input"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        disabled={uploadingImage}
+                        style={{ display: "none" }}
+                      />
+                    </div>
 
-                {/* Role (Readonly) */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <Label style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(15,10,30,0.5)" }}>
-                    Account Type
-                  </Label>
-                  <div style={{ position: "relative" }}>
-                    <ShieldCheck style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", height: 16, width: 16, color: "rgba(15,10,30,0.3)" }} />
-                    <Input
-                      value={(profile?.role || "").toUpperCase()}
-                      disabled
-                      style={{
-                        height: 48, paddingLeft: 42, fontSize: 14, fontWeight: 600, letterSpacing: "0.05em",
-                        borderRadius: 12, border: "1px solid rgba(15,10,30,0.1)",
-                        background: "#F8FAFC", color: "rgba(15,10,30,0.5)",
-                        cursor: "not-allowed",
-                      }}
-                    />
+                    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                      <label
+                        htmlFor="avatar-upload-input"
+                        style={{
+                          fontSize: 12.5,
+                          fontWeight: 700,
+                          color: "#EA580C",
+                          cursor: "pointer",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                        }}
+                      >
+                        Change Photo
+                      </label>
+
+                      {user?.user_metadata?.avatar_url && (
+                        <>
+                          <span style={{ color: "rgba(15,10,30,0.15)", fontSize: 12 }}>|</span>
+                          <button
+                            type="button"
+                            onClick={handleRemovePhoto}
+                            disabled={uploadingImage}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              padding: 0,
+                              margin: 0,
+                              fontSize: 12.5,
+                              fontWeight: 700,
+                              color: "#EF4444",
+                              cursor: "pointer",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                          >
+                            <Trash2 size={12} />
+                            Remove
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Email (Readonly) */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <Label style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(15,10,30,0.5)" }}>
+                      Email Address
+                    </Label>
+                    <div style={{ position: "relative" }}>
+                      <Mail style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", height: 16, width: 16, color: "rgba(15,10,30,0.3)" }} />
+                      <Input
+                        value={user?.email || ""}
+                        disabled
+                        style={{
+                          height: 48, paddingLeft: 42, fontSize: 14,
+                          borderRadius: 12, border: "1px solid rgba(15,10,30,0.1)",
+                          background: "#F8FAFC", color: "rgba(15,10,30,0.5)",
+                          cursor: "not-allowed",
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Full Name */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <Label style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(15,10,30,0.7)" }}>
+                      Full Name
+                    </Label>
+                    <div style={{ position: "relative" }}>
+                      <User style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", height: 16, width: 16, color: "rgba(15,10,30,0.3)" }} />
+                      <Input
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        className="jl-profile-input"
+                        style={{
+                          height: 48, paddingLeft: 42, fontSize: 14,
+                          borderRadius: 12, border: "1px solid rgba(15,10,30,0.1)",
+                          background: "#fff", color: "#0d0a1e", fontWeight: 500,
+                          transition: "all .2s",
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Phone */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <Label style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(15,10,30,0.7)" }}>
+                      Phone Number
+                    </Label>
+                    <div style={{ position: "relative" }}>
+                      <Phone style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", height: 16, width: 16, color: "rgba(15,10,30,0.3)" }} />
+                      <Input
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="jl-profile-input"
+                        style={{
+                          height: 48, paddingLeft: 42, fontSize: 14,
+                          borderRadius: 12, border: "1px solid rgba(15,10,30,0.1)",
+                          background: "#fff", color: "#0d0a1e", fontWeight: 500,
+                          transition: "all .2s",
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Role (Readonly) */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <Label style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(15,10,30,0.5)" }}>
+                      Account Type
+                    </Label>
+                    <div style={{ position: "relative" }}>
+                      <ShieldCheck style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", height: 16, width: 16, color: "rgba(15,10,30,0.3)" }} />
+                      <Input
+                        value={(profile?.role || "").toUpperCase()}
+                        disabled
+                        style={{
+                          height: 48, paddingLeft: 42, fontSize: 14, fontWeight: 600, letterSpacing: "0.05em",
+                          borderRadius: 12, border: "1px solid rgba(15,10,30,0.1)",
+                          background: "#F8FAFC", color: "rgba(15,10,30,0.5)",
+                          cursor: "not-allowed",
+                        }}
+                      />
+                    </div>
+                  </div>
+
                 </div>
 
               </div>
 
+              {/* Actions footer */}
+              <div style={{ padding: "16px 24px 24px" }}>
+                <Button
+                  onClick={handleSave}
+                  disabled={loading}
+                  className="jl-save-btn"
+                  style={{
+                    width: "100%", height: 50, borderRadius: 14,
+                    fontSize: 15, fontWeight: 700, border: "none",
+                    background: loading ? "rgba(245,158,11,0.5)" : "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+                    color: loading ? "rgba(255,255,255,0.8)" : "#1c0e00",
+                    boxShadow: loading ? "none" : "0 4px 18px rgba(245,158,11,0.32)",
+                    transition: "all .18s",
+                  }}
+                >
+                  {loading ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving Changes...</>
+                  ) : (
+                    "Save Profile"
+                  )}
+                </Button>
+              </div>
+              
             </div>
-
-            {/* Actions footer */}
-            <div style={{ padding: "16px 24px 24px" }}>
-              <Button
-                onClick={handleSave}
-                disabled={loading}
-                className="jl-save-btn"
-                style={{
-                  width: "100%", height: 50, borderRadius: 14,
-                  fontSize: 15, fontWeight: 700, border: "none",
-                  background: loading ? "rgba(245,158,11,0.5)" : "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
-                  color: loading ? "rgba(255,255,255,0.8)" : "#1c0e00",
-                  boxShadow: loading ? "none" : "0 4px 18px rgba(245,158,11,0.32)",
-                  transition: "all .18s",
-                }}
-              >
-                {loading ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving Changes...</>
-                ) : (
-                  "Save Profile"
-                )}
-              </Button>
-            </div>
-            
-          </div>
+          )}
 
           {/* ── SECURITY / PASSWORD CARD ────────────────── */}
           <div
