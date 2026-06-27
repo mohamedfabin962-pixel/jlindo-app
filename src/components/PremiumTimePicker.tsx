@@ -166,21 +166,6 @@ function DesktopPopover({
   }
   left = Math.max(8, Math.min(left, window.innerWidth - POPOVER_WIDTH - 8));
 
-  console.log("DesktopPopover coords:", {
-    top,
-    left,
-    triggerRect: {
-      left: triggerRect.left,
-      right: triggerRect.right,
-      top: triggerRect.top,
-      bottom: triggerRect.bottom,
-      width: triggerRect.width,
-      height: triggerRect.height
-    },
-    openUpward,
-    window: { w: window.innerWidth, h: window.innerHeight }
-  });
-
   return createPortal(
     <motion.div
       ref={popoverRef}
