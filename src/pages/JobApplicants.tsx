@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Phone, Check, X, ArrowLeft, Users, Calendar, MapPin, DollarSign, Clock, ShieldAlert } from "lucide-react";
+import { Phone, Check, X, ArrowLeft, Users, MapPin, DollarSign, Clock, ShieldAlert } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function JobApplicants() {

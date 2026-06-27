@@ -4,15 +4,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Edit3, Tag, MapPin, Navigation, Link as LinkIcon, Clock, ChevronDown, X, Search, Check, Users, DollarSign } from "lucide-react";
+import { ArrowLeft, Edit3, MapPin, Navigation, Link as LinkIcon, Clock, ChevronDown, X, Search, Check, Users, DollarSign } from "lucide-react";
 import { JOB_CATEGORIES } from "@/utils/jobCategories";
 import {
   INDIAN_CITIES, encodeLocation, decodeLocation,
   encodeWorkingHours, decodeWorkingHours,
-  type Period, type TimeValue,
+  type Period,
 } from "@/utils/locationUtils";
 import { PremiumTimePicker } from "@/components/PremiumTimePicker";
 
@@ -117,6 +118,7 @@ export default function EditJob() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     title: "",
@@ -136,42 +138,70 @@ export default function EditJob() {
 
   useEffect(() => {
     const loadJob = async () => {
-      const { data, error } = await supabase
-        .from("jobs")
-        .select("*")
-        .eq("id", jobId)
-        .single();
-
-      if (error) {
-        toast({ title: "Error loading job", description: error.message, variant: "destructive" });
-        navigate("/employer/dashboard");
+      if (!jobId) {
+        setError("Missing Job ID in URL parameter.");
+        setLoading(false);
         return;
       }
 
-      // Decode stored location
-      const loc = decodeLocation(data.location);
-      // Decode stored working hours
-      const wh = decodeWorkingHours(data.working_hours);
+      try {
+        const { data, error: fetchError } = await supabase
+          .from("jobs")
+          .select("*")
+          .eq("id", jobId)
+          .single();
 
-      setForm({
-        title: data.title || "",
-        salary: data.salary || "",
-        description: data.description || "",
-        workers_required: String(data.workers_required || 1),
-        status: data.status || "open",
-        category: data.category || "Other",
-        city: loc.city,
-        exactLocation: loc.exactLocation,
-        mapsUrl: loc.mapsUrl,
-        startTime: wh.start,
-        endTime: wh.end,
-      });
+        if (fetchError) {
+          setError(`Failed to retrieve job details: ${fetchError.message}`);
+          setLoading(false);
+          return;
+        }
 
-      setLoading(false);
+        if (!data) {
+          setError("No job listing found with the specified ID.");
+          setLoading(false);
+          return;
+        }
+
+        // Verify ownership
+        if (data.employer_id !== user?.id) {
+          setError("Access Denied: You do not have permission to modify this listing.");
+          setLoading(false);
+          return;
+        }
+
+        // Decode stored location
+        const loc = decodeLocation(data.location);
+        // Decode stored working hours
+        const wh = decodeWorkingHours(data.working_hours);
+
+        setForm({
+          title: data.title || "",
+          salary: data.salary || "",
+          description: data.description || "",
+          workers_required: String(data.workers_required || 1),
+          status: data.status || "open",
+          category: data.category || "Other",
+          city: loc.city,
+          exactLocation: loc.exactLocation,
+          mapsUrl: loc.mapsUrl,
+          startTime: wh.start,
+          endTime:   wh.end,
+        });
+      } catch (err: any) {
+        setError(`An unexpected error occurred: ${err.message || err}`);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    if (jobId) loadJob();
-  }, [jobId]);
+    if (jobId) {
+      loadJob();
+    } else {
+      setError("No Job ID provided.");
+      setLoading(false);
+    }
+  }, [jobId, user]);
 
   const update = (field: string) => (e: any) =>
     setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -189,7 +219,7 @@ export default function EditJob() {
     const locationEncoded = encodeLocation(form.city, form.exactLocation, form.mapsUrl);
     const workingHoursEncoded = encodeWorkingHours(form.startTime, form.endTime);
 
-    const { error } = await supabase
+    const { error: updateError } = await supabase
       .from("jobs")
       .update({
         title: form.title,
@@ -206,8 +236,8 @@ export default function EditJob() {
 
     setSaving(false);
 
-    if (error) {
-      toast({ title: "Update failed", description: error.message, variant: "destructive" });
+    if (updateError) {
+      toast({ title: "Update failed", description: updateError.message, variant: "destructive" });
     } else {
       toast({ title: "Job updated successfully" });
       navigate("/employer/dashboard");
@@ -220,8 +250,63 @@ export default function EditJob() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground font-semibold">Loading job details…</div>
+      <div
+        className="min-h-screen bg-slate-50/50 pb-20 flex items-center justify-center"
+        style={{ fontFamily: "'Inter', sans-serif" }}
+      >
+        <div style={{ maxWidth: 640, width: "100%", margin: "0 auto", padding: "32px 16px 60px" }} className="animate-pulse space-y-6">
+          <div className="h-5 w-32 bg-slate-200 rounded-full" />
+          <Card style={{ background: "#fff", borderRadius: 24, border: "1px solid rgba(15,10,30,0.07)", boxShadow: "0 4px 20px rgba(15,10,30,0.04)" }} className="overflow-hidden">
+            <CardHeader style={{ borderBottom: "1px solid rgba(15,10,30,0.06)", padding: "24px 28px" }} className="flex flex-row items-center gap-3">
+              <div className="w-8 h-8 bg-slate-200 rounded-xl" />
+              <div className="h-6 w-44 bg-slate-200 rounded-full" />
+            </CardHeader>
+            <CardContent style={{ padding: "28px" }} className="space-y-6">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="space-y-2">
+                  <div className="h-4.5 w-24 bg-slate-200 rounded-full" />
+                  <div className="h-11 w-full bg-slate-100 rounded-xl" />
+                </div>
+              ))}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="h-4.5 w-24 bg-slate-200 rounded-full" />
+                  <div className="h-11 w-full bg-slate-100 rounded-xl" />
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4.5 w-24 bg-slate-200 rounded-full" />
+                  <div className="h-11 w-full bg-slate-100 rounded-xl" />
+                </div>
+              </div>
+              <div className="h-12 w-full bg-slate-200 rounded-xl mt-4" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center bg-slate-50/50 p-4"
+        style={{ fontFamily: "'Inter', sans-serif" }}
+      >
+        <Card style={{ background: "#fff", borderRadius: 24, border: "1px solid rgba(15,10,30,0.07)", boxShadow: "0 4px 20px rgba(15,10,30,0.04)" }} className="max-w-md w-full p-8 text-center space-y-5">
+          <div className="mx-auto w-12 h-12 rounded-full bg-rose-50 flex items-center justify-center text-rose-500">
+            <X className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-extrabold text-slate-800">Unable to Load Job</h2>
+          <p className="text-sm text-slate-400 font-medium leading-relaxed">
+            {error}
+          </p>
+          <Button
+            className="w-full jl-btn-primary h-12 rounded-xl text-sm font-bold shadow-sm border-0"
+            onClick={() => navigate("/employer/dashboard")}
+          >
+            Return to Dashboard
+          </Button>
+        </Card>
       </div>
     );
   }

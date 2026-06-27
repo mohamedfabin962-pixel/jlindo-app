@@ -20,7 +20,7 @@ import { Link } from "react-router-dom";
 import { JOB_CATEGORIES, getCategoryIllustration } from "@/utils/jobCategories";
 import {
   INDIAN_CITIES, encodeLocation, encodeWorkingHours,
-  type Period, type TimeValue,
+  type Period,
 } from "@/utils/locationUtils";
 import { PremiumTimePicker } from "@/components/PremiumTimePicker";
 import { motion } from "framer-motion";

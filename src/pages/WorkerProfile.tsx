@@ -2,8 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatusBadge } from "@/components/StatusBadge";
-import { User, Award, ListChecks } from "lucide-react";
+import { User, Award } from "lucide-react";
 
 export default function WorkerProfile() {
   const { user, profile } = useAuth();

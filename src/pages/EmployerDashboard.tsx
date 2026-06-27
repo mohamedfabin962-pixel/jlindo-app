@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Plus, Users, MapPin, DollarSign, Calendar, ArrowRight, PenSquare, Lock } from "lucide-react";
+import { Plus, Users, MapPin, DollarSign, Calendar, ArrowRight, PenSquare, Lock, Briefcase, Activity, XCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function EmployerDashboard() {
@@ -43,6 +43,18 @@ export default function EmployerDashboard() {
     },
     enabled: !!jobs && jobs.length > 0,
   });
+
+  const totalJobs = jobs?.length || 0;
+  const activeJobs = jobs?.filter((j) => j.status === "open").length || 0;
+  const closedJobs = jobs?.filter((j) => j.status === "closed").length || 0;
+  const totalApps = Object.values(appCounts || {}).reduce((sum, count) => sum + count, 0);
+
+  const renderStatVal = (val: number | string) => {
+    if (isLoading) {
+      return <div className="h-7 w-12 bg-slate-100 rounded-md animate-pulse mt-0.5" />;
+    }
+    return <span className="text-2xl font-black text-slate-800 tracking-tight leading-none">{val}</span>;
+  };
 
   return (
     <>
@@ -98,6 +110,65 @@ export default function EmployerDashboard() {
                 <Plus className="h-4.5 w-4.5" /> Post Job
               </Link>
             </Button>
+          </div>
+
+          {/* Statistics Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+            {/* Total Jobs */}
+            <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-4 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Jobs</span>
+                <div className="p-2 bg-amber-50 rounded-xl text-amber-600">
+                  <Briefcase size={16} />
+                </div>
+              </div>
+              <div className="mt-4">
+                {renderStatVal(totalJobs)}
+                <p className="text-[10px] text-slate-400 mt-1 font-semibold">Posted all-time</p>
+              </div>
+            </div>
+
+            {/* Active Jobs */}
+            <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-4 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Jobs</span>
+                <div className="p-2 bg-emerald-50 rounded-xl text-emerald-600">
+                  <Activity size={16} />
+                </div>
+              </div>
+              <div className="mt-4">
+                {renderStatVal(activeJobs)}
+                <p className="text-[10px] text-slate-400 mt-1 font-semibold">Open listings</p>
+              </div>
+            </div>
+
+            {/* Closed Jobs */}
+            <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-4 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Closed Jobs</span>
+                <div className="p-2 bg-rose-50 rounded-xl text-rose-600">
+                  <XCircle size={16} />
+                </div>
+              </div>
+              <div className="mt-4">
+                {renderStatVal(closedJobs)}
+                <p className="text-[10px] text-slate-400 mt-1 font-semibold">Archived jobs</p>
+              </div>
+            </div>
+
+            {/* Total Applications */}
+            <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-4 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Applications</span>
+                <div className="p-2 bg-indigo-50 rounded-xl text-indigo-600">
+                  <Users size={16} />
+                </div>
+              </div>
+              <div className="mt-4">
+                {renderStatVal(totalApps)}
+                <p className="text-[10px] text-slate-400 mt-1 font-semibold">Total responses</p>
+              </div>
+            </div>
           </div>
 
           {/* Skeleton Loaders */}

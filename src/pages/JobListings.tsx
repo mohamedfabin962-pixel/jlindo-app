@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { JobCardSkeleton } from "@/components/BrandedLoading";
 import { EmptyState } from "@/components/EmptyState";
 import { getCategoryIllustration, inferCategoryFromText, JOB_CATEGORIES } from "@/utils/jobCategories";
-import { decodeLocation, decodeWorkingHours } from "@/utils/locationUtils";
+import { decodeLocation } from "@/utils/locationUtils";
 
 // We now use getCategoryIllustration and inferCategoryFromText from jobCategories.tsx
 
