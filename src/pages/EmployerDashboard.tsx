@@ -9,6 +9,7 @@ import { Plus, Users, MapPin, DollarSign, Calendar, ArrowRight, PenSquare, Lock,
 import { decodeLocation } from "@/utils/locationUtils";
 import { motion, AnimatePresence } from "framer-motion";
 import { BrandedConfirmDialog } from "@/components/BrandedConfirmDialog";
+import { EmptyState } from "@/components/EmptyState";
 
 export default function EmployerDashboard() {
   const { user } = useAuth();
@@ -319,34 +320,13 @@ export default function EmployerDashboard() {
             </AnimatePresence>
 
             {jobs?.length === 0 && !isLoading && (
-              <div
-                style={{
-                  textAlign: "center", padding: "60px 20px",
-                  background: "#fff", borderRadius: 24,
-                  border: "1px solid rgba(15,10,30,0.07)",
-                  boxShadow: "0 2px 12px rgba(15,10,30,0.04)"
-                }}
-              >
-                <div
-                  style={{
-                    height: 56, width: 56, borderRadius: 16, margin: "0 auto 16px",
-                    background: "rgba(245,158,11,0.10)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}
-                >
-                  <Plus style={{ height: 24, width: 24, color: "#F59E0B" }} />
-                </div>
-                <p style={{ fontSize: 16, fontWeight: 700, color: "#0d0a1e", margin: 0 }}>You haven't posted any jobs yet</p>
-                <p style={{ fontSize: 13, color: "rgba(15,10,30,0.42)", marginTop: 6 }}>
-                  Start by posting your first job to find workers.
-                </p>
-                <Button
-                  className="jl-btn-primary mt-5 px-5 rounded-xl border-0"
-                  asChild
-                >
-                  <Link to="/employer/post-job">Post First Job</Link>
-                </Button>
-              </div>
+              <EmptyState
+                icon={Briefcase}
+                title="No Jobs Posted Yet"
+                description="Start by posting your first job to find workers."
+                actionText="Post First Job"
+                actionLink="/employer/post-job"
+              />
             )}
           </div>
         </div>

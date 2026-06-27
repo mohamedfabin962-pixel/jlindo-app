@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Phone, Briefcase, MapPin, Clock, CalendarDays, CheckCircle2 } from "lucide-react";
+import { Phone, Briefcase, MapPin, Clock, CalendarDays, CheckCircle2, Bookmark } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { JobCardSkeleton } from "@/components/BrandedLoading";
 import { EmptyState } from "@/components/EmptyState";
@@ -15,6 +15,7 @@ export default function MyApplications() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [withdrawTargetId, setWithdrawTargetId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"applied" | "saved">("applied");
 
   const withdrawMutation = useMutation({
     mutationFn: async (appId: string) => {
@@ -112,32 +113,58 @@ export default function MyApplications() {
             </p>
           </div>
 
-          {/* ── LOADING STATE ───────────────────────────── */}
-          {isLoading && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              {[1, 2, 3].map((i) => (
-                <JobCardSkeleton key={i} />
-              ))}
-            </div>
-          )}
+          {/* Tabs Switcher */}
+          <div className="flex gap-2 mb-6 p-1 bg-slate-100/80 border border-slate-200/50 rounded-xl w-fit">
+            <button
+              onClick={() => setActiveTab("applied")}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === "applied" ? "bg-white text-slate-800 shadow-sm border border-slate-200/40" : "text-slate-500 hover:text-slate-700 bg-transparent border-0"}`}
+            >
+              Applied Jobs ({applications?.length || 0})
+            </button>
+            <button
+              onClick={() => setActiveTab("saved")}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === "saved" ? "bg-white text-slate-800 shadow-sm border border-slate-200/40" : "text-slate-500 hover:text-slate-700 bg-transparent border-0"}`}
+            >
+              Saved Jobs (0)
+            </button>
+          </div>
 
-          {/* ── EMPTY STATE ─────────────────────────────── */}
-          {applications?.length === 0 && !isLoading && (
-             <EmptyState
-               icon={Briefcase}
-               title="No applications yet"
-               description="Start exploring opportunities and apply to your first job."
-               actionText="Browse Open Jobs"
-               actionLink="/jobs"
-             />
-          )}
+          {activeTab === "saved" ? (
+            <EmptyState
+              icon={Bookmark}
+              title="No Saved Jobs"
+              description="Keep track of jobs you are interested in by saving them."
+              actionText="Browse Jobs"
+              actionLink="/"
+            />
+          ) : (
+            <>
+              {/* ── LOADING STATE ───────────────────────────── */}
+              {isLoading && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  {[1, 2, 3].map((i) => (
+                    <JobCardSkeleton key={i} />
+                  ))}
+                </div>
+              )}
 
-          {/* ── LIST ────────────────────────────────────── */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <AnimatePresence>
-              {applications?.map((app, idx) => {
-                const job = app.jobs as any;
-                const employer = employers[job?.employer_id];
+              {/* ── EMPTY STATE ─────────────────────────────── */}
+              {applications?.length === 0 && !isLoading && (
+                 <EmptyState
+                   icon={Briefcase}
+                   title="No applications yet"
+                   description="Start applying to jobs today."
+                   actionText="Browse Open Jobs"
+                   actionLink="/"
+                 />
+              )}
+
+              {/* ── LIST ────────────────────────────────────── */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <AnimatePresence>
+                  {applications?.map((app, idx) => {
+                    const job = app.jobs as any;
+                    const employer = employers[job?.employer_id];
 
                 return (
                   <motion.div
@@ -255,6 +282,8 @@ export default function MyApplications() {
               })}
             </AnimatePresence>
           </div>
+          </>
+          )}
         </div>
       </div>
 

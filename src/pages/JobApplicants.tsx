@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Phone, Check, X, ArrowLeft, Users, MapPin, DollarSign, Clock, ShieldAlert, ExternalLink } from "lucide-react";
 import { decodeLocation } from "@/utils/locationUtils";
 import { motion, AnimatePresence } from "framer-motion";
+import { EmptyState } from "@/components/EmptyState";
 
 export default function JobApplicants() {
   const { jobId } = useParams<{ jobId: string }>();
@@ -333,18 +334,11 @@ export default function JobApplicants() {
             </AnimatePresence>
 
             {applications?.length === 0 && !isLoading && (
-              <div
-                style={{
-                  textAlign: "center",
-                  padding: "48px 20px",
-                  background: "#fff",
-                  borderRadius: 20,
-                  border: "1px solid rgba(15,10,30,0.07)",
-                  color: "rgba(15,10,30,0.4)"
-                }}
-              >
-                No applicants have applied to this job listing yet.
-              </div>
+              <EmptyState
+                icon={Users}
+                title="No Applications Yet"
+                description="Share this job link or check back later for candidates."
+              />
             )}
           </div>
         </div>

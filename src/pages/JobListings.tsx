@@ -45,6 +45,15 @@ export default function JobListings() {
     filterSalary !== "All",
     filterHours !== "All"
   ].filter(Boolean).length;
+  
+  const handleClearFilters = () => {
+    setSearch("");
+    setFilterCategory("All");
+    setFilterStatus("All");
+    setFilterSalary("All");
+    setFilterHours("All");
+    setCurrentPage(1);
+  };
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -422,8 +431,12 @@ export default function JobListings() {
           {!isLoading && filtered?.length === 0 && (
             <EmptyState
               icon={Search}
-              title={search.trim() ? "Empty search results" : "No jobs found"}
-              description="We couldn't find any jobs matching your search. Try different keywords."
+              title={search.trim() || activeFilterCount > 0 ? "No Search Results" : "No Jobs Found"}
+              description={search.trim() || activeFilterCount > 0 
+                ? "Try adjusting your search filters or keywords." 
+                : "Check back later or try adjusting your search filters."}
+              actionText={search.trim() || activeFilterCount > 0 ? "Clear All Filters" : undefined}
+              onAction={handleClearFilters}
             />
           )}
 
