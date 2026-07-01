@@ -38,6 +38,13 @@ export default function AdminDashboard() {
   const [jobPage, setJobPage] = useState(1);
   const [closeJobId, setCloseJobId] = useState<string | null>(null);
   const [viewJob, setViewJob] = useState<any | null>(null);
+
+  // Feedback section states
+  const [feedbackSearch, setFeedbackSearch] = useState("");
+  const [feedbackFilter, setFeedbackFilter] = useState("all");
+  const [feedbackPage, setFeedbackPage] = useState(1);
+  const [deleteFeedbackId, setDeleteFeedbackId] = useState<string | null>(null);
+  const [viewFeedback, setViewFeedback] = useState<any | null>(null);
   
   const itemsPerPage = 5;
 
@@ -128,6 +135,17 @@ export default function AdminDashboard() {
     },
   });
 
+  const deleteFeedback = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("feedback").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-feedback"] });
+      toast({ title: "Feedback deleted successfully" });
+    },
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-50">
@@ -197,6 +215,26 @@ export default function AdminDashboard() {
   const totalJobPages = Math.ceil(filteredJobs.length / itemsPerPage);
   const startJobIndex = (jobPage - 1) * itemsPerPage;
   const paginatedJobs = filteredJobs.slice(startJobIndex, startJobIndex + itemsPerPage);
+
+  const filteredFeedbacks = (feedbacks || []).filter((f) => {
+    const s = feedbackSearch.toLowerCase().trim();
+    const messageMatch = f.message?.toLowerCase().includes(s) ?? false;
+    const typeMatch = f.type?.toLowerCase().includes(s) ?? false;
+    const matchesSearch = s === "" || messageMatch || typeMatch;
+
+    let matchesFilter = true;
+    if (feedbackFilter === "pending") {
+      matchesFilter = f.status !== "resolved";
+    } else if (feedbackFilter === "resolved") {
+      matchesFilter = f.status === "resolved";
+    }
+
+    return matchesSearch && matchesFilter;
+  });
+
+  const totalFeedbackPages = Math.ceil(filteredFeedbacks.length / itemsPerPage);
+  const startFeedbackIndex = (feedbackPage - 1) * itemsPerPage;
+  const paginatedFeedbacks = filteredFeedbacks.slice(startFeedbackIndex, startFeedbackIndex + itemsPerPage);
 
   const totalUsers = users?.length || 0;
   const totalJobs = jobs?.length || 0;
@@ -836,61 +874,227 @@ export default function AdminDashboard() {
             </TabsContent>
 
             {/* FEEDBACK TAB */}
-            <TabsContent value="feedback" className="space-y-3">
-              {!feedbacks || feedbacks.length === 0 ? (
+            <TabsContent value="feedback" className="space-y-4">
+              {/* Search and Filters */}
+              <div className="flex flex-col sm:flex-row gap-3 mb-5">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <Input
+                    placeholder="Search by feedback message or category..."
+                    value={feedbackSearch}
+                    onChange={(e) => {
+                      setFeedbackSearch(e.target.value);
+                      setFeedbackPage(1);
+                    }}
+                    className="pl-9 h-11 rounded-xl border-slate-200 focus-visible:ring-amber-500 bg-white"
+                  />
+                </div>
+
+                <Select
+                  value={feedbackFilter}
+                  onValueChange={(val) => {
+                    setFeedbackFilter(val);
+                    setFeedbackPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-full sm:w-[180px] h-11 rounded-xl border-slate-200 bg-white text-slate-700 font-medium">
+                    <SelectValue placeholder="Filter feedback" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="all">All Feedback</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="resolved">Resolved</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {paginatedFeedbacks.length === 0 ? (
                 <EmptyState
                   icon={MessageSquare}
-                  title="No feedback available"
-                  description="User suggestions or issue reports will show up here."
+                  title="No feedback found"
+                  description={
+                    feedbackSearch || feedbackFilter !== "all"
+                      ? "Try adjusting your search query or filter settings."
+                      : "User suggestions or issue reports will show up here."
+                  }
                 />
-
               ) : (
-                feedbacks.map((f) => (
-                  <div
-                    key={f.id}
-                    className="jl-admin-card"
-                    style={{
-                      background: "#fff",
-                      borderRadius: 16,
-                      border: "1px solid rgba(15,10,30,0.06)",
-                      padding: "16px 20px",
-                      transition: "box-shadow 0.2s",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                      <StatusBadge status={f.status === "resolved" ? "success" : "pending"} />
-                      <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "rgba(15,10,30,0.4)" }}>
-                        {f.type}
-                      </span>
-                      <span style={{ fontSize: 11, color: "rgba(15,10,30,0.35)", marginLeft: "auto" }}>
-                        {new Date(f.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-
-                    <p style={{ margin: "8px 0 14px", fontSize: 13.5, color: "rgba(15,10,30,0.8)" }}>{f.message}</p>
-
-                    {f.status !== "resolved" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 text-xs font-semibold rounded-lg"
+                <div className="space-y-4">
+                  {paginatedFeedbacks.map((f) => {
+                    const isLong = (f.message || "").length > 180;
+                    return (
+                      <div
+                        key={f.id}
+                        className="jl-admin-card"
                         style={{
-                          borderColor: "rgba(16,185,129,0.2)",
-                          color: "#059669",
-                          background: "rgba(16,185,129,0.03)"
+                          background: "#fff",
+                          borderRadius: 18,
+                          border: "1px solid rgba(15,10,30,0.06)",
+                          padding: "20px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 14,
+                          transition: "all 0.2s ease",
+                          boxShadow: "0 2px 8px rgba(15,10,30,0.02)",
                         }}
-                        onClick={() =>
-                          updateFeedbackStatus.mutate({
-                            id: f.id,
-                            status: "resolved",
-                          })
-                        }
                       >
-                        <Check size={12} className="mr-1" /> Mark Resolved
-                      </Button>
-                    )}
-                  </div>
-                ))
+                        {/* Header Row */}
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="flex items-center gap-2">
+                            <StatusBadge status={f.status === "resolved" ? "success" : "pending"} />
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md font-sans">
+                              {f.type || "Feedback"}
+                            </span>
+                          </div>
+                          
+                          <span className="text-xs font-semibold text-slate-400">
+                            {new Date(f.created_at).toLocaleDateString("en-IN", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
+
+                        {/* Message / Message Preview */}
+                        <div className="text-sm text-slate-700 leading-relaxed bg-slate-50/50 p-4 rounded-xl border border-slate-100/80">
+                          <p className="m-0 whitespace-pre-wrap">
+                            {isLong ? (
+                              <>
+                                {(f.message || "").slice(0, 180)}...{" "}
+                                <button
+                                  onClick={() => setViewFeedback(f)}
+                                  className="text-xs font-bold text-amber-600 hover:text-amber-700 underline focus:outline-none"
+                                >
+                                  Read Full Feedback
+                                </button>
+                              </>
+                            ) : (
+                              f.message
+                            )}
+                          </p>
+                        </div>
+
+                        {/* Action buttons row */}
+                        <div className="flex items-center justify-between gap-3 mt-1">
+                          {/* User ID reference if logged in */}
+                          <div className="text-[11px] font-medium text-slate-400 truncate max-w-[150px] sm:max-w-xs">
+                            {f.user_id ? `By User: ${f.user_id.slice(0, 8)}...` : "By Anonymous User"}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {f.status !== "resolved" && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8.5 text-xs font-semibold rounded-xl border-emerald-100 hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700 bg-emerald-50/10"
+                                onClick={() =>
+                                  updateFeedbackStatus.mutate({
+                                    id: f.id,
+                                    status: "resolved",
+                                  })
+                                }
+                              >
+                                <Check size={12} className="mr-1" /> Mark Resolved
+                              </Button>
+                            )}
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8.5 text-xs font-semibold rounded-xl border-rose-100 hover:bg-rose-50 text-rose-600 hover:text-rose-700 bg-rose-50/20"
+                              onClick={() => setDeleteFeedbackId(f.id)}
+                            >
+                              <Trash2 size={13} className="mr-1" /> Delete
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Pagination Section */}
+                  {totalFeedbackPages > 1 && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-4 border-t border-slate-100">
+                      <span className="text-xs font-semibold text-slate-500 order-2 sm:order-1 text-center sm:text-left">
+                        Showing {startFeedbackIndex + 1}–{Math.min(startFeedbackIndex + itemsPerPage, filteredFeedbacks.length)} of {filteredFeedbacks.length} feedbacks
+                      </span>
+                      
+                      <div className="flex items-center gap-1.5 order-1 sm:order-2">
+                        <Button
+                          disabled={feedbackPage === 1}
+                          onClick={() => setFeedbackPage((prev) => Math.max(prev - 1, 1))}
+                          style={{
+                            background: "#ffffff",
+                            border: "1px solid rgba(15,10,30,0.08)",
+                            borderRadius: 10,
+                            height: 36,
+                            width: 36,
+                            padding: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#0d0a1e",
+                            cursor: feedbackPage === 1 ? "not-allowed" : "pointer",
+                            opacity: feedbackPage === 1 ? 0.4 : 1,
+                            boxShadow: "0 2px 6px rgba(15,10,30,0.02)",
+                          }}
+                        >
+                          <ChevronLeft size={16} />
+                        </Button>
+                        
+                        {Array.from({ length: totalFeedbackPages }, (_, i) => i + 1).map((page) => (
+                          <Button
+                            key={page}
+                            onClick={() => setFeedbackPage(page)}
+                            style={{
+                              background: feedbackPage === page ? "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)" : "#ffffff",
+                              border: feedbackPage === page ? "none" : "1px solid rgba(15,10,30,0.08)",
+                              borderRadius: 10,
+                              height: 36,
+                              width: 36,
+                              padding: 0,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: feedbackPage === page ? "#ffffff" : "#0d0a1e",
+                              fontWeight: 600,
+                              fontSize: 13,
+                              cursor: "pointer",
+                              boxShadow: feedbackPage === page ? "0 2px 8px rgba(245,158,11,0.24)" : "0 2px 6px rgba(15,10,30,0.02)",
+                            }}
+                          >
+                            {page}
+                          </Button>
+                        ))}
+
+                        <Button
+                          disabled={feedbackPage === totalFeedbackPages}
+                          onClick={() => setFeedbackPage((prev) => Math.min(prev + 1, totalFeedbackPages))}
+                          style={{
+                            background: "#ffffff",
+                            border: "1px solid rgba(15,10,30,0.08)",
+                            borderRadius: 10,
+                            height: 36,
+                            width: 36,
+                            padding: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#0d0a1e",
+                            cursor: feedbackPage === totalFeedbackPages ? "not-allowed" : "pointer",
+                            opacity: feedbackPage === totalFeedbackPages ? 0.4 : 1,
+                            boxShadow: "0 2px 6px rgba(15,10,30,0.02)",
+                          }}
+                        >
+                          <ChevronRight size={16} />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </TabsContent>
           </Tabs>
@@ -1083,6 +1287,109 @@ export default function AdminDashboard() {
                   className="flex-1 h-11 font-semibold"
                 >
                   Delete Job
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <BrandedConfirmDialog
+        isOpen={!!deleteFeedbackId}
+        onClose={() => setDeleteFeedbackId(null)}
+        onConfirm={() => {
+          if (deleteFeedbackId) {
+            deleteFeedback.mutate(deleteFeedbackId);
+            setDeleteFeedbackId(null);
+          }
+        }}
+        title="Delete User Feedback"
+        description="Are you sure you want to permanently delete this user feedback? This action cannot be undone."
+        confirmText="Delete"
+        isDestructive
+        isLoading={deleteFeedback.isPending}
+      />
+
+      <Dialog open={!!viewFeedback} onOpenChange={(open) => !open && setViewFeedback(null)}>
+        <DialogContent className="max-w-md sm:max-w-lg rounded-2xl p-6 bg-white border border-slate-100 shadow-xl overflow-y-auto max-h-[90vh]">
+          {viewFeedback && (
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="flex items-start gap-4">
+                <div className="shrink-0 flex items-center justify-center h-12 w-12 rounded-xl bg-amber-50 border border-amber-100 text-amber-600">
+                  <MessageSquare size={22} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-xl font-bold text-slate-900 leading-snug">User Feedback</h2>
+                  <p className="text-xs font-semibold text-slate-400 mt-0.5 uppercase tracking-wider">{viewFeedback.type || "General Feedback"}</p>
+                </div>
+                <button onClick={() => setViewFeedback(null)} className="text-slate-400 hover:text-slate-600 shrink-0 self-start p-1 rounded-md hover:bg-slate-50 transition-colors">
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Status & Date */}
+              <div className="grid grid-cols-2 gap-4 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+                <div>
+                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</span>
+                  <div className="mt-1">
+                    <StatusBadge status={viewFeedback.status === "resolved" ? "success" : "pending"} />
+                  </div>
+                </div>
+                <div>
+                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Submitted On</span>
+                  <span className="block text-xs font-bold text-slate-800 mt-1.5">
+                    {new Date(viewFeedback.created_at).toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Sender Details */}
+              <div className="space-y-1.5 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Submitted By</span>
+                <span className="block text-sm font-semibold text-slate-700 truncate">
+                  {viewFeedback.user_id ? `User ID: ${viewFeedback.user_id}` : "Anonymous Guest"}
+                </span>
+              </div>
+
+              {/* Message */}
+              <div className="space-y-2">
+                <span className="block text-xs font-semibold text-slate-400">Full Message</span>
+                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap bg-slate-50 p-4 rounded-xl border border-slate-100 max-h-60 overflow-y-auto">
+                  {viewFeedback.message}
+                </p>
+              </div>
+
+              {/* Action buttons inside Modal */}
+              <div className="flex gap-3 border-t border-slate-100 pt-4 mt-6">
+                {viewFeedback.status !== "resolved" && (
+                  <Button
+                    onClick={() => {
+                      updateFeedbackStatus.mutate({ id: viewFeedback.id, status: "resolved" });
+                      setViewFeedback(null);
+                    }}
+                    style={{ borderRadius: 10 }}
+                    className="flex-1 h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold border-0"
+                  >
+                    Mark Resolved
+                  </Button>
+                )}
+                <Button
+                  onClick={() => {
+                    setDeleteFeedbackId(viewFeedback.id);
+                    setViewFeedback(null);
+                  }}
+                  variant="destructive"
+                  style={{ borderRadius: 10 }}
+                  className="flex-1 h-11 font-semibold"
+                >
+                  Delete Feedback
                 </Button>
               </div>
             </div>
