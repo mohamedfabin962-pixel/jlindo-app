@@ -53,6 +53,7 @@ export default function EmployerDashboard() {
         .from("jobs")
         .select("*")
         .eq("employer_id", user!.id)
+        .neq("status", "deleted")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;

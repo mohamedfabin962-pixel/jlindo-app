@@ -11,7 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Trash2, Ban, Users, Briefcase, FileCheck, MessageSquare, ShieldCheck, Check,
   ChevronLeft, ChevronRight, Search, Mail, Phone, Calendar, User,
-  MapPin, DollarSign, Clock, X, ExternalLink, TrendingUp, Activity
+  MapPin, DollarSign, Clock, X, ExternalLink, TrendingUp, Activity,
+  RotateCcw, Archive, AlertTriangle
 } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { EmptyState } from "@/components/EmptyState";
@@ -65,6 +66,15 @@ export default function AdminDashboard() {
   const [activitySearch, setActivitySearch] = useState("");
   const [activityFilter, setActivityFilter] = useState("all");
   const [activityPage, setActivityPage] = useState(1);
+
+  // Trash section states
+  const [trashSearch, setTrashSearch] = useState("");
+  const [trashFilter, setTrashFilter] = useState("all"); // all | jobs | feedback
+  const [trashPage, setTrashPage] = useState(1);
+  const [confirmPermDeleteJob, setConfirmPermDeleteJob] = useState<string | null>(null);
+  const [confirmPermDeleteFeedback, setConfirmPermDeleteFeedback] = useState<string | null>(null);
+  const [confirmRestoreJob, setConfirmRestoreJob] = useState<string | null>(null);
+  const [confirmRestoreFeedback, setConfirmRestoreFeedback] = useState<string | null>(null);
   
   const itemsPerPage = 5;
 
@@ -81,7 +91,7 @@ export default function AdminDashboard() {
   const { data: jobs } = useQuery({
     queryKey: ["admin-jobs"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("jobs").select("*").order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("jobs").select("*").neq("status", "deleted").order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -101,7 +111,27 @@ export default function AdminDashboard() {
   const { data: feedbacks } = useQuery({
     queryKey: ["admin-feedback"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("feedback").select("*").order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("feedback").select("*").neq("status", "deleted").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAdmin,
+  });
+
+  const { data: trashedJobs } = useQuery({
+    queryKey: ["admin-trashed-jobs"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("jobs").select("*").eq("status", "deleted").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAdmin,
+  });
+
+  const { data: trashedFeedbacks } = useQuery({
+    queryKey: ["admin-trashed-feedbacks"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("feedback").select("*").eq("status", "deleted").order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -175,7 +205,8 @@ export default function AdminDashboard() {
       const targetJob = (jobs || []).find((j: any) => j.id === jobId);
       const jobTitle = targetJob?.title || "Unknown Job";
 
-      const { error } = await supabase.from("jobs").delete().eq("id", jobId);
+      // Soft delete — move to trash
+      const { error } = await supabase.from("jobs").update({ status: "deleted" }).eq("id", jobId);
       if (error) throw error;
 
       await createActivityLog({
@@ -184,13 +215,50 @@ export default function AdminDashboard() {
         actorName: profile!.full_name || "System Admin",
         jobId,
         jobTitle,
-        details: `Deleted job listing: "${jobTitle}"`
+        details: `Moved job to Trash: "${jobTitle}"`
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-trashed-jobs"] });
       queryClient.invalidateQueries({ queryKey: ["admin-feedback"] });
-      toast({ title: "Job deleted" });
+      toast({ title: "Job moved to Trash" });
+    },
+  });
+
+  const restoreJob = useMutation({
+    mutationFn: async (jobId: string) => {
+      const targetJob = (trashedJobs || []).find((j: any) => j.id === jobId);
+      const jobTitle = targetJob?.title || "Unknown Job";
+
+      const { error } = await supabase.from("jobs").update({ status: "open" }).eq("id", jobId);
+      if (error) throw error;
+
+      await createActivityLog({
+        type: "log_job_restored",
+        actorId: profile!.id,
+        actorName: profile!.full_name || "System Admin",
+        jobId,
+        jobTitle,
+        details: `Restored job from Trash: "${jobTitle}"`
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-trashed-jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-feedback"] });
+      toast({ title: "Job restored successfully" });
+    },
+  });
+
+  const permanentDeleteJob = useMutation({
+    mutationFn: async (jobId: string) => {
+      const { error } = await supabase.from("jobs").delete().eq("id", jobId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-trashed-jobs"] });
+      toast({ title: "Job permanently deleted" });
     },
   });
 
@@ -243,12 +311,37 @@ export default function AdminDashboard() {
 
   const deleteFeedback = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("feedback").delete().eq("id", id);
+      // Soft delete — move to trash
+      const { error } = await supabase.from("feedback").update({ status: "deleted" }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-feedback"] });
-      toast({ title: "Feedback deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ["admin-trashed-feedbacks"] });
+      toast({ title: "Feedback moved to Trash" });
+    },
+  });
+
+  const restoreFeedback = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("feedback").update({ status: "pending" }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-feedback"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-trashed-feedbacks"] });
+      toast({ title: "Feedback restored successfully" });
+    },
+  });
+
+  const permanentDeleteFeedback = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("feedback").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-trashed-feedbacks"] });
+      toast({ title: "Feedback permanently deleted" });
     },
   });
 
@@ -536,6 +629,35 @@ export default function AdminDashboard() {
   const startLogIndex = (activityPage - 1) * itemsPerPage;
   const paginatedLogs = filteredLogs.slice(startLogIndex, startLogIndex + itemsPerPage);
 
+  // Trash computed values
+  const allTrashedItems = [
+    ...(trashedJobs || []).map((j: any) => ({ ...j, _trashType: "job" })),
+    ...(trashedFeedbacks || [])
+      .filter((f: any) => !f.type?.startsWith("log_"))
+      .map((f: any) => ({ ...f, _trashType: "feedback" })),
+  ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  const filteredTrashItems = allTrashedItems.filter((item) => {
+    const s = trashSearch.toLowerCase().trim();
+    let matchesSearch = true;
+    if (s) {
+      if (item._trashType === "job") {
+        matchesSearch = item.title?.toLowerCase().includes(s) || getEmployerName(item.employer_id).toLowerCase().includes(s);
+      } else {
+        matchesSearch = item.message?.toLowerCase().includes(s) || item.type?.toLowerCase().includes(s);
+      }
+    }
+    let matchesFilter = true;
+    if (trashFilter === "jobs") matchesFilter = item._trashType === "job";
+    if (trashFilter === "feedback") matchesFilter = item._trashType === "feedback";
+    return matchesSearch && matchesFilter;
+  });
+
+  const totalTrashPages = Math.ceil(filteredTrashItems.length / itemsPerPage);
+  const startTrashIndex = (trashPage - 1) * itemsPerPage;
+  const paginatedTrashItems = filteredTrashItems.slice(startTrashIndex, startTrashIndex + itemsPerPage);
+  const totalTrashedCount = allTrashedItems.length;
+
   return (
     <>
       <style>{`
@@ -669,6 +791,15 @@ export default function AdminDashboard() {
               <TabsTrigger value="activity" className="jl-tab-trigger shrink-0 md:flex-1 h-9 flex items-center justify-center gap-1.5 px-4 md:px-0">
                 <Activity size={14} />
                 Activity Log
+              </TabsTrigger>
+              <TabsTrigger value="trash" className="jl-tab-trigger shrink-0 md:flex-1 h-9 flex items-center justify-center gap-1.5 px-4 md:px-0">
+                <Archive size={14} />
+                Trash
+                {totalTrashedCount > 0 && (
+                  <span className="bg-rose-500 text-white rounded-full px-1.5 py-0.5 text-[9px] font-bold ml-1">
+                    {totalTrashedCount}
+                  </span>
+                )}
               </TabsTrigger>
             </TabsList>
 
@@ -1894,6 +2025,206 @@ export default function AdminDashboard() {
                 </div>
               )}
             </TabsContent>
+
+            {/* TRASH TAB */}
+            <TabsContent value="trash" className="space-y-4">
+              {/* Header */}
+              <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-5">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Archive size={16} className="text-rose-500" />
+                      <h2 className="text-base font-bold text-slate-800 tracking-tight">Trash</h2>
+                    </div>
+                    <p className="text-xs text-slate-400 font-medium">
+                      {filteredTrashItems.length} item{filteredTrashItems.length !== 1 ? "s" : ""} in trash — restore or permanently delete
+                    </p>
+                  </div>
+                  {/* Search */}
+                  <div className="relative w-full sm:w-64">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      id="trash-search"
+                      className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-rose-400/30 focus:border-rose-400 transition-all"
+                      placeholder="Search trash…"
+                      value={trashSearch}
+                      onChange={(e) => { setTrashSearch(e.target.value); setTrashPage(1); }}
+                    />
+                  </div>
+                </div>
+                {/* Filters */}
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {[
+                    { value: "all", label: `All (${allTrashedItems.length})` },
+                    { value: "jobs", label: `Jobs (${(trashedJobs || []).length})` },
+                    { value: "feedback", label: `Feedback (${(trashedFeedbacks || []).filter((f: any) => !f.type?.startsWith("log_")).length})` },
+                  ].map((f) => (
+                    <button
+                      key={f.value}
+                      id={`trash-filter-${f.value}`}
+                      onClick={() => { setTrashFilter(f.value); setTrashPage(1); }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all duration-200 ${
+                        trashFilter === f.value
+                          ? "bg-rose-500 text-white border-rose-500 shadow-sm"
+                          : "bg-white text-slate-600 border-slate-200 hover:border-rose-300 hover:text-rose-600"
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Trash Items */}
+              {(!trashedJobs && !trashedFeedbacks) ? (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="bg-white rounded-2xl border border-slate-100/80 p-4 animate-pulse">
+                      <div className="flex gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-slate-100 shrink-0" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-slate-100 rounded-md w-2/3" />
+                          <div className="h-3 bg-slate-50 rounded-md w-1/3" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : paginatedTrashItems.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-14 flex flex-col items-center justify-center text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mb-4">
+                    <Archive size={28} className="text-slate-200" />
+                  </div>
+                  <p className="text-sm font-bold text-slate-700 mb-1">Trash is empty</p>
+                  <p className="text-xs text-slate-400 max-w-xs">
+                    {trashSearch || trashFilter !== "all"
+                      ? "No items match your search or filter."
+                      : "Deleted jobs and feedback will appear here. You can restore or permanently remove them."}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {paginatedTrashItems.map((item, idx) => {
+                    const isJob = item._trashType === "job";
+                    return (
+                      <div
+                        key={item.id || idx}
+                        className="bg-white rounded-2xl border border-rose-100/60 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-4 flex flex-col sm:flex-row sm:items-start gap-4 transition-all duration-200 hover:shadow-md jl-admin-card"
+                      >
+                        {/* Type Icon */}
+                        <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${
+                          isJob ? "bg-amber-50 border-amber-100 text-amber-600" : "bg-slate-50 border-slate-100 text-slate-500"
+                        }`}>
+                          {isJob ? <Briefcase size={16} /> : <MessageSquare size={16} />}
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2 mb-1">
+                                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                                  isJob
+                                    ? "text-amber-700 bg-amber-50 border-amber-100"
+                                    : "text-slate-600 bg-slate-50 border-slate-200"
+                                }`}>
+                                  {isJob ? "Job" : "Feedback"}
+                                </span>
+                                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border text-rose-600 bg-rose-50 border-rose-100">
+                                  Deleted
+                                </span>
+                              </div>
+                              <p className="text-sm font-bold text-slate-800 truncate">
+                                {isJob ? item.title : (item.type || "Feedback")}
+                              </p>
+                              {isJob && (
+                                <p className="text-xs text-slate-500 mt-0.5">
+                                  {getEmployerName(item.employer_id)} · {decodeLocation(item.location)?.city || "Unknown city"}
+                                </p>
+                              )}
+                              {!isJob && item.message && (
+                                <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
+                                  {item.message.length > 120 ? `${item.message.slice(0, 120)}…` : item.message}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <Calendar size={11} className="text-slate-300" />
+                              <span className="text-[11px] text-slate-400 font-medium">
+                                {new Date(item.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex flex-wrap gap-2 mt-3">
+                            <Button
+                              size="sm"
+                              id={`restore-${item._trashType}-${item.id}`}
+                              className="h-8 text-xs font-semibold rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white border-0 shadow-sm gap-1.5"
+                              onClick={() => {
+                                if (isJob) setConfirmRestoreJob(item.id);
+                                else setConfirmRestoreFeedback(item.id);
+                              }}
+                              disabled={isJob ? restoreJob.isPending : restoreFeedback.isPending}
+                            >
+                              <RotateCcw size={12} />
+                              Restore
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              id={`perm-delete-${item._trashType}-${item.id}`}
+                              className="h-8 text-xs font-semibold rounded-xl border-rose-200 hover:bg-rose-50 text-rose-600 hover:text-rose-700 gap-1.5"
+                              onClick={() => {
+                                if (isJob) setConfirmPermDeleteJob(item.id);
+                                else setConfirmPermDeleteFeedback(item.id);
+                              }}
+                              disabled={isJob ? permanentDeleteJob.isPending : permanentDeleteFeedback.isPending}
+                            >
+                              <Trash2 size={12} />
+                              Delete Forever
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Pagination */}
+                  {totalTrashPages > 1 && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-4 border-t border-slate-100">
+                      <span className="text-xs font-semibold text-slate-500 order-2 sm:order-1">
+                        Showing {startTrashIndex + 1}–{Math.min(startTrashIndex + itemsPerPage, filteredTrashItems.length)} of {filteredTrashItems.length} items
+                      </span>
+                      <div className="flex items-center gap-1.5 order-1 sm:order-2">
+                        <Button
+                          disabled={trashPage === 1}
+                          onClick={() => setTrashPage((p) => Math.max(p - 1, 1))}
+                          style={{ background: "#ffffff", border: "1px solid rgba(15,10,30,0.08)", borderRadius: 10, height: 36, width: 36, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#0d0a1e", cursor: trashPage === 1 ? "not-allowed" : "pointer", opacity: trashPage === 1 ? 0.4 : 1, boxShadow: "0 2px 6px rgba(15,10,30,0.02)" }}
+                        >
+                          <ChevronLeft size={16} />
+                        </Button>
+                        {Array.from({ length: totalTrashPages }, (_, i) => i + 1).map((page) => (
+                          <Button key={page} onClick={() => setTrashPage(page)}
+                            style={{ background: trashPage === page ? "linear-gradient(135deg, #EF4444 0%, #DC2626 100%)" : "#ffffff", border: trashPage === page ? "none" : "1px solid rgba(15,10,30,0.08)", borderRadius: 10, height: 36, width: 36, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", color: trashPage === page ? "#ffffff" : "#0d0a1e", fontWeight: 600, fontSize: 13, cursor: "pointer", boxShadow: trashPage === page ? "0 2px 8px rgba(239,68,68,0.24)" : "0 2px 6px rgba(15,10,30,0.02)" }}
+                          >
+                            {page}
+                          </Button>
+                        ))}
+                        <Button
+                          disabled={trashPage === totalTrashPages}
+                          onClick={() => setTrashPage((p) => Math.min(p + 1, totalTrashPages))}
+                          style={{ background: "#ffffff", border: "1px solid rgba(15,10,30,0.08)", borderRadius: 10, height: 36, width: 36, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#0d0a1e", cursor: trashPage === totalTrashPages ? "not-allowed" : "pointer", opacity: trashPage === totalTrashPages ? 0.4 : 1, boxShadow: "0 2px 6px rgba(15,10,30,0.02)" }}
+                        >
+                          <ChevronRight size={16} />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </TabsContent>
           </Tabs>
         </div>
       </div>
@@ -1906,9 +2237,9 @@ export default function AdminDashboard() {
             setDeleteJobId(null);
           }
         }}
-        title="Delete Job Listing"
-        description="Are you sure you want to permanently delete this job listing? This action cannot be undone."
-        confirmText="Delete"
+        title="Move Job to Trash"
+        description="This job listing will be moved to Trash. You can restore it later from the Trash tab."
+        confirmText="Move to Trash"
         isDestructive
         isLoading={deleteJob.isPending}
       />
@@ -1948,6 +2279,72 @@ export default function AdminDashboard() {
         confirmText="Close Job"
         isDestructive
         isLoading={updateJobStatus.isPending}
+      />
+
+      {/* Trash: Restore Job */}
+      <BrandedConfirmDialog
+        isOpen={!!confirmRestoreJob}
+        onClose={() => setConfirmRestoreJob(null)}
+        onConfirm={() => {
+          if (confirmRestoreJob) {
+            restoreJob.mutate(confirmRestoreJob);
+            setConfirmRestoreJob(null);
+          }
+        }}
+        title="Restore Job Listing"
+        description="This job will be restored and set back to Open status. Employers and workers will be able to see it again."
+        confirmText="Restore"
+        isLoading={restoreJob.isPending}
+      />
+
+      {/* Trash: Permanently Delete Job */}
+      <BrandedConfirmDialog
+        isOpen={!!confirmPermDeleteJob}
+        onClose={() => setConfirmPermDeleteJob(null)}
+        onConfirm={() => {
+          if (confirmPermDeleteJob) {
+            permanentDeleteJob.mutate(confirmPermDeleteJob);
+            setConfirmPermDeleteJob(null);
+          }
+        }}
+        title="Permanently Delete Job"
+        description="This job listing will be permanently removed from the database. This action cannot be undone."
+        confirmText="Delete Forever"
+        isDestructive
+        isLoading={permanentDeleteJob.isPending}
+      />
+
+      {/* Trash: Restore Feedback */}
+      <BrandedConfirmDialog
+        isOpen={!!confirmRestoreFeedback}
+        onClose={() => setConfirmRestoreFeedback(null)}
+        onConfirm={() => {
+          if (confirmRestoreFeedback) {
+            restoreFeedback.mutate(confirmRestoreFeedback);
+            setConfirmRestoreFeedback(null);
+          }
+        }}
+        title="Restore Feedback"
+        description="This feedback will be restored to Pending status and will appear in the Feedback tab again."
+        confirmText="Restore"
+        isLoading={restoreFeedback.isPending}
+      />
+
+      {/* Trash: Permanently Delete Feedback */}
+      <BrandedConfirmDialog
+        isOpen={!!confirmPermDeleteFeedback}
+        onClose={() => setConfirmPermDeleteFeedback(null)}
+        onConfirm={() => {
+          if (confirmPermDeleteFeedback) {
+            permanentDeleteFeedback.mutate(confirmPermDeleteFeedback);
+            setConfirmPermDeleteFeedback(null);
+          }
+        }}
+        title="Permanently Delete Feedback"
+        description="This feedback will be permanently removed from the database. This action cannot be undone."
+        confirmText="Delete Forever"
+        isDestructive
+        isLoading={permanentDeleteFeedback.isPending}
       />
 
       <Dialog open={!!viewJob} onOpenChange={(open) => !open && setViewJob(null)}>

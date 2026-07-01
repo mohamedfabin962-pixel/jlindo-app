@@ -128,7 +128,8 @@ export default function JobListings() {
     const loadJobs = async () => {
       const { data, error } = await supabase
         .from("jobs")
-        .select(`*, applications!applications_job_id_fkey(status)`);
+        .select(`*, applications!applications_job_id_fkey(status)`)
+        .neq("status", "deleted");
 
       console.log("DATA", data);
       console.log("ERROR", error);
