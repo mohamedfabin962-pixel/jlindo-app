@@ -12,7 +12,7 @@ import {
   Trash2, Ban, Users, Briefcase, FileCheck, MessageSquare, ShieldCheck, Check,
   ChevronLeft, ChevronRight, Search, Mail, Phone, Calendar, User,
   MapPin, DollarSign, Clock, X, ExternalLink, TrendingUp, Activity,
-  RotateCcw, Archive, AlertTriangle, Flag, HeartPulse
+  RotateCcw, Archive, AlertTriangle, Flag, HeartPulse, Star
 } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { EmptyState } from "@/components/EmptyState";
@@ -260,6 +260,45 @@ export default function AdminDashboard() {
       queryClient.invalidateQueries({ queryKey: ["admin-feedback"] });
       toast({ title: "Job status updated" });
     },
+  });
+
+  const toggleFeaturedMutation = useMutation({
+    mutationFn: async ({ jobId, featured }: { jobId: string; featured: boolean }) => {
+      const targetJob = (jobs || []).find((j: any) => j.id === jobId);
+      const jobTitle = targetJob?.title || "Unknown Job";
+
+      const { error } = await supabase.from("jobs").update({ is_featured: featured }).eq("id", jobId);
+      if (error) throw error;
+
+      await createActivityLog({
+        type: "log_job_edited",
+        actorId: profile!.id,
+        actorName: profile!.full_name || "System Admin",
+        jobId,
+        jobTitle,
+        details: featured ? `Marked job as Featured: "${jobTitle}"` : `Removed Featured status from job: "${jobTitle}"`
+      });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-jobs"] });
+      toast({
+        title: variables.featured ? "Job Marked as Featured" : "Featured Removed",
+        description: variables.featured
+          ? "This job will now appear at the top of listings."
+          : "This job will no longer be highlighted.",
+      });
+    },
+    onError: (err: any) => {
+      if (err.message?.includes("column") && err.message?.includes("is_featured")) {
+        toast({
+          title: "Database Migration Required",
+          description: "Please run in Supabase SQL Editor: 'ALTER TABLE jobs ADD COLUMN is_featured BOOLEAN DEFAULT FALSE;'",
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Error", description: err.message, variant: "destructive" });
+      }
+    }
   });
 
   const deleteJob = useMutation({
@@ -1844,8 +1883,14 @@ export default function AdminDashboard() {
                           </div>
                         </div>
 
-                        {/* Status Badge */}
-                        <div className="flex items-center shrink-0">
+                        {/* Status & Featured Badges */}
+                        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                          {j.is_featured && (
+                            <span className="text-[10.5px] font-extrabold px-2 py-0.5 rounded-md tracking-wider uppercase flex items-center gap-1" style={{ background: "linear-gradient(135deg,#FEF3C7,#FDE68A)", color: "#92400E", border: "1px solid rgba(217,119,6,0.25)" }}>
+                              <Star size={9} fill="#D97706" stroke="none" />
+                              Featured
+                            </span>
+                          )}
                           <StatusBadge status={j.status} />
                         </div>
                       </div>
@@ -1894,6 +1939,23 @@ export default function AdminDashboard() {
                           className="border-slate-200 hover:bg-slate-50 text-slate-700"
                         >
                           View Job
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant={j.is_featured ? "default" : "outline"}
+                          onClick={() => toggleFeaturedMutation.mutate({ jobId: j.id, featured: !j.is_featured })}
+                          disabled={toggleFeaturedMutation.isPending}
+                          style={{
+                            borderRadius: 10, height: 32, fontSize: 12, fontWeight: 600,
+                            borderColor: j.is_featured ? undefined : "rgba(217,119,6,0.25)",
+                            color: j.is_featured ? undefined : "#D97706",
+                            background: j.is_featured ? undefined : "rgba(254,243,199,0.5)",
+                          }}
+                          className={j.is_featured ? "bg-amber-500 hover:bg-amber-600 text-white border-0 shadow-sm" : "hover:bg-amber-50"}
+                        >
+                          <Star size={12} className="mr-1" fill={j.is_featured ? "white" : "none"} />
+                          {j.is_featured ? "Remove Featured" : "Add Featured"}
                         </Button>
 
                         {j.status !== "closed" && (

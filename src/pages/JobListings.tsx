@@ -318,6 +318,11 @@ export default function JobListings() {
     }
 
     return matchesSearch && matchesCategory && matchesStatus && matchesSalary && matchesHours;
+  })?.sort((a, b) => {
+    // Featured jobs always appear first
+    if (a.is_featured && !b.is_featured) return -1;
+    if (!a.is_featured && b.is_featured) return 1;
+    return 0;
   });
 
   const alreadyApplied = selectedJob && myApplications?.includes(selectedJob.id);
@@ -618,13 +623,17 @@ export default function JobListings() {
                           style={{
                             width: "100%",
                             textAlign: "left",
-                            background: "#ffffff",
+                            background: job.is_featured ? "linear-gradient(135deg, #FFFBEB 0%, #ffffff 60%)" : "#ffffff",
                             borderRadius: 20,
                             border: selectedJob?.id === job.id 
                               ? "2px solid #F59E0B" 
+                              : job.is_featured
+                              ? "1.5px solid rgba(245,158,11,0.25)"
                               : "1px solid rgba(15,10,30,0.06)",
                             boxShadow: selectedJob?.id === job.id
                               ? "0 8px 30px rgba(245,158,11,0.08)"
+                              : job.is_featured
+                              ? "0 4px 24px rgba(245,158,11,0.07)"
                               : "0 4px 18px rgba(15,10,30,0.015)",
                             cursor: "pointer",
                             padding: "24px",
@@ -638,30 +647,35 @@ export default function JobListings() {
                           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
                             
                             {/* Top Badge Row */}
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-                              <div>
-                                {applied ? (
-                                  <span style={{ fontSize: 11, fontWeight: 700, color: "#10B981", background: "#ECFDF5", padding: "4px 10px", borderRadius: 8, letterSpacing: "0.03em", textTransform: "uppercase" }}>
-                                    Applied
-                                  </span>
-                                ) : closed ? (
-                                  <span style={{ fontSize: 11, fontWeight: 700, color: "#475569", background: "#F1F5F9", padding: "4px 10px", borderRadius: 8, letterSpacing: "0.03em", textTransform: "uppercase" }}>
-                                    Closed
-                                  </span>
-                                ) : (
-                                  <span style={{ fontSize: 11, fontWeight: 700, color: "#475569", background: "#F1F5F9", padding: "4px 10px", borderRadius: 8, letterSpacing: "0.03em", textTransform: "uppercase" }}>
-                                    Open
-                                  </span>
-                                )}
-                              </div>
-                              
-                              {hasWeeklyPayout && (
-                                <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#D97706", fontSize: 12, fontWeight: 700 }}>
-                                  <Zap size={12} fill="#D97706" stroke="none" />
-                                  <span>Weekly Payout</span>
-                                </div>
-                              )}
-                            </div>
+                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", flexWrap: "wrap", gap: 6 }}>
+                               <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                                 {job.is_featured && (
+                                   <span style={{ fontSize: 10.5, fontWeight: 800, color: "#92400E", background: "linear-gradient(135deg,#FEF3C7,#FDE68A)", padding: "3px 9px", borderRadius: 7, letterSpacing: "0.04em", textTransform: "uppercase", border: "1px solid rgba(217,119,6,0.25)", display: "flex", alignItems: "center", gap: 4 }}>
+                                     <Star size={9} fill="#D97706" stroke="none" />
+                                     Featured
+                                   </span>
+                                 )}
+                                 {applied ? (
+                                   <span style={{ fontSize: 11, fontWeight: 700, color: "#10B981", background: "#ECFDF5", padding: "4px 10px", borderRadius: 8, letterSpacing: "0.03em", textTransform: "uppercase" }}>
+                                     Applied
+                                   </span>
+                                 ) : closed ? (
+                                   <span style={{ fontSize: 11, fontWeight: 700, color: "#475569", background: "#F1F5F9", padding: "4px 10px", borderRadius: 8, letterSpacing: "0.03em", textTransform: "uppercase" }}>
+                                     Closed
+                                   </span>
+                                 ) : (
+                                   <span style={{ fontSize: 11, fontWeight: 700, color: "#475569", background: "#F1F5F9", padding: "4px 10px", borderRadius: 8, letterSpacing: "0.03em", textTransform: "uppercase" }}>
+                                     Open
+                                   </span>
+                                 )}
+                               </div>
+                               {hasWeeklyPayout && (
+                                 <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#D97706", fontSize: 12, fontWeight: 700 }}>
+                                   <Zap size={12} fill="#D97706" stroke="none" />
+                                   <span>Weekly Payout</span>
+                                 </div>
+                               )}
+                             </div>
 
                             {/* Job Title */}
                             <h3 style={{
@@ -904,7 +918,13 @@ export default function JobListings() {
                   >
                     {/* Left content */}
                     <div className="flex-1 flex flex-col gap-3 w-full">
-                      <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        {selectedJob.is_featured && (
+                          <span className="text-[10.5px] font-extrabold px-2.5 py-1 rounded-md tracking-wider uppercase flex items-center gap-1" style={{ background: "linear-gradient(135deg,#FEF3C7,#FDE68A)", color: "#92400E", border: "1px solid rgba(217,119,6,0.3)" }}>
+                            <Star size={9} fill="#D97706" stroke="none" />
+                            Featured
+                          </span>
+                        )}
                         {alreadyApplied ? (
                           <span className="text-[11px] font-bold text-emerald-500 bg-emerald-500/15 px-2.5 py-1 rounded-md tracking-wider uppercase">
                             Applied

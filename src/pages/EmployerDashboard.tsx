@@ -6,7 +6,7 @@ import { createActivityLog } from "@/utils/activityLogger";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Plus, Users, MapPin, DollarSign, Calendar, ArrowRight, PenSquare, Lock, Briefcase, Activity, XCircle, ExternalLink } from "lucide-react";
+import { Plus, Users, MapPin, DollarSign, Calendar, ArrowRight, PenSquare, Lock, Briefcase, Activity, XCircle, ExternalLink, Star } from "lucide-react";
 import { decodeLocation } from "@/utils/locationUtils";
 import { motion, AnimatePresence } from "framer-motion";
 import { BrandedConfirmDialog } from "@/components/BrandedConfirmDialog";
@@ -286,6 +286,12 @@ export default function EmployerDashboard() {
                           </div>
                         </div>
                         <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 self-start sm:self-auto shrink-0">
+                          {job.is_featured && (
+                            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md tracking-wider uppercase flex items-center gap-1" style={{ background: "linear-gradient(135deg,#FEF3C7,#FDE68A)", color: "#92400E", border: "1px solid rgba(217,119,6,0.25)" }}>
+                              <Star size={9} fill="#D97706" stroke="none" />
+                              Featured
+                            </span>
+                          )}
                           <StatusBadge status={job.status} />
                           <div className="text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-md flex items-center gap-1">
                             <Users size={10} className="text-amber-600" />
