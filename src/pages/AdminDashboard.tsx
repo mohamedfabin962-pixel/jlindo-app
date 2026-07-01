@@ -696,9 +696,21 @@ export default function AdminDashboard() {
   const paginatedApplications = filteredApplications.slice(startAppIndex, startAppIndex + itemsPerPage);
 
   const totalUsers = users?.length || 0;
+  const newUsersCount = (users || []).filter((u: any) => {
+    if (!u.created_at) return false;
+    return new Date(u.created_at).getTime() >= Date.now() - 7 * 24 * 60 * 60 * 1000;
+  }).length;
+  const employersCount = (users || []).filter((u: any) => u.role === "employer").length;
+  const workersCount = (users || []).filter((u: any) => u.role === "worker").length;
+
   const totalJobs = jobs?.length || 0;
+  const activeJobsCount = (jobs || []).filter((j: any) => j.status === "open" || j.status === "filled").length;
+  const closedJobsCount = (jobs || []).filter((j: any) => j.status === "closed").length;
+
   const totalApplications = applications?.length || 0;
-  const openFeedback = feedbacks?.filter((f) => f.status !== "resolved").length || 0;
+
+  const openFeedback = feedbacks?.filter((f) => f.status !== "resolved" && f.type !== "report_job" && !f.type?.startsWith("log_")).length || 0;
+  const resolvedFeedbackCount = (feedbacks || []).filter((f: any) => f.status === "resolved" && f.type !== "report_job" && !f.type?.startsWith("log_")).length;
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -902,65 +914,122 @@ export default function AdminDashboard() {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-            <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-5 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-8">
+            {/* New Users */}
+            <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-4 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
               <div className="flex items-center justify-between text-slate-400 mb-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider">Total Users</span>
-                <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
-                  <Users size={16} />
+                <span className="text-[9px] font-bold uppercase tracking-wider">New Users</span>
+                <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg shrink-0">
+                  <Users size={14} />
                 </div>
               </div>
-              <p className="margin-0 text-2xl font-black text-slate-800 tracking-tight leading-none mt-1">{totalUsers}</p>
+              <div>
+                <p className="margin-0 text-xl font-black text-slate-800 tracking-tight leading-none mt-1">{newUsersCount}</p>
+                <p className="text-[9px] text-slate-400 mt-1 font-semibold">Last 7 Days</p>
+              </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-5 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+            {/* Employers */}
+            <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-4 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
               <div className="flex items-center justify-between text-slate-400 mb-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider">Active Jobs</span>
-                <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
-                  <Briefcase size={16} />
+                <span className="text-[9px] font-bold uppercase tracking-wider">Employers</span>
+                <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg shrink-0">
+                  <ShieldCheck size={14} />
                 </div>
               </div>
-              <p className="margin-0 text-2xl font-black text-slate-800 tracking-tight leading-none mt-1">{totalJobs}</p>
+              <div>
+                <p className="margin-0 text-xl font-black text-slate-800 tracking-tight leading-none mt-1">{employersCount}</p>
+                <p className="text-[9px] text-slate-400 mt-1 font-semibold">Total Profiles</p>
+              </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-5 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+            {/* Workers */}
+            <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-4 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
               <div className="flex items-center justify-between text-slate-400 mb-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider">Applications</span>
-                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
-                  <FileCheck size={16} />
+                <span className="text-[9px] font-bold uppercase tracking-wider">Workers</span>
+                <div className="p-1.5 bg-sky-50 text-sky-600 rounded-lg shrink-0">
+                  <User size={14} />
                 </div>
               </div>
-              <p className="margin-0 text-2xl font-black text-slate-800 tracking-tight leading-none mt-1">{totalApplications}</p>
+              <div>
+                <p className="margin-0 text-xl font-black text-slate-800 tracking-tight leading-none mt-1">{workersCount}</p>
+                <p className="text-[9px] text-slate-400 mt-1 font-semibold">Total Profiles</p>
+              </div>
             </div>
 
+            {/* Active Jobs */}
+            <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-4 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <span className="text-[9px] font-bold uppercase tracking-wider">Active Jobs</span>
+                <div className="p-1.5 bg-amber-50 text-amber-600 rounded-lg shrink-0">
+                  <Briefcase size={14} />
+                </div>
+              </div>
+              <div>
+                <p className="margin-0 text-xl font-black text-slate-800 tracking-tight leading-none mt-1">{activeJobsCount}</p>
+                <p className="text-[9px] text-slate-400 mt-1 font-semibold">Open & Filled</p>
+              </div>
+            </div>
+
+            {/* Closed Jobs */}
+            <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-4 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <span className="text-[9px] font-bold uppercase tracking-wider">Closed Jobs</span>
+                <div className="p-1.5 bg-slate-100 text-slate-600 rounded-lg shrink-0">
+                  <Archive size={14} />
+                </div>
+              </div>
+              <div>
+                <p className="margin-0 text-xl font-black text-slate-800 tracking-tight leading-none mt-1">{closedJobsCount}</p>
+                <p className="text-[9px] text-slate-400 mt-1 font-semibold">Inactive listings</p>
+              </div>
+            </div>
+
+            {/* Applications */}
+            <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-4 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <span className="text-[9px] font-bold uppercase tracking-wider">Applications</span>
+                <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg shrink-0">
+                  <FileCheck size={14} />
+                </div>
+              </div>
+              <div>
+                <p className="margin-0 text-xl font-black text-slate-800 tracking-tight leading-none mt-1">{totalApplications}</p>
+                <p className="text-[9px] text-slate-400 mt-1 font-semibold">Total submissions</p>
+              </div>
+            </div>
+
+            {/* Pending Reports */}
             <div 
-              className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-5 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5"
-              style={{ borderLeft: openFeedback > 0 ? "3px solid #EF4444" : undefined }}
-            >
-              <div className="flex items-center justify-between text-slate-400 mb-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider">Open Feedbacks</span>
-                <div className={`p-2 rounded-xl ${openFeedback > 0 ? "bg-rose-50 text-rose-600 animate-pulse" : "bg-slate-50 text-slate-500"}`}>
-                  <MessageSquare size={16} />
-                </div>
-              </div>
-              <p className={`margin-0 text-2xl font-black tracking-tight leading-none mt-1 ${openFeedback > 0 ? "text-rose-600" : "text-slate-800"}`}>
-                {openFeedback}
-              </p>
-            </div>
-
-            <div 
-              className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-5 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5"
+              className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-4 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5"
               style={{ borderLeft: pendingReports > 0 ? "3px solid #EF4444" : undefined }}
             >
               <div className="flex items-center justify-between text-slate-400 mb-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider">Pending Reports</span>
-                <div className={`p-2 rounded-xl ${pendingReports > 0 ? "bg-rose-50 text-rose-600 animate-pulse" : "bg-slate-50 text-slate-500"}`}>
-                  <Flag size={16} />
+                <span className="text-[9px] font-bold uppercase tracking-wider">Reports</span>
+                <div className={`p-1.5 rounded-lg shrink-0 ${pendingReports > 0 ? "bg-rose-50 text-rose-600 animate-pulse" : "bg-slate-50 text-slate-500"}`}>
+                  <Flag size={14} />
                 </div>
               </div>
-              <p className={`margin-0 text-2xl font-black tracking-tight leading-none mt-1 ${pendingReports > 0 ? "text-rose-600" : "text-slate-800"}`}>
-                {pendingReports}
-              </p>
+              <div>
+                <p className={`margin-0 text-xl font-black tracking-tight leading-none mt-1 ${pendingReports > 0 ? "text-rose-600" : "text-slate-800"}`}>
+                  {pendingReports}
+                </p>
+                <p className="text-[9px] text-slate-400 mt-1 font-semibold">Pending action</p>
+              </div>
+            </div>
+
+            {/* Resolved Feedback */}
+            <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-4 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <span className="text-[9px] font-bold uppercase tracking-wider">Resolved</span>
+                <div className="p-1.5 bg-green-50 text-green-600 rounded-lg shrink-0">
+                  <MessageSquare size={14} />
+                </div>
+              </div>
+              <div>
+                <p className="margin-0 text-xl font-black text-slate-800 tracking-tight leading-none mt-1">{resolvedFeedbackCount}</p>
+                <p className="text-[9px] text-slate-400 mt-1 font-semibold">Feedbacks resolved</p>
+              </div>
             </div>
           </div>
 
