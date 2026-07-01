@@ -11,13 +11,22 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Trash2, Ban, Users, Briefcase, FileCheck, MessageSquare, ShieldCheck, Check,
   ChevronLeft, ChevronRight, Search, Mail, Phone, Calendar, User,
-  MapPin, DollarSign, Clock, X, ExternalLink
+  MapPin, DollarSign, Clock, X, ExternalLink, TrendingUp
 } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { EmptyState } from "@/components/EmptyState";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { decodeLocation } from "@/utils/locationUtils";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip as ChartTooltip,
+  CartesianGrid,
+} from "recharts";
 
 export default function AdminDashboard() {
   const { profile, loading } = useAuth();
@@ -92,6 +101,34 @@ export default function AdminDashboard() {
     },
     enabled: isAdmin,
   });
+
+  const prepareChartData = (items: any[] | undefined) => {
+    if (!items) return [];
+    
+    const dailyCounts: { [key: string]: number } = {};
+    const last7Days: string[] = [];
+    
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toLocaleDateString("en-US", { day: "numeric", month: "short" });
+      dailyCounts[dateStr] = 0;
+      last7Days.push(dateStr);
+    }
+    
+    items.forEach((item) => {
+      if (!item.created_at) return;
+      const dateStr = new Date(item.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short" });
+      if (dailyCounts[dateStr] !== undefined) {
+        dailyCounts[dateStr] += 1;
+      }
+    });
+    
+    return last7Days.map((date) => ({
+      date,
+      count: dailyCounts[date],
+    }));
+  };
 
   const updateJobStatus = useMutation({
     mutationFn: async ({ jobId, status }: { jobId: string; status: string }) => {
@@ -309,6 +346,37 @@ export default function AdminDashboard() {
   const totalApplications = applications?.length || 0;
   const openFeedback = feedbacks?.filter((f) => f.status !== "resolved").length || 0;
 
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white/95 backdrop-blur border border-slate-200/80 p-3 rounded-xl shadow-lg font-sans">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{payload[0].payload.date}</p>
+          <p className="text-sm font-black text-slate-800 mt-1">
+            Count: <span className="text-amber-600 font-extrabold">{payload[0].value}</span>
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const ChartSkeleton = () => (
+    <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-6 space-y-4 animate-pulse">
+      <div className="h-5 bg-slate-100 rounded-md w-1/3" />
+      <div className="h-[250px] bg-slate-50 rounded-xl animate-pulse" />
+    </div>
+  );
+
+  const userChartData = prepareChartData(users);
+  const jobChartData = prepareChartData(jobs);
+  const appChartData = prepareChartData(applications);
+
+  const isUsersDataEmpty = userChartData.length === 0 || userChartData.every(d => d.count === 0);
+  const isJobsDataEmpty = jobChartData.length === 0 || jobChartData.every(d => d.count === 0);
+  const isAppsDataEmpty = appChartData.length === 0 || appChartData.every(d => d.count === 0);
+
+  const isLoadingCharts = !users || !jobs || !applications;
+
   return (
     <>
       <style>{`
@@ -405,7 +473,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <Tabs defaultValue="users" className="w-full">
+          <Tabs defaultValue="overview" className="w-full">
             <TabsList
               className="flex overflow-x-auto scrollbar-none gap-1 h-auto p-1 bg-slate-100/80 rounded-xl mb-6 w-full justify-start md:justify-between"
               style={{
@@ -414,6 +482,10 @@ export default function AdminDashboard() {
                 WebkitOverflowScrolling: "touch",
               }}
             >
+              <TabsTrigger value="overview" className="jl-tab-trigger shrink-0 md:flex-1 h-9 flex items-center justify-center gap-1.5 px-4 md:px-0">
+                <TrendingUp size={14} />
+                Overview
+              </TabsTrigger>
               <TabsTrigger value="users" className="jl-tab-trigger shrink-0 md:flex-1 h-9 flex items-center justify-center gap-1.5 px-4 md:px-0">
                 <Users size={14} />
                 Users ({users?.length || 0})
@@ -436,6 +508,126 @@ export default function AdminDashboard() {
                 )}
               </TabsTrigger>
             </TabsList>
+
+            {/* OVERVIEW TAB */}
+            <TabsContent value="overview" className="space-y-6">
+              {isLoadingCharts ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <ChartSkeleton />
+                  <ChartSkeleton />
+                  <div className="lg:col-span-2">
+                    <ChartSkeleton />
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* User Registrations Chart */}
+                  <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-6 flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-800 tracking-tight">User Registrations</h3>
+                        <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Last 7 Days</p>
+                      </div>
+                      <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
+                        <Users size={16} />
+                      </div>
+                    </div>
+                    {isUsersDataEmpty ? (
+                      <div className="h-[250px] flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                        <TrendingUp size={20} className="mb-2 text-slate-300" />
+                        <p className="text-xs font-semibold">No registrations in the last 7 days</p>
+                      </div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height={250}>
+                        <AreaChart data={userChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="colorBlue" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.25}/>
+                              <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(15,10,30,0.03)" />
+                          <XAxis dataKey="date" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+                          <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} allowDecimals={false} />
+                          <ChartTooltip content={<CustomTooltip />} />
+                          <Area type="monotone" dataKey="count" stroke="#3B82F6" strokeWidth={2} fillOpacity={1} fill="url(#colorBlue)" />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+
+                  {/* Jobs Created Chart */}
+                  <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-6 flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-800 tracking-tight">Jobs Created</h3>
+                        <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Last 7 Days</p>
+                      </div>
+                      <div className="p-1.5 bg-amber-50 text-amber-600 rounded-lg">
+                        <Briefcase size={16} />
+                      </div>
+                    </div>
+                    {isJobsDataEmpty ? (
+                      <div className="h-[250px] flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                        <TrendingUp size={20} className="mb-2 text-slate-300" />
+                        <p className="text-xs font-semibold">No jobs created in the last 7 days</p>
+                      </div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height={250}>
+                        <AreaChart data={jobChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="colorAmber" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.25}/>
+                              <stop offset="95%" stopColor="#F59E0B" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(15,10,30,0.03)" />
+                          <XAxis dataKey="date" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+                          <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} allowDecimals={false} />
+                          <ChartTooltip content={<CustomTooltip />} />
+                          <Area type="monotone" dataKey="count" stroke="#F59E0B" strokeWidth={2} fillOpacity={1} fill="url(#colorAmber)" />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+
+                  {/* Applications Chart */}
+                  <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-6 flex flex-col justify-between lg:col-span-2">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-800 tracking-tight">Applications Submitted</h3>
+                        <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Last 7 Days</p>
+                      </div>
+                      <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg">
+                        <FileCheck size={16} />
+                      </div>
+                    </div>
+                    {isAppsDataEmpty ? (
+                      <div className="h-[250px] flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                        <TrendingUp size={20} className="mb-2 text-slate-300" />
+                        <p className="text-xs font-semibold">No applications submitted in the last 7 days</p>
+                      </div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height={250}>
+                        <AreaChart data={appChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="colorEmerald" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#10B981" stopOpacity={0.25}/>
+                              <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(15,10,30,0.03)" />
+                          <XAxis dataKey="date" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+                          <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} allowDecimals={false} />
+                          <ChartTooltip content={<CustomTooltip />} />
+                          <Area type="monotone" dataKey="count" stroke="#10B981" strokeWidth={2} fillOpacity={1} fill="url(#colorEmerald)" />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                </div>
+              )}
+            </TabsContent>
 
             {/* USERS TAB */}
             <TabsContent value="users" className="space-y-4">
