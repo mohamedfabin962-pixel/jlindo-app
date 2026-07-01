@@ -9,10 +9,13 @@ import { useToast } from "@/hooks/use-toast";
 import { Phone, Check, X, ArrowLeft, Users, MapPin, DollarSign, Clock, ShieldAlert, ExternalLink } from "lucide-react";
 import { decodeLocation } from "@/utils/locationUtils";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
+import { createActivityLog } from "@/utils/activityLogger";
 import { EmptyState } from "@/components/EmptyState";
 
 export default function JobApplicants() {
   const { jobId } = useParams<{ jobId: string }>();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
@@ -24,6 +27,17 @@ export default function JobApplicants() {
       .from("jobs")
       .update({ status: "closed" })
       .eq("id", jobId!);
+
+    if (!error) {
+      await createActivityLog({
+        type: "log_job_closed",
+        actorId: user!.id,
+        actorName: profile?.full_name || user!.email || "Employer",
+        jobId: jobId!,
+        jobTitle: job?.title || "Unknown Job",
+        details: `Closed job listing: "${job?.title || "Unknown Job"}"`
+      });
+    }
     setClosingJob(false);
     setShowCloseConfirm(false);
     if (!error) {

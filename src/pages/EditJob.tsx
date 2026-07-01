@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { createActivityLog } from "@/utils/activityLogger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -112,7 +113,7 @@ function CityCombobox({
 
 export default function EditJob() {
   const { jobId } = useParams();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -256,6 +257,14 @@ export default function EditJob() {
     if (updateError) {
       toast({ title: "Update failed", description: updateError.message, variant: "destructive" });
     } else {
+      await createActivityLog({
+        type: "log_job_edited",
+        actorId: user!.id,
+        actorName: profile?.full_name || user!.email || "Employer",
+        jobId,
+        jobTitle: form.title,
+        details: `Edited job listing: "${form.title}"`
+      });
       toast({ title: "Job updated successfully" });
       navigate("/employer/dashboard");
     }

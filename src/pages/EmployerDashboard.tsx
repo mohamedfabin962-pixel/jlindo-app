@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { createActivityLog } from "@/utils/activityLogger";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -12,17 +13,33 @@ import { BrandedConfirmDialog } from "@/components/BrandedConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 
 export default function EmployerDashboard() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [closeJobId, setCloseJobId] = useState<string | null>(null);
   const [closingJob, setClosingJob] = useState(false);
 
   const handleCloseJob = async () => {
     if (!closeJobId) return;
     setClosingJob(true);
+
+    const targetJob = (jobs || []).find((j: any) => j.id === closeJobId);
+    const jobTitle = targetJob?.title || "Unknown Job";
+
     const { error } = await supabase
       .from("jobs")
       .update({ status: "closed" })
       .eq("id", closeJobId);
+
+    if (!error) {
+      await createActivityLog({
+        type: "log_job_closed",
+        actorId: user!.id,
+        actorName: profile?.full_name || user!.email || "Employer",
+        jobId: closeJobId,
+        jobTitle,
+        details: `Closed job listing: "${jobTitle}"`
+      });
+    }
+
     setClosingJob(false);
     setCloseJobId(null);
     if (!error) {

@@ -11,13 +11,14 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Trash2, Ban, Users, Briefcase, FileCheck, MessageSquare, ShieldCheck, Check,
   ChevronLeft, ChevronRight, Search, Mail, Phone, Calendar, User,
-  MapPin, DollarSign, Clock, X, ExternalLink, TrendingUp
+  MapPin, DollarSign, Clock, X, ExternalLink, TrendingUp, Activity
 } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { EmptyState } from "@/components/EmptyState";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { decodeLocation } from "@/utils/locationUtils";
+import { createActivityLog } from "@/utils/activityLogger";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -59,6 +60,11 @@ export default function AdminDashboard() {
   const [appSearch, setAppSearch] = useState("");
   const [appFilter, setAppFilter] = useState("all");
   const [appPage, setAppPage] = useState(1);
+
+  // Activity Log section states
+  const [activitySearch, setActivitySearch] = useState("");
+  const [activityFilter, setActivityFilter] = useState("all");
+  const [activityPage, setActivityPage] = useState(1);
   
   const itemsPerPage = 5;
 
@@ -132,33 +138,82 @@ export default function AdminDashboard() {
 
   const updateJobStatus = useMutation({
     mutationFn: async ({ jobId, status }: { jobId: string; status: string }) => {
+      const targetJob = (jobs || []).find((j: any) => j.id === jobId);
+      const jobTitle = targetJob?.title || "Unknown Job";
+
       const { error } = await supabase.from("jobs").update({ status }).eq("id", jobId);
       if (error) throw error;
+
+      let logType = "log_job_edited";
+      let detailMsg = `Updated status of job "${jobTitle}" to ${status}`;
+      if (status === "closed") {
+        logType = "log_job_closed";
+        detailMsg = `Closed job listing: "${jobTitle}"`;
+      } else if (status === "open") {
+        logType = "log_job_reopened";
+        detailMsg = `Reopened job listing: "${jobTitle}"`;
+      }
+
+      await createActivityLog({
+        type: logType,
+        actorId: profile!.id,
+        actorName: profile!.full_name || "System Admin",
+        jobId,
+        jobTitle,
+        details: detailMsg
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-feedback"] });
       toast({ title: "Job status updated" });
     },
   });
 
   const deleteJob = useMutation({
     mutationFn: async (jobId: string) => {
+      const targetJob = (jobs || []).find((j: any) => j.id === jobId);
+      const jobTitle = targetJob?.title || "Unknown Job";
+
       const { error } = await supabase.from("jobs").delete().eq("id", jobId);
       if (error) throw error;
+
+      await createActivityLog({
+        type: "log_job_deleted",
+        actorId: profile!.id,
+        actorName: profile!.full_name || "System Admin",
+        jobId,
+        jobTitle,
+        details: `Deleted job listing: "${jobTitle}"`
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-feedback"] });
       toast({ title: "Job deleted" });
     },
   });
 
   const toggleBlockUser = useMutation({
     mutationFn: async ({ userId, blocked }: { userId: string; blocked: boolean }) => {
+      const targetUser = (users || []).find((u: any) => u.id === userId);
+      const targetName = targetUser?.full_name || targetUser?.email || "Unknown User";
+
       const { error } = await supabase.from("profiles").update({ is_blocked: blocked }).eq("id", userId);
       if (error) throw error;
+
+      await createActivityLog({
+        type: blocked ? "log_user_blocked" : "log_user_unblocked",
+        actorId: profile!.id,
+        actorName: profile!.full_name || "System Admin",
+        targetId: userId,
+        targetName,
+        details: blocked ? `Blocked user account: ${targetName}` : `Unblocked user account: ${targetName}`
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-feedback"] });
       toast({ title: "User updated" });
     },
   });
@@ -170,6 +225,15 @@ export default function AdminDashboard() {
         .update({ status })
         .eq("id", id);
       if (error) throw error;
+
+      if (status === "resolved") {
+        await createActivityLog({
+          type: "log_feedback_resolved",
+          actorId: profile!.id,
+          actorName: profile!.full_name || "System Admin",
+          details: `Marked feedback #${id.slice(0, 8)} as resolved`
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-feedback"] });
@@ -259,6 +323,8 @@ export default function AdminDashboard() {
   const paginatedJobs = filteredJobs.slice(startJobIndex, startJobIndex + itemsPerPage);
 
   const filteredFeedbacks = (feedbacks || []).filter((f) => {
+    if (f.type?.startsWith("log_")) return false;
+
     const s = feedbackSearch.toLowerCase().trim();
     const messageMatch = f.message?.toLowerCase().includes(s) ?? false;
     const typeMatch = f.type?.toLowerCase().includes(s) ?? false;
@@ -376,6 +442,99 @@ export default function AdminDashboard() {
   const isAppsDataEmpty = appChartData.length === 0 || appChartData.every(d => d.count === 0);
 
   const isLoadingCharts = !users || !jobs || !applications;
+
+  // Process activity logs from feedback
+  const activityLogs = (feedbacks || [])
+    .filter((f) => f.type?.startsWith("log_"))
+    .map((f) => {
+      let payload = { actorName: "Unknown", details: "" } as any;
+      try {
+        payload = JSON.parse(f.message || "{}");
+      } catch (e) {
+        payload.details = f.message;
+      }
+      return {
+        id: f.id,
+        type: f.type,
+        actorName: payload.actorName,
+        targetId: payload.targetId,
+        targetName: payload.targetName,
+        jobId: payload.jobId,
+        jobTitle: payload.jobTitle,
+        details: payload.details,
+        createdAt: f.created_at,
+        raw: f
+      };
+    });
+
+  const getLogMeta = (type: string) => {
+    switch (type) {
+      case "log_user_blocked":
+        return { label: "User Blocked", icon: Ban, color: "text-rose-600 bg-rose-50 border-rose-100" };
+      case "log_user_unblocked":
+        return { label: "User Unblocked", icon: Check, color: "text-emerald-600 bg-emerald-50 border-emerald-100" };
+      case "log_job_posted":
+        return { label: "Job Posted", icon: Briefcase, color: "text-amber-600 bg-amber-50 border-amber-100" };
+      case "log_job_edited":
+        return { label: "Job Edited", icon: Briefcase, color: "text-indigo-600 bg-indigo-50 border-indigo-100" };
+      case "log_job_closed":
+        return { label: "Job Closed", icon: X, color: "text-slate-600 bg-slate-50 border-slate-100" };
+      case "log_job_reopened":
+        return { label: "Job Reopened", icon: Briefcase, color: "text-sky-600 bg-sky-50 border-sky-100" };
+      case "log_job_deleted":
+        return { label: "Job Deleted", icon: Trash2, color: "text-rose-600 bg-rose-50 border-rose-100" };
+      case "log_job_restored":
+        return { label: "Job Restored", icon: Briefcase, color: "text-teal-600 bg-teal-50 border-teal-100" };
+      case "log_feedback_resolved":
+        return { label: "Feedback Resolved", icon: Check, color: "text-emerald-600 bg-emerald-50 border-emerald-100" };
+      case "log_employer_verified":
+        return { label: "Employer Verified", icon: ShieldCheck, color: "text-blue-600 bg-blue-50 border-blue-100" };
+      default:
+        return { label: "System Action", icon: ShieldCheck, color: "text-slate-600 bg-slate-50 border-slate-100" };
+    }
+  };
+
+  const formatLogTimestamp = (dateString: string) => {
+    const d = new Date(dateString);
+    return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  };
+
+  const formatLogDate = (dateString: string) => {
+    const d = new Date(dateString);
+    return d.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
+  };
+
+  const filteredLogs = activityLogs.filter((log) => {
+    const s = activitySearch.toLowerCase().trim();
+    const meta = getLogMeta(log.type || "");
+    
+    const matchesSearch = s === "" ||
+      log.details?.toLowerCase().includes(s) ||
+      log.actorName?.toLowerCase().includes(s) ||
+      log.targetName?.toLowerCase().includes(s) ||
+      log.jobTitle?.toLowerCase().includes(s) ||
+      meta.label.toLowerCase().includes(s);
+
+    let matchesFilter = true;
+    const logDate = new Date(log.createdAt);
+    const now = new Date();
+    
+    if (activityFilter === "today") {
+      matchesFilter = logDate.getDate() === now.getDate() &&
+                      logDate.getMonth() === now.getMonth() &&
+                      logDate.getFullYear() === now.getFullYear();
+    } else if (activityFilter === "this_week") {
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(now.getDate() - 7);
+      matchesFilter = logDate >= oneWeekAgo;
+    }
+
+    return matchesSearch && matchesFilter;
+  });
+
+  const totalLogPages = Math.ceil(filteredLogs.length / itemsPerPage);
+  const startLogIndex = (activityPage - 1) * itemsPerPage;
+  const paginatedLogs = filteredLogs.slice(startLogIndex, startLogIndex + itemsPerPage);
 
   return (
     <>
@@ -506,6 +665,10 @@ export default function AdminDashboard() {
                     {openFeedback}
                   </span>
                 )}
+              </TabsTrigger>
+              <TabsTrigger value="activity" className="jl-tab-trigger shrink-0 md:flex-1 h-9 flex items-center justify-center gap-1.5 px-4 md:px-0">
+                <Activity size={14} />
+                Activity Log
               </TabsTrigger>
             </TabsList>
 
@@ -1533,6 +1696,194 @@ export default function AdminDashboard() {
                             cursor: feedbackPage === totalFeedbackPages ? "not-allowed" : "pointer",
                             opacity: feedbackPage === totalFeedbackPages ? 0.4 : 1,
                             boxShadow: "0 2px 6px rgba(15,10,30,0.02)",
+                          }}
+                        >
+                          <ChevronRight size={16} />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* ACTIVITY LOG TAB */}
+            <TabsContent value="activity" className="space-y-4">
+              {/* Header */}
+              <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-5">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <h2 className="text-base font-bold text-slate-800 tracking-tight">Activity Log</h2>
+                    <p className="text-xs text-slate-400 font-medium mt-0.5">
+                      {filteredLogs.length} event{filteredLogs.length !== 1 ? "s" : ""} recorded
+                    </p>
+                  </div>
+
+                  {/* Search */}
+                  <div className="relative w-full sm:w-64">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      id="activity-search"
+                      className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:border-amber-400 transition-all"
+                      placeholder="Search events…"
+                      value={activitySearch}
+                      onChange={(e) => { setActivitySearch(e.target.value); setActivityPage(1); }}
+                    />
+                  </div>
+                </div>
+
+                {/* Filters */}
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {[
+                    { value: "all", label: "All Time" },
+                    { value: "today", label: "Today" },
+                    { value: "this_week", label: "This Week" },
+                  ].map((f) => (
+                    <button
+                      key={f.value}
+                      id={`activity-filter-${f.value}`}
+                      onClick={() => { setActivityFilter(f.value); setActivityPage(1); }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all duration-200 ${
+                        activityFilter === f.value
+                          ? "bg-amber-500 text-white border-amber-500 shadow-sm"
+                          : "bg-white text-slate-600 border-slate-200 hover:border-amber-300 hover:text-amber-600"
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Log List */}
+              {!feedbacks ? (
+                <div className="space-y-3">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="bg-white rounded-2xl border border-slate-100/80 p-4 animate-pulse">
+                      <div className="flex gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-slate-100 shrink-0" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-slate-100 rounded-md w-2/3" />
+                          <div className="h-3 bg-slate-50 rounded-md w-1/2" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : paginatedLogs.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-12 flex flex-col items-center justify-center text-center">
+                  <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center mb-4">
+                    <Activity size={24} className="text-slate-300" />
+                  </div>
+                  <p className="text-sm font-bold text-slate-700 mb-1">No activity found</p>
+                  <p className="text-xs text-slate-400 max-w-xs">
+                    {activitySearch || activityFilter !== "all"
+                      ? "Try adjusting your search or filter."
+                      : "Activity events will appear here as admins and employers take actions on the platform."}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {paginatedLogs.map((log, idx) => {
+                    const meta = getLogMeta(log.type || "");
+                    const IconComp = meta.icon;
+                    return (
+                      <div
+                        key={log.id || idx}
+                        className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-4 flex gap-3 items-start hover:shadow-md transition-all duration-200 jl-admin-card"
+                      >
+                        {/* Icon */}
+                        <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${meta.color}`}>
+                          <IconComp size={15} />
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+                            <div className="flex flex-wrap items-center gap-2 min-w-0">
+                              <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${meta.color}`}>
+                                {meta.label}
+                              </span>
+                              <span className="text-xs font-semibold text-slate-700 truncate">
+                                {log.actorName}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <Calendar size={11} className="text-slate-300" />
+                              <span className="text-[11px] text-slate-400 font-medium">
+                                {formatLogDate(log.createdAt)}
+                              </span>
+                              <span className="text-[11px] text-slate-300">·</span>
+                              <Clock size={11} className="text-slate-300" />
+                              <span className="text-[11px] text-slate-400 font-medium">
+                                {formatLogTimestamp(log.createdAt)}
+                              </span>
+                            </div>
+                          </div>
+
+                          <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
+                            {log.details}
+                          </p>
+
+                          {log.jobTitle && (
+                            <div className="flex items-center gap-1.5 mt-1.5">
+                              <Briefcase size={11} className="text-amber-500 shrink-0" />
+                              <span className="text-[11px] text-amber-700 font-semibold truncate">
+                                {log.jobTitle}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Pagination */}
+                  {totalLogPages > 1 && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-4 border-t border-slate-100">
+                      <span className="text-xs font-semibold text-slate-500 order-2 sm:order-1 text-center sm:text-left">
+                        Showing {startLogIndex + 1}–{Math.min(startLogIndex + itemsPerPage, filteredLogs.length)} of {filteredLogs.length} events
+                      </span>
+                      <div className="flex items-center gap-1.5 order-1 sm:order-2">
+                        <Button
+                          disabled={activityPage === 1}
+                          onClick={() => setActivityPage((p) => Math.max(p - 1, 1))}
+                          style={{
+                            background: "#ffffff", border: "1px solid rgba(15,10,30,0.08)",
+                            borderRadius: 10, height: 36, width: 36, padding: 0,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            color: "#0d0a1e", cursor: activityPage === 1 ? "not-allowed" : "pointer",
+                            opacity: activityPage === 1 ? 0.4 : 1, boxShadow: "0 2px 6px rgba(15,10,30,0.02)",
+                          }}
+                        >
+                          <ChevronLeft size={16} />
+                        </Button>
+                        {Array.from({ length: totalLogPages }, (_, i) => i + 1).map((page) => (
+                          <Button
+                            key={page}
+                            onClick={() => setActivityPage(page)}
+                            style={{
+                              background: activityPage === page ? "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)" : "#ffffff",
+                              border: activityPage === page ? "none" : "1px solid rgba(15,10,30,0.08)",
+                              borderRadius: 10, height: 36, width: 36, padding: 0,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              color: activityPage === page ? "#ffffff" : "#0d0a1e",
+                              fontWeight: 600, fontSize: 13, cursor: "pointer",
+                              boxShadow: activityPage === page ? "0 2px 8px rgba(245,158,11,0.24)" : "0 2px 6px rgba(15,10,30,0.02)",
+                            }}
+                          >
+                            {page}
+                          </Button>
+                        ))}
+                        <Button
+                          disabled={activityPage === totalLogPages}
+                          onClick={() => setActivityPage((p) => Math.min(p + 1, totalLogPages))}
+                          style={{
+                            background: "#ffffff", border: "1px solid rgba(15,10,30,0.08)",
+                            borderRadius: 10, height: 36, width: 36, padding: 0,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            color: "#0d0a1e", cursor: activityPage === totalLogPages ? "not-allowed" : "pointer",
+                            opacity: activityPage === totalLogPages ? 0.4 : 1, boxShadow: "0 2px 6px rgba(15,10,30,0.02)",
                           }}
                         >
                           <ChevronRight size={16} />

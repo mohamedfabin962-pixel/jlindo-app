@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { createActivityLog } from "@/utils/activityLogger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -132,7 +133,7 @@ function CityCombobox({
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function PostJob() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -197,6 +198,13 @@ export default function PostJob() {
     if (error) {
       toast({ title: "Job post failed", description: error.message, variant: "destructive" });
     } else {
+      await createActivityLog({
+        type: "log_job_posted",
+        actorId: user!.id,
+        actorName: profile?.full_name || user!.email || "Employer",
+        jobTitle: form.title.trim(),
+        details: `Posted a new job: "${form.title.trim()}"`
+      });
       toast({
         title: "Job Posted Successfully",
         description: "Workers can now see and apply for this job.",
