@@ -12,7 +12,7 @@ import {
   Trash2, Ban, Users, Briefcase, FileCheck, MessageSquare, ShieldCheck, Check,
   ChevronLeft, ChevronRight, Search, Mail, Phone, Calendar, User,
   MapPin, DollarSign, Clock, X, ExternalLink, TrendingUp, Activity,
-  RotateCcw, Archive, AlertTriangle, Flag
+  RotateCcw, Archive, AlertTriangle, Flag, HeartPulse
 } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { EmptyState } from "@/components/EmptyState";
@@ -711,6 +711,17 @@ export default function AdminDashboard() {
 
   const openFeedback = feedbacks?.filter((f) => f.status !== "resolved" && f.type !== "report_job" && !f.type?.startsWith("log_")).length || 0;
   const resolvedFeedbackCount = (feedbacks || []).filter((f: any) => f.status === "resolved" && f.type !== "report_job" && !f.type?.startsWith("log_")).length;
+  
+  const blockedUsersCount = (users || []).filter((u: any) => u.is_blocked).length;
+  const verifiedEmployersCount = (users || []).filter((u: any) => u.role === "employer" && u.full_name).length;
+  const todaysApplicationsCount = (applications || []).filter((a: any) => {
+    if (!a.created_at) return false;
+    const d = new Date(a.created_at);
+    const now = new Date();
+    return d.getDate() === now.getDate() &&
+           d.getMonth() === now.getMonth() &&
+           d.getFullYear() === now.getFullYear();
+  }).length;
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -1046,6 +1057,10 @@ export default function AdminDashboard() {
                 <TrendingUp size={14} />
                 Overview
               </TabsTrigger>
+              <TabsTrigger value="health" className="jl-tab-trigger shrink-0 md:flex-1 h-9 flex items-center justify-center gap-1.5 px-4 md:px-0">
+                <HeartPulse size={14} />
+                Health
+              </TabsTrigger>
               <TabsTrigger value="users" className="jl-tab-trigger shrink-0 md:flex-1 h-9 flex items-center justify-center gap-1.5 px-4 md:px-0">
                 <Users size={14} />
                 Users ({users?.length || 0})
@@ -1210,6 +1225,151 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               )}
+              </ErrorBoundary>
+            </TabsContent>
+
+            {/* PLATFORM HEALTH TAB */}
+            <TabsContent value="health" className="space-y-6">
+              <ErrorBoundary fallbackTitle="Platform Health failed to render">
+                {/* Health Header Status */}
+                <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+                        pendingReports > 0 ? "bg-rose-50 text-rose-600 animate-pulse" : "bg-emerald-50 text-emerald-600"
+                      }`}>
+                        <Activity size={24} />
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-bold text-slate-800 tracking-tight leading-snug">System Status</h2>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className={`w-2.5 h-2.5 rounded-full ${
+                            pendingReports > 0 ? "bg-rose-500 animate-ping" : "bg-emerald-500"
+                          }`} />
+                          <span className={`text-xs font-bold uppercase tracking-wider ${
+                            pendingReports > 0 ? "text-rose-600" : "text-emerald-600"
+                          }`}>
+                            {pendingReports > 0 ? "Attention Required" : "System Operational"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-400 font-medium max-w-sm">
+                      {pendingReports > 0 
+                        ? `There are ${pendingReports} pending job reports that require moderation.`
+                        : "All systems are running smoothly. Platform health metrics are optimal."}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Health Cards Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                  {/* Active Jobs Card */}
+                  <div className="bg-white rounded-2xl border border-slate-100/80 p-5 shadow-[0_2px_12px_rgba(15,10,30,0.02)] flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+                    <div className="flex items-center justify-between text-slate-400 mb-4">
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Active Jobs</span>
+                      <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Healthy</span>
+                    </div>
+                    <div>
+                      <p className="text-3xl font-black text-slate-800 tracking-tight leading-none">{activeJobsCount}</p>
+                      <p className="text-xs text-slate-400 font-semibold mt-2">Accepting worker applications</p>
+                    </div>
+                  </div>
+
+                  {/* Closed Jobs Card */}
+                  <div className="bg-white rounded-2xl border border-slate-100/80 p-5 shadow-[0_2px_12px_rgba(15,10,30,0.02)] flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+                    <div className="flex items-center justify-between text-slate-400 mb-4">
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Closed Jobs</span>
+                      <span className="text-xs font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-full">Archived</span>
+                    </div>
+                    <div>
+                      <p className="text-3xl font-black text-slate-800 tracking-tight leading-none">{closedJobsCount}</p>
+                      <p className="text-xs text-slate-400 font-semibold mt-2">Inactive listing count</p>
+                    </div>
+                  </div>
+
+                  {/* Blocked Users Card */}
+                  <div className="bg-white rounded-2xl border border-slate-100/80 p-5 shadow-[0_2px_12px_rgba(15,10,30,0.02)] flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+                    <div className="flex items-center justify-between text-slate-400 mb-4">
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Blocked Users</span>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                        blockedUsersCount > 0 ? "text-amber-600 bg-amber-50" : "text-emerald-600 bg-emerald-50"
+                      }`}>
+                        {blockedUsersCount > 0 ? "Action Taken" : "Operational"}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-3xl font-black text-slate-800 tracking-tight leading-none">{blockedUsersCount}</p>
+                      <p className="text-xs text-slate-400 font-semibold mt-2">Suspended platform access</p>
+                    </div>
+                  </div>
+
+                  {/* Verified Employers Card */}
+                  <div className="bg-white rounded-2xl border border-slate-100/80 p-5 shadow-[0_2px_12px_rgba(15,10,30,0.02)] flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+                    <div className="flex items-center justify-between text-slate-400 mb-4">
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Verified Employers</span>
+                      <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full font-semibold">Active</span>
+                    </div>
+                    <div>
+                      <p className="text-3xl font-black text-slate-800 tracking-tight leading-none">{verifiedEmployersCount}</p>
+                      <p className="text-xs text-slate-400 font-semibold mt-2">Employers with complete profiles</p>
+                    </div>
+                  </div>
+
+                  {/* Pending Reports Card */}
+                  <div className={`bg-white rounded-2xl border p-5 shadow-[0_2px_12px_rgba(15,10,30,0.02)] flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 ${
+                    pendingReports > 0 ? "border-rose-100" : "border-slate-100/80"
+                  }`}>
+                    <div className="flex items-center justify-between text-slate-400 mb-4">
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Pending Reports</span>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                        pendingReports > 0 ? "text-rose-600 bg-rose-50 animate-pulse font-extrabold" : "text-slate-500 bg-slate-50"
+                      }`}>
+                        {pendingReports > 0 ? "Needs Review" : "Clear"}
+                      </span>
+                    </div>
+                    <div>
+                      <p className={`text-3xl font-black tracking-tight leading-none ${
+                        pendingReports > 0 ? "text-rose-600" : "text-slate-800"
+                      }`}>{pendingReports}</p>
+                      <p className="text-xs text-slate-400 font-semibold mt-2">Requires admin review</p>
+                    </div>
+                  </div>
+
+                  {/* Feedback Waiting Card */}
+                  <div className="bg-white rounded-2xl border border-slate-100/80 p-5 shadow-[0_2px_12px_rgba(15,10,30,0.02)] flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+                    <div className="flex items-center justify-between text-slate-400 mb-4">
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Feedback Waiting</span>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                        openFeedback > 0 ? "text-sky-600 bg-sky-50 font-semibold" : "text-slate-500 bg-slate-50"
+                      }`}>
+                        {openFeedback > 0 ? "Action Required" : "Clear"}
+                      </span>
+                    </div>
+                    <div>
+                      <p className={`text-3xl font-black tracking-tight leading-none ${
+                        openFeedback > 0 ? "text-sky-600" : "text-slate-800"
+                      }`}>{openFeedback}</p>
+                      <p className="text-xs text-slate-400 font-semibold mt-2">Unresolved worker feedback</p>
+                    </div>
+                  </div>
+
+                  {/* Today's Applications Card */}
+                  <div className="bg-white rounded-2xl border border-slate-100/80 p-5 shadow-[0_2px_12px_rgba(15,10,30,0.02)] flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+                    <div className="flex items-center justify-between text-slate-400 mb-4">
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Today's Applications</span>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                        todaysApplicationsCount > 0 ? "text-emerald-600 bg-emerald-50" : "text-slate-500 bg-slate-50"
+                      }`}>
+                        {todaysApplicationsCount > 0 ? "Active Today" : "Quiet"}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-3xl font-black text-slate-800 tracking-tight leading-none">{todaysApplicationsCount}</p>
+                      <p className="text-xs text-slate-400 font-semibold mt-2">Submissions since midnight</p>
+                    </div>
+                  </div>
+                </div>
               </ErrorBoundary>
             </TabsContent>
 
