@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   MapPin, Clock, Search, ArrowRight, Loader2, CheckCircle2, XCircle, ChevronRight, Zap,
   ChevronLeft, Navigation, ExternalLink,
-  SlidersHorizontal, FileText, Star, Share2, Check, AlertTriangle, Flag
+  SlidersHorizontal, FileText, Star, Share2, Check, AlertTriangle, Flag, User
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
@@ -134,7 +134,7 @@ export default function JobListings() {
     const loadJobs = async () => {
       const { data, error } = await supabase
         .from("jobs")
-        .select(`*, applications!applications_job_id_fkey(status)`)
+        .select(`*, profiles:employer_id(*), applications!applications_job_id_fkey(status)`)
         .neq("status", "deleted");
 
       console.log("DATA", data);
@@ -1031,6 +1031,24 @@ export default function JobListings() {
                       const displayCity = loc.city || selectedJob.location;
                       return (
                         <div className="py-6 border-y border-slate-100 flex flex-col gap-4">
+                          {/* Employer / Posted By */}
+                          <div className="flex gap-2.5 items-start">
+                            <User size={16} className="text-orange-600 mt-1 flex-shrink-0" />
+                            <div>
+                              <span className="text-xs font-bold text-slate-900 block mb-0.5">Employer</span>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <p className="m-0 text-sm text-slate-600 font-medium">
+                                  {selectedJob.profiles?.full_name || selectedJob.profiles?.email || "Employer"}
+                                </p>
+                                {selectedJob.profiles?.is_verified && (
+                                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 flex items-center gap-0.5">
+                                    ✓ Verified Employer
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
                           {/* City */}
                           <div className="flex gap-2.5 items-start">
                             <MapPin size={16} className="text-orange-600 mt-1 flex-shrink-0" />

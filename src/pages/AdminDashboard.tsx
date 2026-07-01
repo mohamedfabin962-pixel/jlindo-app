@@ -348,6 +348,52 @@ export default function AdminDashboard() {
     },
   });
 
+  const toggleVerificationMutation = useMutation({
+    mutationFn: async ({ userId, verified }: { userId: string; verified: boolean }) => {
+      const targetUser = (users || []).find((u: any) => u.id === userId);
+      const targetName = targetUser?.full_name || targetUser?.email || "Unknown Employer";
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({ is_verified: verified })
+        .eq("id", userId);
+      if (error) throw error;
+
+      await createActivityLog({
+        type: verified ? "log_employer_verified" : "log_user_unblocked",
+        actorId: profile!.id,
+        actorName: profile!.full_name || "System Admin",
+        targetId: userId,
+        targetName,
+        details: verified ? `Verified employer profile: ${targetName}` : `Removed verification from employer profile: ${targetName}`
+      });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast({ 
+        title: variables.verified ? "Employer Verified" : "Verification Removed",
+        description: variables.verified 
+          ? "The employer profile has been successfully verified."
+          : "Verification status has been removed from this employer profile."
+      });
+    },
+    onError: (error: any) => {
+      if (error.message?.includes("column") && error.message?.includes("is_verified")) {
+        toast({
+          title: "Database Migration Required",
+          description: "Please run the SQL query: 'ALTER TABLE profiles ADD COLUMN is_verified BOOLEAN DEFAULT FALSE;' in your Supabase SQL Editor.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Action failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    }
+  });
+
   const updateFeedbackStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const { error } = await supabase
@@ -519,6 +565,10 @@ export default function AdminDashboard() {
       matchesFilter = u.role === "employer";
     } else if (userFilter === "blocked") {
       matchesFilter = !!u.is_blocked;
+    } else if (userFilter === "verified") {
+      matchesFilter = u.role === "employer" && !!u.is_verified;
+    } else if (userFilter === "unverified") {
+      matchesFilter = u.role === "employer" && !u.is_verified;
     }
 
     return matchesSearch && matchesFilter;
@@ -1456,6 +1506,8 @@ export default function AdminDashboard() {
                     <SelectItem value="worker">Workers</SelectItem>
                     <SelectItem value="employer">Employers</SelectItem>
                     <SelectItem value="blocked">Blocked Users</SelectItem>
+                    <SelectItem value="verified">Verified Employers</SelectItem>
+                    <SelectItem value="unverified">Unverified Employers</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1519,6 +1571,16 @@ export default function AdminDashboard() {
                               >
                                 {u.role === "employer" ? "Employer" : "Worker"}
                               </span>
+                              {u.role === "employer" && u.is_verified && (
+                                <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center gap-1">
+                                  ✓ Verified
+                                </span>
+                              )}
+                              {u.role === "employer" && !u.is_verified && (
+                                <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-50 text-slate-500 border border-slate-200/60 flex items-center gap-1">
+                                  Unverified
+                                </span>
+                              )}
                               {u.is_blocked && (
                                 <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-100 flex items-center gap-1">
                                   <Ban size={10} /> Blocked
@@ -1528,8 +1590,29 @@ export default function AdminDashboard() {
                           </div>
                         </div>
 
-                        {/* Block / Unblock Action Button */}
-                        <div className="flex items-center sm:justify-end shrink-0">
+                        {/* Block / Unblock & Verify Action Buttons */}
+                        <div className="flex flex-col sm:flex-row items-center sm:justify-end shrink-0 gap-2 w-full sm:w-auto">
+                          {u.role === "employer" && (
+                            <Button
+                              size="sm"
+                              variant={u.is_verified ? "default" : "outline"}
+                              style={{
+                                borderRadius: 10,
+                                fontSize: 12.5,
+                                fontWeight: 600,
+                                height: 36,
+                                borderColor: u.is_verified ? undefined : "rgba(16,185,129,0.2)",
+                                color: u.is_verified ? undefined : "#10B981",
+                                background: u.is_verified ? undefined : "rgba(16,185,129,0.02)",
+                              }}
+                              className={u.is_verified ? "bg-slate-600 hover:bg-slate-700 text-white shadow-sm border-0 w-full sm:w-auto" : "hover:bg-emerald-50/50 w-full sm:w-auto"}
+                              onClick={() => toggleVerificationMutation.mutate({ userId: u.id, verified: !u.is_verified })}
+                              disabled={toggleVerificationMutation.isPending}
+                            >
+                              <ShieldCheck size={13} className="mr-1.5" />
+                              {u.is_verified ? "Remove Verification" : "Verify Employer"}
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant={u.is_blocked ? "default" : "outline"}

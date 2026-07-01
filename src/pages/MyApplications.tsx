@@ -64,7 +64,7 @@ export default function MyApplications() {
 
       const { data } = await supabase
         .from("profiles")
-        .select("id, full_name, phone")
+        .select("id, full_name, phone, is_verified")
         .in("id", ids);
 
       const map: any = {};
@@ -237,9 +237,14 @@ export default function MyApplications() {
                             You are selected for this job
                           </p>
                           <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
-                            <p style={{ margin: 0, fontSize: 13, color: "#0d0a1e" }}>
+                            <p style={{ margin: 0, fontSize: 13, color: "#0d0a1e", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                               <span style={{ color: "rgba(15,10,30,0.4)" }}>Employer:</span>{" "}
                               <span style={{ fontWeight: 600 }}>{employer?.full_name || "Employer"}</span>
+                              {employer?.is_verified && (
+                                <span style={{ fontSize: 10, fontWeight: 700, color: "#10B981", background: "#ECFDF5", padding: "1px 5px", borderRadius: 4, border: "1px solid #A7F3D0" }}>
+                                  ✓ Verified Employer
+                                </span>
+                              )}
                             </p>
                             <p style={{ margin: 0, display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#0d0a1e", fontWeight: 600 }}>
                               <Phone style={{ height: 13, width: 13, color: "rgba(15,10,30,0.4)" }} />

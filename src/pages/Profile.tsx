@@ -370,6 +370,21 @@ export default function Profile() {
               <div style={{ padding: "28px 24px" }}>
                 
                 <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                  {profile?.is_verified && (
+                    <div style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      background: "#ECFDF5",
+                      border: "1px solid #A7F3D0",
+                      borderRadius: 12,
+                      padding: "10px 14px",
+                    }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "#065F46" }}>
+                        ✓ Verified Employer
+                      </span>
+                    </div>
+                  )}
                   
                   {/* ── AVATAR UPLOAD (Company logo) ──────────── */}
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, paddingBottom: 16, borderBottom: "1px solid rgba(15,10,30,0.05)" }}>
