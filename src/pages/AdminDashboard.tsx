@@ -12,7 +12,7 @@ import {
   Trash2, Ban, Users, Briefcase, FileCheck, MessageSquare, ShieldCheck, Check,
   ChevronLeft, ChevronRight, Search, Mail, Phone, Calendar, User,
   MapPin, DollarSign, Clock, X, ExternalLink, TrendingUp, Activity,
-  RotateCcw, Archive, AlertTriangle, Flag, HeartPulse, Star
+  RotateCcw, Archive, AlertTriangle, Flag, HeartPulse, Star, Megaphone, Plus, Zap, Info
 } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { EmptyState } from "@/components/EmptyState";
@@ -138,6 +138,13 @@ export default function AdminDashboard() {
   const [warnMessage, setWarnMessage] = useState("");
   const [confirmRemoveReportJob, setConfirmRemoveReportJob] = useState<{ reportId: string; jobId: string; jobTitle: string } | null>(null);
   
+  // Announcements section states
+  const [annTitle, setAnnTitle] = useState("");
+  const [annMessage, setAnnMessage] = useState("");
+  const [annPriority, setAnnPriority] = useState<"info" | "warning" | "critical">("info");
+  const [annFormOpen, setAnnFormOpen] = useState(false);
+  const [confirmDeleteAnnId, setConfirmDeleteAnnId] = useState<string | null>(null);
+  
   const itemsPerPage = 5;
 
   const { data: users } = useQuery({
@@ -200,6 +207,19 @@ export default function AdminDashboard() {
     enabled: isAdmin,
   });
 
+  const { data: announcements } = useQuery({
+    queryKey: ["admin-announcements"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("announcements")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAdmin,
+  });
+
   const prepareChartData = (items: any[] | undefined) => {
     if (!items) return [];
     
@@ -227,6 +247,69 @@ export default function AdminDashboard() {
       count: dailyCounts[date],
     }));
   };
+
+  const createAnnouncement = useMutation({
+    mutationFn: async ({
+      title,
+      message,
+      priority,
+    }: {
+      title: string;
+      message: string;
+      priority: "info" | "warning" | "critical";
+    }) => {
+      const { error } = await supabase.from("announcements").insert({
+        title,
+        message,
+        priority,
+        created_by: profile!.id,
+        is_active: true,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-announcements"] });
+      toast({ title: "Announcement published", description: "All users will see it immediately." });
+      setAnnTitle("");
+      setAnnMessage("");
+      setAnnPriority("info");
+      setAnnFormOpen(false);
+    },
+    onError: (err: any) => {
+      if (err.message?.includes("relation") && err.message?.includes("announcements")) {
+        toast({
+          title: "Table Missing",
+          description: "Run the SQL migration to create the announcements table.",
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Error", description: err.message, variant: "destructive" });
+      }
+    },
+  });
+
+  const toggleAnnouncementActive = useMutation({
+    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+      const { error } = await supabase.from("announcements").update({ is_active }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-announcements"] });
+      toast({ title: "Announcement updated" });
+    },
+  });
+
+  const deleteAnnouncement = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("announcements").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-announcements"] });
+      setConfirmDeleteAnnId(null);
+      toast({ title: "Announcement deleted" });
+    },
+  });
 
   const updateJobStatus = useMutation({
     mutationFn: async ({ jobId, status }: { jobId: string; status: string }) => {
@@ -1240,6 +1323,15 @@ export default function AdminDashboard() {
                 {totalTrashedCount > 0 && (
                   <span className="bg-rose-500 text-white rounded-full px-1.5 py-0.5 text-[9px] font-bold ml-1">
                     {totalTrashedCount}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="announcements" className="jl-tab-trigger shrink-0 md:flex-1 h-9 flex items-center justify-center gap-1.5 px-4 md:px-0">
+                <Megaphone size={14} />
+                Announcements
+                {announcements && announcements.filter((a: any) => a.is_active).length > 0 && (
+                  <span className="bg-amber-500 text-white rounded-full px-1.5 py-0.5 text-[9px] font-bold ml-1">
+                    {announcements.filter((a: any) => a.is_active).length}
                   </span>
                 )}
               </TabsTrigger>
@@ -3128,6 +3220,270 @@ export default function AdminDashboard() {
               )}
               </ErrorBoundary>
             </TabsContent>
+
+            {/* ANNOUNCEMENTS TAB */}
+            <TabsContent value="announcements" className="space-y-6">
+              <ErrorBoundary fallbackTitle="Announcements failed to render">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900 m-0">Platform Announcements</h2>
+                    <p className="text-sm text-slate-500 mt-0.5">
+                      Publish notices that appear to all workers and employers inside the app.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => setAnnFormOpen((v) => !v)}
+                    className="bg-orange-500 hover:bg-orange-600 text-white border-0 font-semibold shadow-sm"
+                    style={{ borderRadius: 12, height: 40, paddingInline: 20 }}
+                  >
+                    <Plus size={16} className="mr-1.5" />
+                    {annFormOpen ? "Cancel" : "New Announcement"}
+                  </Button>
+                </div>
+
+                {/* Create Form */}
+                {annFormOpen && (
+                  <div
+                    style={{
+                      background: "#fff",
+                      border: "1px solid rgba(15,10,30,0.07)",
+                      borderRadius: 20,
+                      padding: "24px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 16,
+                      boxShadow: "0 4px 24px rgba(15,10,30,0.04)",
+                    }}
+                  >
+                    <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#0d0a1e" }}>
+                      Create Announcement
+                    </h3>
+
+                    {/* Priority Selector */}
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "rgba(15,10,30,0.6)", display: "block", marginBottom: 8 }}>
+                        Priority
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {(["info", "warning", "critical"] as const).map((p) => {
+                          const labelMap = { info: "Info", warning: "Notice", critical: "Urgent" };
+                          const colorMap = {
+                            info: { active: "#2563EB", bg: "#EFF6FF", border: "rgba(37,99,235,0.3)" },
+                            warning: { active: "#D97706", bg: "#FFFBEB", border: "rgba(245,158,11,0.3)" },
+                            critical: { active: "#DC2626", bg: "#FFF1F2", border: "rgba(239,68,68,0.3)" },
+                          };
+                          const c = colorMap[p];
+                          return (
+                            <button
+                              key={p}
+                              type="button"
+                              onClick={() => setAnnPriority(p)}
+                              style={{
+                                padding: "6px 14px",
+                                borderRadius: 10,
+                                fontSize: 12.5,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                border: `1.5px solid ${annPriority === p ? c.active : "rgba(15,10,30,0.1)"}`,
+                                background: annPriority === p ? c.bg : "#fff",
+                                color: annPriority === p ? c.active : "rgba(15,10,30,0.4)",
+                                transition: "all 0.15s",
+                              }}
+                            >
+                              {labelMap[p]}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Title */}
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "rgba(15,10,30,0.6)", display: "block", marginBottom: 6 }}>
+                        Title
+                      </label>
+                      <Input
+                        value={annTitle}
+                        onChange={(e) => setAnnTitle(e.target.value)}
+                        placeholder="e.g. Scheduled Maintenance"
+                        maxLength={100}
+                        className="h-11 rounded-xl border-slate-200 focus:border-orange-400 focus:ring-orange-100 text-sm font-medium"
+                      />
+                    </div>
+
+                    {/* Message */}
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "rgba(15,10,30,0.6)", display: "block", marginBottom: 6 }}>
+                        Message
+                      </label>
+                      <textarea
+                        value={annMessage}
+                        onChange={(e) => setAnnMessage(e.target.value)}
+                        placeholder="Describe the announcement in detail..."
+                        maxLength={500}
+                        rows={3}
+                        style={{
+                          width: "100%",
+                          borderRadius: 12,
+                          border: "1px solid rgba(15,10,30,0.12)",
+                          padding: "10px 14px",
+                          fontSize: 14,
+                          color: "#0d0a1e",
+                          resize: "vertical",
+                          outline: "none",
+                          fontFamily: "inherit",
+                          lineHeight: 1.55,
+                          boxSizing: "border-box",
+                        }}
+                        onFocus={(e) => (e.target.style.borderColor = "#F59E0B")}
+                        onBlur={(e) => (e.target.style.borderColor = "rgba(15,10,30,0.12)")}
+                      />
+                      <p style={{ margin: "4px 0 0", fontSize: 11, color: "rgba(15,10,30,0.35)", textAlign: "right" }}>
+                        {annMessage.length}/500
+                      </p>
+                    </div>
+
+                    {/* Submit */}
+                    <Button
+                      onClick={() => {
+                        if (!annTitle.trim()) {
+                          toast({ title: "Title required", variant: "destructive" });
+                          return;
+                        }
+                        if (!annMessage.trim()) {
+                          toast({ title: "Message required", variant: "destructive" });
+                          return;
+                        }
+                        createAnnouncement.mutate({ title: annTitle.trim(), message: annMessage.trim(), priority: annPriority });
+                      }}
+                      disabled={createAnnouncement.isPending}
+                      className="self-end bg-orange-500 hover:bg-orange-600 text-white border-0 font-semibold shadow-sm"
+                      style={{ borderRadius: 12, height: 40, paddingInline: 24 }}
+                    >
+                      {createAnnouncement.isPending ? "Publishing…" : "Publish Announcement"}
+                    </Button>
+                  </div>
+                )}
+
+                {/* Announcements List */}
+                {!announcements || announcements.length === 0 ? (
+                  <EmptyState
+                    icon={Megaphone}
+                    title="No Announcements"
+                    description="Create your first announcement to notify workers and employers."
+                  />
+                ) : (
+                  <div className="space-y-3">
+                    {announcements.map((ann: any) => {
+                      const priorityStyle = {
+                        info: { bg: "#EFF6FF", border: "rgba(59,130,246,0.2)", accent: "#2563EB", label: "Info", labelBg: "rgba(37,99,235,0.1)" },
+                        warning: { bg: "#FFFBEB", border: "rgba(245,158,11,0.2)", accent: "#D97706", label: "Notice", labelBg: "rgba(245,158,11,0.1)" },
+                        critical: { bg: "#FFF1F2", border: "rgba(239,68,68,0.2)", accent: "#DC2626", label: "Urgent", labelBg: "rgba(239,68,68,0.1)" },
+                      }[ann.priority as "info" | "warning" | "critical"] || { bg: "#EFF6FF", border: "rgba(59,130,246,0.2)", accent: "#2563EB", label: "Info", labelBg: "rgba(37,99,235,0.1)" };
+
+                      return (
+                        <div
+                          key={ann.id}
+                          style={{
+                            background: ann.is_active ? priorityStyle.bg : "#F8FAFC",
+                            border: `1px solid ${ann.is_active ? priorityStyle.border : "rgba(15,10,30,0.06)"}`,
+                            borderRadius: 18,
+                            padding: "18px 20px",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 10,
+                            opacity: ann.is_active ? 1 : 0.6,
+                            transition: "all 0.2s ease",
+                          }}
+                        >
+                          {/* Top row */}
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5 flex-wrap">
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: 800,
+                                  textTransform: "uppercase",
+                                  letterSpacing: "0.07em",
+                                  color: priorityStyle.accent,
+                                  background: priorityStyle.labelBg,
+                                  padding: "3px 8px",
+                                  borderRadius: 6,
+                                }}
+                              >
+                                {priorityStyle.label}
+                              </span>
+                              <h4 style={{ margin: 0, fontSize: 14.5, fontWeight: 700, color: "#0d0a1e", letterSpacing: "-0.01em" }}>
+                                {ann.title}
+                              </h4>
+                              {!ann.is_active && (
+                                <span style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", background: "#F1F5F9", padding: "2px 7px", borderRadius: 5, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                                  Inactive
+                                </span>
+                              )}
+                            </div>
+                            {/* Actions */}
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => toggleAnnouncementActive.mutate({ id: ann.id, is_active: !ann.is_active })}
+                                disabled={toggleAnnouncementActive.isPending}
+                                style={{ borderRadius: 10, height: 30, fontSize: 11.5, fontWeight: 600, paddingInline: 12 }}
+                                className={ann.is_active ? "border-slate-200 text-slate-600 hover:bg-slate-50" : "border-emerald-200 text-emerald-600 bg-emerald-50/50 hover:bg-emerald-50"}
+                              >
+                                {ann.is_active ? "Deactivate" : "Activate"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setConfirmDeleteAnnId(ann.id)}
+                                style={{ borderRadius: 10, height: 30, fontSize: 11.5, fontWeight: 600, paddingInline: 12 }}
+                                className="border-rose-100 text-rose-600 hover:bg-rose-50 bg-rose-50/20"
+                              >
+                                <Trash2 size={12} className="mr-1" />
+                                Delete
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Message */}
+                          <p style={{ margin: 0, fontSize: 13.5, color: "rgba(15,10,30,0.65)", lineHeight: 1.55 }}>
+                            {ann.message}
+                          </p>
+
+                          {/* Footer */}
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
+                              <Calendar size={12} />
+                              <span>
+                                {new Date(ann.created_at).toLocaleDateString("en-IN", {
+                                  day: "numeric", month: "short", year: "numeric",
+                                  hour: "2-digit", minute: "2-digit",
+                                })}
+                              </span>
+                            </div>
+                            <div
+                              style={{
+                                width: 8,
+                                height: 8,
+                                borderRadius: "50%",
+                                background: ann.is_active ? "#10B981" : "#CBD5E1",
+                                flexShrink: 0,
+                              }}
+                            />
+                            <span style={{ fontSize: 12, fontWeight: 600, color: ann.is_active ? "#10B981" : "#CBD5E1" }}>
+                              {ann.is_active ? "Live" : "Hidden"}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </ErrorBoundary>
+            </TabsContent>
           </Tabs>
         </div>
       </div>
@@ -3616,6 +3972,18 @@ export default function AdminDashboard() {
           )}
         </DialogContent>
       </Dialog>
+      <BrandedConfirmDialog
+        isOpen={!!confirmDeleteAnnId}
+        onClose={() => setConfirmDeleteAnnId(null)}
+        onConfirm={() => {
+          if (confirmDeleteAnnId) deleteAnnouncement.mutate(confirmDeleteAnnId);
+        }}
+        title="Delete Announcement"
+        description="This announcement will be permanently removed. Users will no longer see it."
+        confirmText="Delete"
+        isDestructive
+        isLoading={deleteAnnouncement.isPending}
+      />
     </>
   );
 }
