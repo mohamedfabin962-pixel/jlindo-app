@@ -7,11 +7,12 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   MapPin, Clock, Search, ArrowRight, Loader2, CheckCircle2, XCircle, ChevronRight, Zap,
   ChevronLeft, Navigation, ExternalLink,
-  SlidersHorizontal, FileText, Star, Share2, Check
+  SlidersHorizontal, FileText, Star, Share2, Check, AlertTriangle, Flag
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { JobCardSkeleton } from "@/components/BrandedLoading";
 import { EmptyState } from "@/components/EmptyState";
 import { getCategoryIllustration, inferCategoryFromText, JOB_CATEGORIES } from "@/utils/jobCategories";
@@ -32,6 +33,11 @@ export default function JobListings() {
   const [search, setSearch] = useState("");
   const [selectedJob, setSelectedJob] = useState<any | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // Report job states
+  const [reportJobId, setReportJobId] = useState<string | null>(null);
+  const [reportReason, setReportReason] = useState("");
+  const [reportDescription, setReportDescription] = useState("");
   
   const getDescPreview = (desc: string) => {
     if (!desc) return "";
@@ -205,6 +211,74 @@ export default function JobListings() {
         toast({ title: "Error", description: err.message, variant: "destructive" });
       }
     },
+  });
+
+  const reportMutation = useMutation({
+    mutationFn: async ({
+      jobId,
+      jobTitle,
+      employerId,
+      reason,
+      description
+    }: {
+      jobId: string;
+      jobTitle: string;
+      employerId: string;
+      reason: string;
+      description: string;
+    }) => {
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user!.id)
+        .single();
+      
+      const workerName = profileData?.full_name || user?.email || "Worker";
+
+      const { data: empData } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", employerId)
+        .single();
+      
+      const employerName = empData?.full_name || "Employer";
+
+      const payload = {
+        jobId,
+        jobTitle,
+        employerId,
+        employerName,
+        workerId: user!.id,
+        workerName,
+        reason,
+        description
+      };
+
+      const { error } = await supabase.from("feedback").insert({
+        user_id: user!.id,
+        type: "report_job",
+        message: JSON.stringify(payload),
+        status: "pending"
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Report Submitted",
+        description: "Thank you for reporting this job. Our admins will investigate."
+      });
+      setReportJobId(null);
+      setReportReason("");
+      setReportDescription("");
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Error submitting report",
+        description: err.message,
+        variant: "destructive"
+      });
+    }
   });
 
   const filtered = jobs?.filter((j) => {
@@ -1075,6 +1149,26 @@ export default function JobListings() {
                       </span>
                     </Button>
 
+                    {/* Report Job Button */}
+                    <Button
+                      onClick={() => {
+                        if (!user) {
+                          toast({
+                            title: "Authentication Required",
+                            description: "Please log in to report this job.",
+                            variant: "destructive"
+                          });
+                          return;
+                        }
+                        setReportJobId(selectedJob.id);
+                      }}
+                      variant="outline"
+                      className="border-slate-200 hover:bg-rose-50 hover:border-rose-300 hover:text-rose-600 rounded-xl shrink-0 flex items-center justify-center gap-2 h-[50px] font-semibold text-sm text-slate-700 px-4 transition-all duration-200"
+                    >
+                      <AlertTriangle size={16} className="text-slate-500" />
+                      <span className="hidden sm:inline">Report</span>
+                    </Button>
+
                     <Button
                       onClick={() => applyMutation.mutate(selectedJob.id)}
                       disabled={applyMutation.isPending || alreadyApplied || isClosed}
@@ -1117,6 +1211,93 @@ export default function JobListings() {
           </>
         )}
       </AnimatePresence>
+
+      {/* REPORT JOB DIALOG */}
+      <Dialog open={!!reportJobId} onOpenChange={(open) => !open && setReportJobId(null)}>
+        <DialogContent className="max-w-md rounded-2xl p-6 bg-white border border-slate-100 shadow-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-rose-600">
+              <Flag size={18} />
+              Report Job Listing
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 mt-1">
+              Please help us keep Jlindo safe. Tell us what is wrong with this job listing.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 my-4">
+            <div>
+              <label htmlFor="report-reason" className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
+                Reason for Reporting *
+              </label>
+              <select
+                id="report-reason"
+                className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all font-medium text-slate-700"
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+              >
+                <option value="">Select a reason...</option>
+                <option value="Fake Job">Fake Job</option>
+                <option value="Scam">Scam / Fraud</option>
+                <option value="Wrong Salary">Wrong Salary / Incorrect Info</option>
+                <option value="Spam">Spam</option>
+                <option value="Abusive Content">Abusive Content</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="report-desc" className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
+                Additional Details (Optional)
+              </label>
+              <textarea
+                id="report-desc"
+                className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all min-h-[100px] resize-y font-medium text-slate-700"
+                placeholder="Provide more context here..."
+                value={reportDescription}
+                onChange={(e) => setReportDescription(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setReportJobId(null);
+                setReportReason("");
+                setReportDescription("");
+              }}
+              className="rounded-xl h-10 text-xs font-semibold"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!reportReason) {
+                  toast({
+                    title: "Reason Required",
+                    description: "Please select a reason for reporting.",
+                    variant: "destructive"
+                  });
+                  return;
+                }
+                reportMutation.mutate({
+                  jobId: reportJobId!,
+                  jobTitle: selectedJob?.title || "Unknown Job",
+                  employerId: selectedJob?.employer_id || "",
+                  reason: reportReason,
+                  description: reportDescription
+                });
+              }}
+              disabled={reportMutation.isPending}
+              className="rounded-xl h-10 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white border-0 shadow-sm"
+            >
+              {reportMutation.isPending ? "Submitting..." : "Submit Report"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

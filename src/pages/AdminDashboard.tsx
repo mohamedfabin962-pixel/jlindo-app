@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, Component, ErrorInfo, ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandedConfirmDialog } from "@/components/BrandedConfirmDialog";
@@ -12,12 +12,12 @@ import {
   Trash2, Ban, Users, Briefcase, FileCheck, MessageSquare, ShieldCheck, Check,
   ChevronLeft, ChevronRight, Search, Mail, Phone, Calendar, User,
   MapPin, DollarSign, Clock, X, ExternalLink, TrendingUp, Activity,
-  RotateCcw, Archive, AlertTriangle
+  RotateCcw, Archive, AlertTriangle, Flag
 } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { EmptyState } from "@/components/EmptyState";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { decodeLocation } from "@/utils/locationUtils";
 import { createActivityLog } from "@/utils/activityLogger";
 import {
@@ -29,6 +29,58 @@ import {
   Tooltip as ChartTooltip,
   CartesianGrid,
 } from "recharts";
+
+interface ErrorBoundaryProps {
+  children: ReactNode;
+  fallbackTitle?: string;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  public state: ErrorBoundaryState = {
+    hasError: false,
+    error: null
+  };
+
+  public static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("Uncaught error inside Admin Panel component:", error, errorInfo);
+  }
+
+  public render() {
+    if (this.state.hasError) {
+      return (
+        <div className="bg-rose-50/50 border border-rose-100 rounded-2xl p-6 text-center shadow-[0_2px_12px_rgba(15,10,30,0.02)]">
+          <div className="w-12 h-12 rounded-2xl bg-rose-50 flex items-center justify-center mx-auto mb-3 text-rose-500">
+            <AlertTriangle size={20} />
+          </div>
+          <h3 className="text-sm font-bold text-slate-800 mb-1">
+            {this.props.fallbackTitle || "Failed to load component"}
+          </h3>
+          <p className="text-xs text-rose-600 max-w-md mx-auto mb-4 font-semibold">
+            {this.state.error?.message || "An unexpected error occurred while rendering this section."}
+          </p>
+          <Button
+            size="sm"
+            onClick={() => this.setState({ hasError: false, error: null })}
+            className="h-8 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white border-0 shadow-sm"
+          >
+            Try Again
+          </Button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 export default function AdminDashboard() {
   const { profile, loading } = useAuth();
@@ -75,6 +127,16 @@ export default function AdminDashboard() {
   const [confirmPermDeleteFeedback, setConfirmPermDeleteFeedback] = useState<string | null>(null);
   const [confirmRestoreJob, setConfirmRestoreJob] = useState<string | null>(null);
   const [confirmRestoreFeedback, setConfirmRestoreFeedback] = useState<string | null>(null);
+
+  // Reports section states
+  const [reportSearch, setReportSearch] = useState("");
+  const [reportFilter, setReportFilter] = useState("all"); // all | pending | resolved | ignored
+  const [reportPage, setReportPage] = useState(1);
+  const [confirmIgnoreReportId, setConfirmIgnoreReportId] = useState<string | null>(null);
+  const [confirmResolveReportId, setConfirmResolveReportId] = useState<string | null>(null);
+  const [confirmWarnReport, setConfirmWarnReport] = useState<any | null>(null);
+  const [warnMessage, setWarnMessage] = useState("");
+  const [confirmRemoveReportJob, setConfirmRemoveReportJob] = useState<{ reportId: string; jobId: string; jobTitle: string } | null>(null);
   
   const itemsPerPage = 5;
 
@@ -345,6 +407,95 @@ export default function AdminDashboard() {
     },
   });
 
+  const updateReportStatus = useMutation({
+    mutationFn: async ({ id, status, logDetails }: { id: string; status: string; logDetails?: { type: string; details: string; jobId?: string; jobTitle?: string } }) => {
+      const { error } = await supabase.from("feedback").update({ status }).eq("id", id);
+      if (error) throw error;
+
+      if (logDetails) {
+        await createActivityLog({
+          type: logDetails.type,
+          actorId: profile!.id,
+          actorName: profile!.full_name || "System Admin",
+          jobId: logDetails.jobId,
+          jobTitle: logDetails.jobTitle,
+          details: logDetails.details
+        });
+      }
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-feedback"] });
+      toast({ title: `Report updated to ${variables.status}` });
+    },
+    onError: (err: any) => {
+      toast({ title: "Error updating report", description: err.message, variant: "destructive" });
+    }
+  });
+
+  const removeReportedJob = useMutation({
+    mutationFn: async ({ reportId, jobId, jobTitle }: { reportId: string; jobId: string; jobTitle: string }) => {
+      const { error: jError } = await supabase.from("jobs").update({ status: "deleted" }).eq("id", jobId);
+      if (jError) throw jError;
+
+      const { error: rError } = await supabase.from("feedback").update({ status: "resolved" }).eq("id", reportId);
+      if (rError) throw rError;
+
+      await createActivityLog({
+        type: "log_job_deleted",
+        actorId: profile!.id,
+        actorName: profile!.full_name || "System Admin",
+        jobId,
+        jobTitle,
+        details: `Removed reported job: "${jobTitle}"`
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-feedback"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-trashed-jobs"] });
+      toast({ title: "Job removed and report resolved" });
+      setConfirmRemoveReportJob(null);
+    },
+    onError: (err: any) => {
+      toast({ title: "Error removing job", description: err.message, variant: "destructive" });
+    }
+  });
+
+  const warnEmployerMutation = useMutation({
+    mutationFn: async ({
+      reportId,
+      employerId,
+      employerName,
+      message
+    }: {
+      reportId: string;
+      employerId: string;
+      employerName: string;
+      message: string;
+    }) => {
+      const { error: rError } = await supabase.from("feedback").update({ status: "resolved" }).eq("id", reportId);
+      if (rError) throw rError;
+
+      await createActivityLog({
+        type: "log_user_blocked",
+        actorId: profile!.id,
+        actorName: profile!.full_name || "System Admin",
+        targetId: employerId,
+        targetName: employerName,
+        details: `Sent warning to employer "${employerName}": "${message}"`
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-feedback"] });
+      toast({ title: "Warning sent and report resolved" });
+      setConfirmWarnReport(null);
+      setWarnMessage("");
+    },
+    onError: (err: any) => {
+      toast({ title: "Error warning employer", description: err.message, variant: "destructive" });
+    }
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-50">
@@ -416,7 +567,7 @@ export default function AdminDashboard() {
   const paginatedJobs = filteredJobs.slice(startJobIndex, startJobIndex + itemsPerPage);
 
   const filteredFeedbacks = (feedbacks || []).filter((f) => {
-    if (f.type?.startsWith("log_")) return false;
+    if (f.type?.startsWith("log_") || f.type === "report_job") return false;
 
     const s = feedbackSearch.toLowerCase().trim();
     const messageMatch = f.message?.toLowerCase().includes(s) ?? false;
@@ -436,6 +587,50 @@ export default function AdminDashboard() {
   const totalFeedbackPages = Math.ceil(filteredFeedbacks.length / itemsPerPage);
   const startFeedbackIndex = (feedbackPage - 1) * itemsPerPage;
   const paginatedFeedbacks = filteredFeedbacks.slice(startFeedbackIndex, startFeedbackIndex + itemsPerPage);
+
+  // Reports processing
+  const allReports = (feedbacks || [])
+    .filter((f) => f.type === "report_job")
+    .map((f) => {
+      try {
+        const payload = JSON.parse(f.message || "{}");
+        return {
+          ...f,
+          payload,
+        };
+      } catch (err) {
+        return {
+          ...f,
+          payload: { jobTitle: "Unknown Job", reason: "Other", description: f.message },
+        };
+      }
+    });
+
+  const filteredReports = allReports.filter((r) => {
+    const s = reportSearch.toLowerCase().trim();
+    const reasonMatch = r.payload.reason?.toLowerCase().includes(s) ?? false;
+    const descMatch = r.payload.description?.toLowerCase().includes(s) ?? false;
+    const jobMatch = r.payload.jobTitle?.toLowerCase().includes(s) ?? false;
+    const workerMatch = r.payload.workerName?.toLowerCase().includes(s) ?? false;
+    const employerMatch = r.payload.employerName?.toLowerCase().includes(s) ?? false;
+    const matchesSearch = s === "" || reasonMatch || descMatch || jobMatch || workerMatch || employerMatch;
+
+    let matchesFilter = true;
+    if (reportFilter === "pending") {
+      matchesFilter = r.status === "pending";
+    } else if (reportFilter === "resolved") {
+      matchesFilter = r.status === "resolved";
+    } else if (reportFilter === "ignored") {
+      matchesFilter = r.status === "ignored";
+    }
+
+    return matchesSearch && matchesFilter;
+  });
+
+  const totalReportPages = Math.ceil(filteredReports.length / itemsPerPage);
+  const startReportIndex = (reportPage - 1) * itemsPerPage;
+  const paginatedReports = filteredReports.slice(startReportIndex, startReportIndex + itemsPerPage);
+  const pendingReports = (feedbacks || []).filter((f) => f.type === "report_job" && f.status === "pending").length;
 
   const formatFeedbackDate = (dateString: string) => {
     const d = new Date(dateString);
@@ -707,7 +902,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
             <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-5 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
               <div className="flex items-center justify-between text-slate-400 mb-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider">Total Users</span>
@@ -752,6 +947,21 @@ export default function AdminDashboard() {
                 {openFeedback}
               </p>
             </div>
+
+            <div 
+              className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-5 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5"
+              style={{ borderLeft: pendingReports > 0 ? "3px solid #EF4444" : undefined }}
+            >
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider">Pending Reports</span>
+                <div className={`p-2 rounded-xl ${pendingReports > 0 ? "bg-rose-50 text-rose-600 animate-pulse" : "bg-slate-50 text-slate-500"}`}>
+                  <Flag size={16} />
+                </div>
+              </div>
+              <p className={`margin-0 text-2xl font-black tracking-tight leading-none mt-1 ${pendingReports > 0 ? "text-rose-600" : "text-slate-800"}`}>
+                {pendingReports}
+              </p>
+            </div>
           </div>
 
           <Tabs defaultValue="overview" className="w-full">
@@ -788,6 +998,15 @@ export default function AdminDashboard() {
                   </span>
                 )}
               </TabsTrigger>
+              <TabsTrigger value="reports" className="jl-tab-trigger shrink-0 md:flex-1 h-9 flex items-center justify-center gap-1.5 px-4 md:px-0">
+                <Flag size={14} />
+                Reports
+                {pendingReports > 0 && (
+                  <span className="bg-rose-500 text-white rounded-full px-1.5 py-0.5 text-[9px] font-bold ml-1 animate-pulse">
+                    {pendingReports}
+                  </span>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="activity" className="jl-tab-trigger shrink-0 md:flex-1 h-9 flex items-center justify-center gap-1.5 px-4 md:px-0">
                 <Activity size={14} />
                 Activity Log
@@ -805,6 +1024,7 @@ export default function AdminDashboard() {
 
             {/* OVERVIEW TAB */}
             <TabsContent value="overview" className="space-y-6">
+              <ErrorBoundary fallbackTitle="Overview dashboard failed to render">
               {isLoadingCharts ? (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <ChartSkeleton />
@@ -921,10 +1141,12 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               )}
+              </ErrorBoundary>
             </TabsContent>
 
             {/* USERS TAB */}
             <TabsContent value="users" className="space-y-4">
+              <ErrorBoundary fallbackTitle="Users list failed to render">
               {/* Search and Filters */}
               <div className="flex flex-col sm:flex-row gap-3 mb-5">
                 <div className="relative flex-1">
@@ -1158,10 +1380,12 @@ export default function AdminDashboard() {
                   )}
                 </div>
               )}
+              </ErrorBoundary>
             </TabsContent>
 
             {/* JOBS TAB */}
             <TabsContent value="jobs" className="space-y-4">
+              <ErrorBoundary fallbackTitle="Jobs listing failed to render">
               {/* Search and Filters */}
               <div className="flex flex-col sm:flex-row gap-3 mb-5">
                 <div className="relative flex-1">
@@ -1417,10 +1641,12 @@ export default function AdminDashboard() {
                   )}
                 </div>
               )}
+              </ErrorBoundary>
             </TabsContent>
 
             {/* APPLICATIONS TAB */}
             <TabsContent value="applications" className="space-y-4">
+              <ErrorBoundary fallbackTitle="Applications list failed to render">
               {/* Search and Filters */}
               <div className="flex flex-col sm:flex-row gap-3 mb-5">
                 <div className="relative flex-1">
@@ -1617,10 +1843,12 @@ export default function AdminDashboard() {
                   )}
                 </div>
               )}
+              </ErrorBoundary>
             </TabsContent>
 
             {/* FEEDBACK TAB */}
             <TabsContent value="feedback" className="space-y-4">
+              <ErrorBoundary fallbackTitle="Feedback list failed to render">
               {/* Search and Filters */}
               <div className="flex flex-col sm:flex-row gap-3 mb-5">
                 <div className="relative flex-1">
@@ -1836,10 +2064,12 @@ export default function AdminDashboard() {
                   )}
                 </div>
               )}
+              </ErrorBoundary>
             </TabsContent>
 
             {/* ACTIVITY LOG TAB */}
             <TabsContent value="activity" className="space-y-4">
+              <ErrorBoundary fallbackTitle="Activity log failed to render">
               {/* Header */}
               <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-5">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -2024,10 +2254,258 @@ export default function AdminDashboard() {
                   )}
                 </div>
               )}
+              </ErrorBoundary>
+            </TabsContent>
+
+            {/* REPORTS TAB */}
+            <TabsContent value="reports" className="space-y-4">
+              <ErrorBoundary fallbackTitle="Reports moderation failed to render">
+              {/* Header */}
+              <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-5">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Flag size={16} className="text-rose-500" />
+                      <h2 className="text-base font-bold text-slate-800 tracking-tight">Reports</h2>
+                    </div>
+                    <p className="text-xs text-slate-400 font-medium">
+                      {filteredReports.length} report{filteredReports.length !== 1 ? "s" : ""} found
+                    </p>
+                  </div>
+                  {/* Search */}
+                  <div className="relative w-full sm:w-64">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      id="report-search"
+                      className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-rose-400/30 focus:border-rose-400 transition-all"
+                      placeholder="Search reports…"
+                      value={reportSearch}
+                      onChange={(e) => { setReportSearch(e.target.value); setReportPage(1); }}
+                    />
+                  </div>
+                </div>
+                {/* Filters */}
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {[
+                    { value: "all", label: "All Reports" },
+                    { value: "pending", label: "Pending" },
+                    { value: "resolved", label: "Resolved" },
+                    { value: "ignored", label: "Ignored" },
+                  ].map((f) => (
+                    <button
+                      key={f.value}
+                      id={`report-filter-${f.value}`}
+                      onClick={() => { setReportFilter(f.value); setReportPage(1); }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all duration-200 ${
+                        reportFilter === f.value
+                          ? "bg-rose-500 text-white border-rose-500 shadow-sm"
+                          : "bg-white text-slate-600 border-slate-200 hover:border-rose-300 hover:text-rose-600"
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Reports List */}
+              {!feedbacks ? (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="bg-white rounded-2xl border border-slate-100/80 p-4 animate-pulse">
+                      <div className="flex gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-slate-100 shrink-0" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-slate-100 rounded-md w-2/3" />
+                          <div className="h-3 bg-slate-50 rounded-md w-1/3" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : paginatedReports.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-14 flex flex-col items-center justify-center text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mb-4">
+                    <Flag size={28} className="text-slate-200" />
+                  </div>
+                  <p className="text-sm font-bold text-slate-700 mb-1">No reports found</p>
+                  <p className="text-xs text-slate-400 max-w-xs">
+                    {reportSearch || reportFilter !== "all"
+                      ? "No reports match your search or filter."
+                      : "Job reports submitted by workers will appear here."}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {paginatedReports.map((report, idx) => {
+                    const job = (jobs || []).find((j: any) => j.id === report.payload.jobId) ||
+                                (trashedJobs || []).find((j: any) => j.id === report.payload.jobId);
+                    
+                    return (
+                      <div
+                        key={report.id || idx}
+                        className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-5 hover:shadow-md transition-all duration-200 jl-admin-card"
+                      >
+                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                          <div className="space-y-2.5 flex-1 min-w-0">
+                            {/* Badges */}
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-50 border border-rose-100 text-rose-600 font-extrabold">
+                                {report.payload.reason}
+                              </span>
+                              <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                                report.status === "pending"
+                                  ? "bg-amber-50 border-amber-100 text-amber-600 animate-pulse"
+                                  : report.status === "resolved"
+                                  ? "bg-emerald-50 border-emerald-100 text-emerald-600"
+                                  : "bg-slate-50 border-slate-200 text-slate-500"
+                              }`}>
+                                {report.status}
+                              </span>
+                              <span className="text-[11px] text-slate-400 font-semibold flex items-center gap-1 ml-auto md:ml-0">
+                                <Calendar size={11} />
+                                {formatFeedbackDate(report.created_at)}
+                              </span>
+                            </div>
+
+                            {/* Details Grid */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50/50 p-3 rounded-xl border border-slate-100/50 text-xs">
+                              <div>
+                                <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-400">Reported Job</span>
+                                <span className="font-semibold text-slate-700 truncate block mt-0.5">
+                                  {report.payload.jobTitle}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-400">Employer</span>
+                                <span className="font-semibold text-slate-700 truncate block mt-0.5">
+                                  {report.payload.employerName}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-400">Worker (Reporter)</span>
+                                <span className="font-semibold text-slate-700 truncate block mt-0.5">
+                                  {report.payload.workerName}
+                                </span>
+                              </div>
+                            </div>
+
+                            {report.payload.description && (
+                              <div className="text-xs text-slate-600 bg-rose-50/30 border border-rose-100/40 p-3 rounded-xl leading-relaxed">
+                                <span className="font-bold text-[10px] text-slate-400 block mb-1 uppercase tracking-wider">Reporter Comment</span>
+                                "{report.payload.description}"
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex flex-row md:flex-col gap-2 shrink-0 flex-wrap md:flex-nowrap">
+                            {job && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 rounded-xl text-xs font-semibold flex-1 md:flex-none border-slate-200 hover:bg-slate-50 text-slate-700 gap-1.5"
+                                onClick={() => setViewJob(job)}
+                              >
+                                <Briefcase size={12} />
+                                View Job
+                              </Button>
+                            )}
+
+                            {report.status === "pending" && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  className="h-8 rounded-xl text-xs font-semibold flex-1 md:flex-none bg-rose-500 hover:bg-rose-600 text-white border-0 shadow-sm gap-1.5"
+                                  onClick={() => setConfirmRemoveReportJob({
+                                    reportId: report.id,
+                                    jobId: report.payload.jobId,
+                                    jobTitle: report.payload.jobTitle
+                                  })}
+                                  disabled={removeReportedJob.isPending}
+                                >
+                                  <Trash2 size={12} />
+                                  Remove Job
+                                </Button>
+
+                                <Button
+                                  size="sm"
+                                  className="h-8 rounded-xl text-xs font-semibold flex-1 md:flex-none bg-amber-500 hover:bg-amber-600 text-white border-0 shadow-sm gap-1.5"
+                                  onClick={() => setConfirmWarnReport(report)}
+                                  disabled={warnEmployerMutation.isPending}
+                                >
+                                  <AlertTriangle size={12} />
+                                  Warn Employer
+                                </Button>
+
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 rounded-xl text-xs font-semibold flex-1 md:flex-none border-slate-200 hover:bg-slate-50 text-slate-600 gap-1.5"
+                                  onClick={() => setConfirmIgnoreReportId(report.id)}
+                                  disabled={updateReportStatus.isPending}
+                                >
+                                  <Ban size={12} />
+                                  Ignore
+                                </Button>
+
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 rounded-xl text-xs font-semibold flex-1 md:flex-none border-emerald-200 hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700 gap-1.5"
+                                  onClick={() => setConfirmResolveReportId(report.id)}
+                                  disabled={updateReportStatus.isPending}
+                                >
+                                  <Check size={12} />
+                                  Resolve
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Reports Pagination */}
+                  {totalReportPages > 1 && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-4 border-t border-slate-100">
+                      <span className="text-xs font-semibold text-slate-500 order-2 sm:order-1">
+                        Showing {startReportIndex + 1}–{Math.min(startReportIndex + itemsPerPage, filteredReports.length)} of {filteredReports.length} reports
+                      </span>
+                      <div className="flex items-center gap-1.5 order-1 sm:order-2">
+                        <Button
+                          disabled={reportPage === 1}
+                          onClick={() => setReportPage((p) => Math.max(p - 1, 1))}
+                          style={{ background: "#ffffff", border: "1px solid rgba(15,10,30,0.08)", borderRadius: 10, height: 36, width: 36, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#0d0a1e", cursor: reportPage === 1 ? "not-allowed" : "pointer", opacity: reportPage === 1 ? 0.4 : 1, boxShadow: "0 2px 6px rgba(15,10,30,0.02)" }}
+                        >
+                          <ChevronLeft size={16} />
+                        </Button>
+                        {Array.from({ length: totalReportPages }, (_, i) => i + 1).map((page) => (
+                          <Button key={page} onClick={() => setReportPage(page)}
+                            style={{ background: reportPage === page ? "linear-gradient(135deg, #EF4444 0%, #DC2626 100%)" : "#ffffff", border: reportPage === page ? "none" : "1px solid rgba(15,10,30,0.08)", borderRadius: 10, height: 36, width: 36, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", color: reportPage === page ? "#ffffff" : "#0d0a1e", fontWeight: 600, fontSize: 13, cursor: "pointer", boxShadow: reportPage === page ? "0 2px 8px rgba(239,68,68,0.24)" : "0 2px 6px rgba(15,10,30,0.02)" }}
+                          >
+                            {page}
+                          </Button>
+                        ))}
+                        <Button
+                          disabled={reportPage === totalReportPages}
+                          onClick={() => setReportPage((p) => Math.min(p + 1, totalReportPages))}
+                          style={{ background: "#ffffff", border: "1px solid rgba(15,10,30,0.08)", borderRadius: 10, height: 36, width: 36, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#0d0a1e", cursor: reportPage === totalReportPages ? "not-allowed" : "pointer", opacity: reportPage === totalReportPages ? 0.4 : 1, boxShadow: "0 2px 6px rgba(15,10,30,0.02)" }}
+                        >
+                          <ChevronRight size={16} />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              </ErrorBoundary>
             </TabsContent>
 
             {/* TRASH TAB */}
             <TabsContent value="trash" className="space-y-4">
+              <ErrorBoundary fallbackTitle="Trash content failed to render">
               {/* Header */}
               <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-5">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -2224,6 +2702,7 @@ export default function AdminDashboard() {
                   )}
                 </div>
               )}
+              </ErrorBoundary>
             </TabsContent>
           </Tabs>
         </div>
@@ -2346,6 +2825,135 @@ export default function AdminDashboard() {
         isDestructive
         isLoading={permanentDeleteFeedback.isPending}
       />
+
+      {/* Reports Ignore Confirm Dialog */}
+      <BrandedConfirmDialog
+        isOpen={!!confirmIgnoreReportId}
+        onClose={() => setConfirmIgnoreReportId(null)}
+        onConfirm={() => {
+          if (confirmIgnoreReportId) {
+            updateReportStatus.mutate({
+              id: confirmIgnoreReportId,
+              status: "ignored",
+              logDetails: {
+                type: "log_feedback_resolved",
+                details: `Ignored report #${confirmIgnoreReportId.slice(0, 8)}`
+              }
+            });
+            setConfirmIgnoreReportId(null);
+          }
+        }}
+        title="Ignore Report"
+        description="Are you sure you want to ignore this report? The listing status will remain unchanged."
+        confirmText="Ignore"
+        isLoading={updateReportStatus.isPending}
+      />
+
+      {/* Reports Resolve Confirm Dialog */}
+      <BrandedConfirmDialog
+        isOpen={!!confirmResolveReportId}
+        onClose={() => setConfirmResolveReportId(null)}
+        onConfirm={() => {
+          if (confirmResolveReportId) {
+            updateReportStatus.mutate({
+              id: confirmResolveReportId,
+              status: "resolved",
+              logDetails: {
+                type: "log_feedback_resolved",
+                details: `Resolved report #${confirmResolveReportId.slice(0, 8)}`
+              }
+            });
+            setConfirmResolveReportId(null);
+          }
+        }}
+        title="Resolve Report"
+        description="Are you sure you want to mark this report as resolved? This indicates you have addressed the issue."
+        confirmText="Resolve"
+        isLoading={updateReportStatus.isPending}
+      />
+
+      {/* Reports Remove Job Confirm Dialog */}
+      <BrandedConfirmDialog
+        isOpen={!!confirmRemoveReportJob}
+        onClose={() => setConfirmRemoveReportJob(null)}
+        onConfirm={() => {
+          if (confirmRemoveReportJob) {
+            removeReportedJob.mutate({
+              reportId: confirmRemoveReportJob.reportId,
+              jobId: confirmRemoveReportJob.jobId,
+              jobTitle: confirmRemoveReportJob.jobTitle
+            });
+          }
+        }}
+        title="Remove Reported Job"
+        description={`Are you sure you want to remove the job listing "${confirmRemoveReportJob?.jobTitle}"? This will move the job listing to the Trash and mark the report as resolved.`}
+        confirmText="Remove Job"
+        isDestructive
+        isLoading={removeReportedJob.isPending}
+      />
+
+      {/* Reports Warn Employer Modal */}
+      <Dialog open={!!confirmWarnReport} onOpenChange={(open) => !open && setConfirmWarnReport(null)}>
+        <DialogContent className="max-w-md rounded-2xl p-6 bg-white border border-slate-100 shadow-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle size={18} />
+              Warn Employer
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 mt-1">
+              Send an official warning to the employer: <strong>{confirmWarnReport?.payload?.employerName}</strong> regarding job listing: <strong>{confirmWarnReport?.payload?.jobTitle}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="my-4">
+            <label htmlFor="warn-msg" className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
+              Warning Message *
+            </label>
+            <textarea
+              id="warn-msg"
+              className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all min-h-[100px] resize-y font-medium text-slate-700"
+              placeholder="e.g. Please update the salary information on your job posting to comply with our guidelines..."
+              value={warnMessage}
+              onChange={(e) => setWarnMessage(e.target.value)}
+            />
+          </div>
+
+          <DialogFooter className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setConfirmWarnReport(null);
+                setWarnMessage("");
+              }}
+              className="rounded-xl h-10 text-xs font-semibold"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!warnMessage.trim()) {
+                  toast({
+                    title: "Message Required",
+                    description: "Please enter a warning message.",
+                    variant: "destructive"
+                  });
+                  return;
+                }
+                warnEmployerMutation.mutate({
+                  reportId: confirmWarnReport.id,
+                  employerId: confirmWarnReport.payload.employerId,
+                  employerName: confirmWarnReport.payload.employerName,
+                  message: warnMessage.trim()
+                });
+              }}
+              disabled={warnEmployerMutation.isPending}
+              className="rounded-xl h-10 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white border-0 shadow-sm"
+            >
+              {warnEmployerMutation.isPending ? "Sending..." : "Send Warning"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!viewJob} onOpenChange={(open) => !open && setViewJob(null)}>
         <DialogContent className="max-w-md sm:max-w-lg rounded-2xl p-6 bg-white border border-slate-100 shadow-xl overflow-y-auto max-h-[90vh]">
