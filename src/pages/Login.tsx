@@ -64,7 +64,7 @@ export default function Login() {
     if (data?.user) {
       const { data: profileData } = await supabase
         .from("profiles")
-        .select("role")
+        .select("role, is_blocked")
         .eq("id", data.user.id)
         .maybeSingle();
 
@@ -74,6 +74,17 @@ export default function Login() {
         toast({
           title: "Access Denied",
           description: "Admin accounts must use the dedicated Admin Login portal.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (profileData && profileData.is_blocked) {
+        await supabase.auth.signOut();
+        setLoading(false);
+        toast({
+          title: "Account Blocked",
+          description: "Your account has been blocked by an administrator.",
           variant: "destructive",
         });
         return;

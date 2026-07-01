@@ -8,9 +8,16 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Ban, Users, Briefcase, FileCheck, MessageSquare, ShieldCheck, Check } from "lucide-react";
+import {
+  Trash2, Ban, Users, Briefcase, FileCheck, MessageSquare, ShieldCheck, Check,
+  ChevronLeft, ChevronRight, Search, Mail, Phone, Calendar, User,
+  MapPin, DollarSign, Clock, X, ExternalLink
+} from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { EmptyState } from "@/components/EmptyState";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { decodeLocation } from "@/utils/locationUtils";
 
 export default function AdminDashboard() {
   const { profile, loading } = useAuth();
@@ -18,6 +25,21 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [deleteJobId, setDeleteJobId] = useState<string | null>(null);
+  
+  // Users section states
+  const [userSearch, setUserSearch] = useState("");
+  const [userFilter, setUserFilter] = useState("all");
+  const [userPage, setUserPage] = useState(1);
+  const [confirmBlockUser, setConfirmBlockUser] = useState<{ userId: string; blocked: boolean } | null>(null);
+
+  // Jobs section states
+  const [jobSearch, setJobSearch] = useState("");
+  const [jobFilter, setJobFilter] = useState("all");
+  const [jobPage, setJobPage] = useState(1);
+  const [closeJobId, setCloseJobId] = useState<string | null>(null);
+  const [viewJob, setViewJob] = useState<any | null>(null);
+  
+  const itemsPerPage = 5;
 
   const { data: users } = useQuery({
     queryKey: ["admin-users"],
@@ -83,7 +105,7 @@ export default function AdminDashboard() {
 
   const toggleBlockUser = useMutation({
     mutationFn: async ({ userId, blocked }: { userId: string; blocked: boolean }) => {
-      const { error } = await supabase.from("profiles").update({ is_blocked: blocked }).eq("user_id", userId);
+      const { error } = await supabase.from("profiles").update({ is_blocked: blocked }).eq("id", userId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -114,6 +136,67 @@ export default function AdminDashboard() {
     );
   }
   if (!isAdmin) return <Navigate to="/" replace />;
+
+  const filteredUsers = (users || []).filter((u) => {
+    const s = userSearch.toLowerCase().trim();
+    const nameMatch = u.full_name?.toLowerCase().includes(s) ?? false;
+    const emailMatch = u.email?.toLowerCase().includes(s) ?? false;
+    const phoneMatch = u.phone?.toLowerCase().includes(s) ?? false;
+    const matchesSearch = s === "" || nameMatch || emailMatch || phoneMatch;
+
+    let matchesFilter = true;
+    if (userFilter === "worker") {
+      matchesFilter = u.role === "worker";
+    } else if (userFilter === "employer") {
+      matchesFilter = u.role === "employer";
+    } else if (userFilter === "blocked") {
+      matchesFilter = !!u.is_blocked;
+    }
+
+    return matchesSearch && matchesFilter;
+  });
+
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const startIndex = (userPage - 1) * itemsPerPage;
+  const paginatedUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage);
+
+  const getEmployerName = (employerId: string | null) => {
+    if (!employerId) return "System / Unknown";
+    const matchedUser = (users || []).find((u: any) => u.id === employerId);
+    return matchedUser?.full_name || "Unknown Employer";
+  };
+
+  const getApplicationCount = (jobId: string) => {
+    return (applications || []).filter((app: any) => app.job_id === jobId).length;
+  };
+
+  const filteredJobs = (jobs || []).filter((j) => {
+    const s = jobSearch.toLowerCase().trim();
+    const titleMatch = j.title?.toLowerCase().includes(s) ?? false;
+    const employerName = getEmployerName(j.employer_id).toLowerCase();
+    const employerMatch = employerName.includes(s);
+    const decodedLoc = decodeLocation(j.location);
+    const cityMatch = decodedLoc.city?.toLowerCase().includes(s) ?? false;
+    
+    const matchesSearch = s === "" || titleMatch || employerMatch || cityMatch;
+
+    let matchesFilter = true;
+    if (jobFilter === "open") {
+      matchesFilter = j.status === "open";
+    } else if (jobFilter === "filled") {
+      matchesFilter = j.status === "filled";
+    } else if (jobFilter === "closed") {
+      matchesFilter = j.status === "closed";
+    } else if (jobFilter === "blocked") {
+      matchesFilter = j.status === "blocked";
+    }
+
+    return matchesSearch && matchesFilter;
+  });
+
+  const totalJobPages = Math.ceil(filteredJobs.length / itemsPerPage);
+  const startJobIndex = (jobPage - 1) * itemsPerPage;
+  const paginatedJobs = filteredJobs.slice(startJobIndex, startJobIndex + itemsPerPage);
 
   const totalUsers = users?.length || 0;
   const totalJobs = jobs?.length || 0;
@@ -219,113 +302,498 @@ export default function AdminDashboard() {
             </TabsList>
 
             {/* USERS TAB */}
-            <TabsContent value="users" className="space-y-3">
-              {!users || users.length === 0 ? (
+            <TabsContent value="users" className="space-y-4">
+              {/* Search and Filters */}
+              <div className="flex flex-col sm:flex-row gap-3 mb-5">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <Input
+                    placeholder="Search by name, email, or phone..."
+                    value={userSearch}
+                    onChange={(e) => {
+                      setUserSearch(e.target.value);
+                      setUserPage(1);
+                    }}
+                    className="pl-9 h-11 rounded-xl border-slate-200 focus-visible:ring-amber-500 bg-white"
+                  />
+                </div>
+
+                <Select
+                  value={userFilter}
+                  onValueChange={(val) => {
+                    setUserFilter(val);
+                    setUserPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-full sm:w-[180px] h-11 rounded-xl border-slate-200 bg-white text-slate-700 font-medium">
+                    <SelectValue placeholder="Filter users" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="all">All Users</SelectItem>
+                    <SelectItem value="worker">Workers</SelectItem>
+                    <SelectItem value="employer">Employers</SelectItem>
+                    <SelectItem value="blocked">Blocked Users</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {paginatedUsers.length === 0 ? (
                 <EmptyState
                   icon={Users}
-                  title="No users registered"
-                  description="Registered worker or employer accounts will appear here."
+                  title="No users found"
+                  description={
+                    userSearch || userFilter !== "all"
+                      ? "Try adjusting your search query or filter settings."
+                      : "No users have registered on the platform yet."
+                  }
                 />
               ) : (
-                users.map((u) => (
-                  <div
-                    key={u.id}
-                    className="jl-admin-card"
-                    style={{
-                      background: "#fff",
-                      borderRadius: 16,
-                      border: "1px solid rgba(15,10,30,0.06)",
-                      padding: "16px 20px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      transition: "box-shadow 0.2s",
-                    }}
-                  >
-                    <div>
-                      <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#0d0a1e" }}>
-                        {u.full_name || "No name"}
-                      </p>
-                      <p style={{ margin: "2px 0 0", fontSize: 12, color: "rgba(15,10,30,0.4)" }}>
-                        Role: <strong style={{ textTransform: "capitalize" }}>{u.role}</strong> {u.phone && `• ${u.phone}`}
-                      </p>
+                <div className="space-y-4">
+                  {paginatedUsers.map((u) => (
+                    <div
+                      key={u.id}
+                      className="jl-admin-card"
+                      style={{
+                        background: "#fff",
+                        borderRadius: 18,
+                        border: "1px solid rgba(15,10,30,0.06)",
+                        padding: "20px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 16,
+                        transition: "all 0.2s ease",
+                        boxShadow: "0 2px 8px rgba(15,10,30,0.02)",
+                      }}
+                    >
+                      {/* Top Info Row */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        {/* Avatar + Basic Details */}
+                        <div className="flex items-center gap-3.5 min-w-0">
+                          <div
+                            className="shrink-0 flex items-center justify-center"
+                            style={{
+                              height: 44,
+                              width: 44,
+                              borderRadius: 14,
+                              background: u.role === "employer" ? "rgba(245,158,11,0.08)" : "rgba(37,99,235,0.08)",
+                              color: u.role === "employer" ? "#EA580C" : "#2563EB",
+                              border: u.role === "employer" ? "1px solid rgba(245,158,11,0.15)" : "1px solid rgba(37,99,235,0.15)",
+                            }}
+                          >
+                            <User size={20} />
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="text-base font-bold text-slate-900 truncate m-0">
+                              {u.full_name || "No name"}
+                            </h3>
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              <span
+                                className={`text-xs font-semibold px-2 py-0.5 rounded-md ${
+                                  u.role === "employer"
+                                    ? "bg-amber-50 text-amber-700 border border-amber-100"
+                                    : "bg-blue-50 text-blue-700 border border-blue-100"
+                                }`}
+                              >
+                                {u.role === "employer" ? "Employer" : "Worker"}
+                              </span>
+                              {u.is_blocked && (
+                                <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-100 flex items-center gap-1">
+                                  <Ban size={10} /> Blocked
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Block / Unblock Action Button */}
+                        <div className="flex items-center sm:justify-end shrink-0">
+                          <Button
+                            size="sm"
+                            variant={u.is_blocked ? "default" : "outline"}
+                            style={{
+                              borderRadius: 10,
+                              fontSize: 12.5,
+                              fontWeight: 600,
+                              height: 36,
+                              borderColor: u.is_blocked ? undefined : "rgba(239,68,68,0.2)",
+                              color: u.is_blocked ? undefined : "#E11D48",
+                              background: u.is_blocked ? undefined : "rgba(239,68,68,0.02)",
+                            }}
+                            className={u.is_blocked ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm border-0 w-full sm:w-auto" : "hover:bg-rose-50/50 w-full sm:w-auto"}
+                            onClick={() => setConfirmBlockUser({ userId: u.id, blocked: !u.is_blocked })}
+                          >
+                            <Ban size={13} className="mr-1.5" />
+                            {u.is_blocked ? "Unblock Account" : "Block User"}
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Divider */}
+                      <div style={{ height: 1, background: "rgba(15,10,30,0.04)", width: "100%" }} />
+
+                      {/* Bottom Metadata Details Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs text-slate-500">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Mail size={13.5} className="text-slate-400 shrink-0" />
+                          <span className="truncate" title={u.email || "No email"}>
+                            {u.email || "No email"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Phone size={13.5} className="text-slate-400 shrink-0" />
+                          <span className="truncate">
+                            {u.phone || "No phone number"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Calendar size={13.5} className="text-slate-400 shrink-0" />
+                          <span className="truncate">
+                            Joined {new Date(u.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      {u.is_blocked && <StatusBadge status="blocked" />}
-                      <Button
-                        size="sm"
-                        variant={u.is_blocked ? "default" : "outline"}
-                        style={{
-                          borderRadius: 10,
-                          fontSize: 12,
-                          fontWeight: 600,
-                          height: 32,
-                          borderColor: u.is_blocked ? undefined : "rgba(15,10,30,0.08)",
-                          color: u.is_blocked ? undefined : "rgba(15,10,30,0.6)"
-                        }}
-                        onClick={() => toggleBlockUser.mutate({ userId: u.user_id, blocked: !u.is_blocked })}
-                      >
-                        <Ban size={13} className="mr-1" /> {u.is_blocked ? "Unblock" : "Block"}
-                      </Button>
+                  ))}
+
+                  {/* Pagination Section */}
+                  {totalPages > 1 && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-4 border-t border-slate-100">
+                      <span className="text-xs font-semibold text-slate-500 order-2 sm:order-1 text-center sm:text-left">
+                        Showing {startIndex + 1}–{Math.min(startIndex + itemsPerPage, filteredUsers.length)} of {filteredUsers.length} users
+                      </span>
+                      
+                      <div className="flex items-center gap-1.5 order-1 sm:order-2">
+                        <Button
+                          disabled={userPage === 1}
+                          onClick={() => setUserPage((prev) => Math.max(prev - 1, 1))}
+                          style={{
+                            background: "#ffffff",
+                            border: "1px solid rgba(15,10,30,0.08)",
+                            borderRadius: 10,
+                            height: 36,
+                            width: 36,
+                            padding: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#0d0a1e",
+                            cursor: userPage === 1 ? "not-allowed" : "pointer",
+                            opacity: userPage === 1 ? 0.4 : 1,
+                            boxShadow: "0 2px 6px rgba(15,10,30,0.02)",
+                          }}
+                        >
+                          <ChevronLeft size={16} />
+                        </Button>
+                        
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                          <Button
+                            key={page}
+                            onClick={() => setUserPage(page)}
+                            style={{
+                              background: userPage === page ? "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)" : "#ffffff",
+                              border: userPage === page ? "none" : "1px solid rgba(15,10,30,0.08)",
+                              borderRadius: 10,
+                              height: 36,
+                              width: 36,
+                              padding: 0,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: userPage === page ? "#ffffff" : "#0d0a1e",
+                              fontWeight: 600,
+                              fontSize: 13,
+                              cursor: "pointer",
+                              boxShadow: userPage === page ? "0 2px 8px rgba(245,158,11,0.24)" : "0 2px 6px rgba(15,10,30,0.02)",
+                            }}
+                          >
+                            {page}
+                          </Button>
+                        ))}
+
+                        <Button
+                          disabled={userPage === totalPages}
+                          onClick={() => setUserPage((prev) => Math.min(prev + 1, totalPages))}
+                          style={{
+                            background: "#ffffff",
+                            border: "1px solid rgba(15,10,30,0.08)",
+                            borderRadius: 10,
+                            height: 36,
+                            width: 36,
+                            padding: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#0d0a1e",
+                            cursor: userPage === totalPages ? "not-allowed" : "pointer",
+                            opacity: userPage === totalPages ? 0.4 : 1,
+                            boxShadow: "0 2px 6px rgba(15,10,30,0.02)",
+                          }}
+                        >
+                          <ChevronRight size={16} />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  )}
+                </div>
               )}
             </TabsContent>
 
             {/* JOBS TAB */}
-            <TabsContent value="jobs" className="space-y-3">
-              {!jobs || jobs.length === 0 ? (
+            <TabsContent value="jobs" className="space-y-4">
+              {/* Search and Filters */}
+              <div className="flex flex-col sm:flex-row gap-3 mb-5">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <Input
+                    placeholder="Search by job title, employer, or city..."
+                    value={jobSearch}
+                    onChange={(e) => {
+                      setJobSearch(e.target.value);
+                      setJobPage(1);
+                    }}
+                    className="pl-9 h-11 rounded-xl border-slate-200 focus-visible:ring-amber-500 bg-white"
+                  />
+                </div>
+
+                <Select
+                  value={jobFilter}
+                  onValueChange={(val) => {
+                    setJobFilter(val);
+                    setJobPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-full sm:w-[180px] h-11 rounded-xl border-slate-200 bg-white text-slate-700 font-medium">
+                    <SelectValue placeholder="Filter jobs" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="all">All Jobs</SelectItem>
+                    <SelectItem value="open">Open</SelectItem>
+                    <SelectItem value="filled">Filled</SelectItem>
+                    <SelectItem value="closed">Closed</SelectItem>
+                    <SelectItem value="blocked">Blocked</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {paginatedJobs.length === 0 ? (
                 <EmptyState
                   icon={Briefcase}
-                  title="No jobs posted yet"
-                  description="Active and closed job opportunities will be listed here."
+                  title="No jobs found"
+                  description={
+                    jobSearch || jobFilter !== "all"
+                      ? "Try adjusting your search query or filter settings."
+                      : "No job listings have been posted yet."
+                  }
                 />
               ) : (
-                jobs.map((j) => (
-                  <div
-                    key={j.id}
-                    className="jl-admin-card"
-                    style={{
-                      background: "#fff",
-                      borderRadius: 16,
-                      border: "1px solid rgba(15,10,30,0.06)",
-                      padding: "16px 20px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      transition: "box-shadow 0.2s",
-                    }}
-                  >
-                    <div>
-                      <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#0d0a1e" }}>{j.title}</p>
-                      <p style={{ margin: "2px 0 0", fontSize: 12, color: "rgba(15,10,30,0.4)" }}>
-                        {j.location} • <span style={{ color: "#EA580C", fontWeight: 600 }}>{j.salary}</span>
-                      </p>
+                <div className="space-y-4">
+                  {paginatedJobs.map((j) => (
+                    <div
+                      key={j.id}
+                      className="jl-admin-card"
+                      style={{
+                        background: "#fff",
+                        borderRadius: 18,
+                        border: "1px solid rgba(15,10,30,0.06)",
+                        padding: "20px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 16,
+                        transition: "all 0.2s ease",
+                        boxShadow: "0 2px 8px rgba(15,10,30,0.02)",
+                      }}
+                    >
+                      {/* Top Info Row */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        {/* Title & Employer */}
+                        <div className="flex items-center gap-3.5 min-w-0">
+                          <div
+                            className="shrink-0 flex items-center justify-center"
+                            style={{
+                              height: 44,
+                              width: 44,
+                              borderRadius: 14,
+                              background: "rgba(245,158,11,0.08)",
+                              color: "#EA580C",
+                              border: "1px solid rgba(245,158,11,0.15)",
+                            }}
+                          >
+                            <Briefcase size={20} />
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="text-base font-bold text-slate-900 truncate m-0 font-sans tracking-tight">
+                              {j.title}
+                            </h3>
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              <span className="text-xs font-semibold text-slate-500">
+                                by {getEmployerName(j.employer_id)}
+                              </span>
+                              <span className="text-slate-300 text-[10px]">•</span>
+                              <span className="text-xs font-semibold text-slate-400">
+                                {j.category || "General Work"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Status Badge */}
+                        <div className="flex items-center shrink-0">
+                          <StatusBadge status={j.status} />
+                        </div>
+                      </div>
+
+                      {/* Divider */}
+                      <div style={{ height: 1, background: "rgba(15,10,30,0.04)", width: "100%" }} />
+
+                      {/* Job Metadata Grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs text-slate-500">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <MapPin size={13.5} className="text-slate-400 shrink-0" />
+                          <span className="truncate" title={decodeLocation(j.location).city || "Remote"}>
+                            {decodeLocation(j.location).city || "Remote"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <DollarSign size={13.5} className="text-slate-400 shrink-0" />
+                          <span className="truncate font-semibold text-slate-700">
+                            {j.salary}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Calendar size={13.5} className="text-slate-400 shrink-0" />
+                          <span className="truncate">
+                            {new Date(j.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileCheck size={13.5} className="text-slate-400 shrink-0" />
+                          <span className="truncate font-semibold text-amber-600">
+                            {getApplicationCount(j.id)} application(s)
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Divider */}
+                      <div style={{ height: 1, background: "rgba(15,10,30,0.04)", width: "100%" }} />
+
+                      {/* Actions Footer */}
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setViewJob(j)}
+                          style={{ borderRadius: 10, height: 32, fontSize: 12, fontWeight: 600 }}
+                          className="border-slate-200 hover:bg-slate-50 text-slate-700"
+                        >
+                          View Job
+                        </Button>
+
+                        {j.status !== "closed" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setCloseJobId(j.id)}
+                            style={{ borderRadius: 10, height: 32, fontSize: 12, fontWeight: 600 }}
+                            className="border-slate-200 hover:bg-slate-50 text-slate-700"
+                          >
+                            Close Job
+                          </Button>
+                        )}
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setDeleteJobId(j.id)}
+                          style={{ borderRadius: 10, height: 32, fontSize: 12, fontWeight: 600 }}
+                          className="border-rose-100 hover:bg-rose-50 text-rose-600 hover:text-rose-700 bg-rose-50/20"
+                        >
+                          <Trash2 size={13} className="mr-1" />
+                          Delete
+                        </Button>
+                      </div>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <Select value={j.status} onValueChange={(s) => updateJobStatus.mutate({ jobId: j.id, status: s })}>
-                        <SelectTrigger className="w-28 h-8.5 text-xs rounded-lg border-slate-200">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="open">Open</SelectItem>
-                          <SelectItem value="filled">Filled</SelectItem>
-                          <SelectItem value="blocked">Blocked</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-destructive h-8.5 w-8.5 p-0 rounded-lg"
-                        style={{ borderColor: "rgba(239,68,68,0.15)", background: "rgba(239,68,68,0.02)" }}
-                        onClick={() => setDeleteJobId(j.id)}
-                      >
-                        <Trash2 size={13} />
-                      </Button>
+                  ))}
+
+                  {/* Pagination Section */}
+                  {totalJobPages > 1 && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-4 border-t border-slate-100">
+                      <span className="text-xs font-semibold text-slate-500 order-2 sm:order-1 text-center sm:text-left">
+                        Showing {startJobIndex + 1}–{Math.min(startJobIndex + itemsPerPage, filteredJobs.length)} of {filteredJobs.length} jobs
+                      </span>
+                      
+                      <div className="flex items-center gap-1.5 order-1 sm:order-2">
+                        <Button
+                          disabled={jobPage === 1}
+                          onClick={() => setJobPage((prev) => Math.max(prev - 1, 1))}
+                          style={{
+                            background: "#ffffff",
+                            border: "1px solid rgba(15,10,30,0.08)",
+                            borderRadius: 10,
+                            height: 36,
+                            width: 36,
+                            padding: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#0d0a1e",
+                            cursor: jobPage === 1 ? "not-allowed" : "pointer",
+                            opacity: jobPage === 1 ? 0.4 : 1,
+                            boxShadow: "0 2px 6px rgba(15,10,30,0.02)",
+                          }}
+                        >
+                          <ChevronLeft size={16} />
+                        </Button>
+                        
+                        {Array.from({ length: totalJobPages }, (_, i) => i + 1).map((page) => (
+                          <Button
+                            key={page}
+                            onClick={() => setJobPage(page)}
+                            style={{
+                              background: jobPage === page ? "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)" : "#ffffff",
+                              border: jobPage === page ? "none" : "1px solid rgba(15,10,30,0.08)",
+                              borderRadius: 10,
+                              height: 36,
+                              width: 36,
+                              padding: 0,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: jobPage === page ? "#ffffff" : "#0d0a1e",
+                              fontWeight: 600,
+                              fontSize: 13,
+                              cursor: "pointer",
+                              boxShadow: jobPage === page ? "0 2px 8px rgba(245,158,11,0.24)" : "0 2px 6px rgba(15,10,30,0.02)",
+                            }}
+                          >
+                            {page}
+                          </Button>
+                        ))}
+
+                        <Button
+                          disabled={jobPage === totalJobPages}
+                          onClick={() => setJobPage((prev) => Math.min(prev + 1, totalJobPages))}
+                          style={{
+                            background: "#ffffff",
+                            border: "1px solid rgba(15,10,30,0.08)",
+                            borderRadius: 10,
+                            height: 36,
+                            width: 36,
+                            padding: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#0d0a1e",
+                            cursor: jobPage === totalJobPages ? "not-allowed" : "pointer",
+                            opacity: jobPage === totalJobPages ? 0.4 : 1,
+                            boxShadow: "0 2px 6px rgba(15,10,30,0.02)",
+                          }}
+                        >
+                          <ChevronRight size={16} />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  )}
+                </div>
               )}
             </TabsContent>
 
@@ -443,6 +911,184 @@ export default function AdminDashboard() {
         isDestructive
         isLoading={deleteJob.isPending}
       />
+      <BrandedConfirmDialog
+        isOpen={!!confirmBlockUser}
+        onClose={() => setConfirmBlockUser(null)}
+        onConfirm={() => {
+          if (confirmBlockUser) {
+            toggleBlockUser.mutate({
+              userId: confirmBlockUser.userId,
+              blocked: confirmBlockUser.blocked
+            });
+            setConfirmBlockUser(null);
+          }
+        }}
+        title={confirmBlockUser?.blocked ? "Block User Account" : "Unblock User Account"}
+        description={
+          confirmBlockUser?.blocked
+            ? "Are you sure you want to block this user? They will not be able to log in or use platform features."
+            : "Are you sure you want to unblock this user? Their account access will be fully restored."
+        }
+        confirmText={confirmBlockUser?.blocked ? "Block" : "Unblock"}
+        isDestructive={confirmBlockUser?.blocked}
+        isLoading={toggleBlockUser.isPending}
+      />
+      <BrandedConfirmDialog
+        isOpen={!!closeJobId}
+        onClose={() => setCloseJobId(null)}
+        onConfirm={() => {
+          if (closeJobId) {
+            updateJobStatus.mutate({ jobId: closeJobId, status: "closed" });
+            setCloseJobId(null);
+          }
+        }}
+        title="Close Job Listing"
+        description="Are you sure you want to close this job listing? It will no longer accept new applications."
+        confirmText="Close Job"
+        isDestructive
+        isLoading={updateJobStatus.isPending}
+      />
+
+      <Dialog open={!!viewJob} onOpenChange={(open) => !open && setViewJob(null)}>
+        <DialogContent className="max-w-md sm:max-w-lg rounded-2xl p-6 bg-white border border-slate-100 shadow-xl overflow-y-auto max-h-[90vh]">
+          {viewJob && (
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="flex items-start gap-4">
+                <div className="shrink-0 flex items-center justify-center h-12 w-12 rounded-xl bg-amber-50 border border-amber-100 text-amber-600">
+                  <Briefcase size={22} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-xl font-bold text-slate-900 leading-snug">{viewJob.title}</h2>
+                  <p className="text-xs font-semibold text-slate-400 mt-0.5 uppercase tracking-wider">{viewJob.category || "General Work"}</p>
+                </div>
+                <button onClick={() => setViewJob(null)} className="text-slate-400 hover:text-slate-600 shrink-0 self-start p-1 rounded-md hover:bg-slate-50 transition-colors">
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Status & Quick Stats */}
+              <div className="grid grid-cols-2 gap-4 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+                <div>
+                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</span>
+                  <div className="mt-1">
+                    <StatusBadge status={viewJob.status} />
+                  </div>
+                </div>
+                <div>
+                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Applications</span>
+                  <span className="block text-sm font-bold text-slate-800 mt-1">
+                    {getApplicationCount(viewJob.id)} candidate(s)
+                  </span>
+                </div>
+              </div>
+
+              {/* Details List */}
+              <div className="space-y-3.5">
+                <div className="flex items-start gap-3">
+                  <MapPin className="text-slate-400 shrink-0 mt-0.5" size={16} />
+                  <div>
+                    <span className="block text-xs font-semibold text-slate-400">Location</span>
+                    <span className="text-sm font-bold text-slate-800">
+                      {decodeLocation(viewJob.location).city || "Remote"}
+                    </span>
+                    {decodeLocation(viewJob.location).exactLocation && (
+                      <p className="text-xs text-slate-500 mt-0.5">{decodeLocation(viewJob.location).exactLocation}</p>
+                    )}
+                    {decodeLocation(viewJob.location).mapsUrl && (
+                      <a
+                        href={decodeLocation(viewJob.location).mapsUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 hover:underline mt-1"
+                      >
+                        Open Google Maps <ExternalLink size={10} />
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <DollarSign className="text-slate-400 shrink-0 mt-0.5" size={16} />
+                  <div>
+                    <span className="block text-xs font-semibold text-slate-400">Salary / Payout</span>
+                    <span className="text-sm font-bold text-slate-800">{viewJob.salary}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Clock className="text-slate-400 shrink-0 mt-0.5" size={16} />
+                  <div>
+                    <span className="block text-xs font-semibold text-slate-400">Working Hours</span>
+                    <span className="text-sm font-bold text-slate-800">{viewJob.working_hours || "Standard shift"}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Users className="text-slate-400 shrink-0 mt-0.5" size={16} />
+                  <div>
+                    <span className="block text-xs font-semibold text-slate-400">Workers Required</span>
+                    <span className="text-sm font-bold text-slate-800">{viewJob.workers_required || "Not specified"}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Calendar className="text-slate-400 shrink-0 mt-0.5" size={16} />
+                  <div>
+                    <span className="block text-xs font-semibold text-slate-400">Posted On</span>
+                    <span className="text-sm font-bold text-slate-800">
+                      {new Date(viewJob.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <User className="text-slate-400 shrink-0 mt-0.5" size={16} />
+                  <div>
+                    <span className="block text-xs font-semibold text-slate-400">Employer</span>
+                    <span className="text-sm font-bold text-slate-800">{getEmployerName(viewJob.employer_id)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="border-t border-slate-100 pt-4">
+                <span className="block text-xs font-semibold text-slate-400 mb-2">Job Description</span>
+                <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap bg-slate-50 p-4 rounded-xl border border-slate-100 max-h-48 overflow-y-auto">
+                  {viewJob.description || "No description provided."}
+                </p>
+              </div>
+
+              {/* Action buttons inside Modal */}
+              <div className="flex gap-3 border-t border-slate-100 pt-4 mt-6">
+                {viewJob.status !== "closed" && (
+                  <Button
+                    onClick={() => {
+                      setCloseJobId(viewJob.id);
+                      setViewJob(null);
+                    }}
+                    style={{ borderRadius: 10 }}
+                    className="flex-1 h-11 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold border-0"
+                  >
+                    Close Job
+                  </Button>
+                )}
+                <Button
+                  onClick={() => {
+                    setDeleteJobId(viewJob.id);
+                    setViewJob(null);
+                  }}
+                  variant="destructive"
+                  style={{ borderRadius: 10 }}
+                  className="flex-1 h-11 font-semibold"
+                >
+                  Delete Job
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -30,7 +30,14 @@ export function AuthProvider({ children }: any) {
 
       console.log("PROFILE RESULT:", profileData, profileError);
 
-      setProfile(profileData);
+      if (profileData?.is_blocked) {
+        console.log("User is blocked. Signing out...");
+        await supabase.auth.signOut();
+        setUser(null);
+        setProfile(null);
+      } else {
+        setProfile(profileData);
+      }
     }
 
     console.log("STEP 3 → Setting loading false");

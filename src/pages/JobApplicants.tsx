@@ -61,11 +61,11 @@ export default function JobApplicants() {
         const workerIds = apps.map(a => a.worker_id);
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("user_id, full_name, phone")
-          .in("user_id", workerIds);
+          .select("id, full_name, phone")
+          .in("id", workerIds);
         return apps.map(a => ({
           ...a,
-          profile: profiles?.find(p => p.user_id === a.worker_id),
+          profile: profiles?.find(p => p.id === a.worker_id),
         }));
       }
       return data.map((a: any) => ({
