@@ -778,6 +778,8 @@ export default function AdminDashboard() {
       };
     });
 
+  const latestActivityWidgetLogs = activityLogs.slice(0, 10);
+
   const getLogMeta = (type: string) => {
     switch (type) {
       case "log_user_blocked":
@@ -922,6 +924,54 @@ export default function AdminDashboard() {
             <p style={{ margin: "6px 0 0", fontSize: 14, color: "rgba(15,10,30,0.45)" }}>
               Overview and moderation of platform resources
             </p>
+          </div>
+
+          {/* Recent Activity Ticker / Compact Widget */}
+          <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-5 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                  <Activity size={12} />
+                </div>
+                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Live Platform Activity</h3>
+              </div>
+              <span className="text-[10px] bg-slate-50 border border-slate-100 text-slate-500 font-semibold px-2 py-0.5 rounded-full">
+                Latest 10 Events
+              </span>
+            </div>
+            {latestActivityWidgetLogs.length === 0 ? (
+              <div className="text-center py-6 text-xs text-slate-400 font-semibold">
+                No recent activity events recorded yet.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
+                {latestActivityWidgetLogs.map((log, idx) => {
+                  const meta = getLogMeta(log.type || "");
+                  const IconComp = meta.icon;
+                  return (
+                    <div 
+                      key={log.id || idx}
+                      className="bg-slate-50/50 hover:bg-slate-50 border border-slate-100/50 rounded-xl p-3 flex flex-col justify-between transition-all duration-200"
+                    >
+                      <div className="flex items-start gap-2">
+                        <div className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 border mt-0.5 ${meta.color}`}>
+                          <IconComp size={11} />
+                        </div>
+                        <p className="text-xs font-bold text-slate-800 line-clamp-2 leading-tight">
+                          {log.details}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-2.5 text-[9px] text-slate-400 font-semibold border-t border-slate-100/65 pt-2">
+                        <Clock size={9} className="text-slate-300" />
+                        <span>{formatLogTimestamp(log.createdAt)}</span>
+                        <span>·</span>
+                        <span className="truncate">{log.actorName}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Stats Grid */}
