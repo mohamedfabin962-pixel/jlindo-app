@@ -9,10 +9,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle, MessageSquarePlus } from "lucide-react";
+import { CheckCircle, MessageSquarePlus, ArrowLeft } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export default function FeedbackPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   const [type, setType] = useState("general");
   const [message, setMessage] = useState("");
@@ -67,6 +68,24 @@ export default function FeedbackPage() {
         }}
       >
         <div style={{ maxWidth: 580, margin: "0 auto", padding: "32px 16px 60px" }}>
+          
+          {/* Admin Back Navigation */}
+          {profile?.role === "admin" && (
+            <div className="flex items-center justify-between mb-6">
+              <Link
+                to="/admin"
+                className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-slate-500 bg-white hover:text-amber-600 hover:border-amber-200 border border-slate-200/80 rounded-full transition-all duration-300 shadow-sm hover:shadow"
+                style={{ textDecoration: "none" }}
+              >
+                <ArrowLeft size={14} />
+                Back to Dashboard
+              </Link>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 text-xs font-bold border border-amber-100">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                Admin Portal
+              </div>
+            </div>
+          )}
           
           <Card
             style={{

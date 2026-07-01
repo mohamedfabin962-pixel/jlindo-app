@@ -12,6 +12,7 @@ import {
   Heart,
   Rocket,
   CheckCircle2,
+  ArrowLeft,
 } from "lucide-react";
 import { JlindoLogo } from "@/components/JlindoLogo";
 
@@ -86,7 +87,7 @@ const visionPillars = [
    About page
 ════════════════════════════════════════════════════ */
 export default function About() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   return (
     <div
@@ -128,6 +129,25 @@ export default function About() {
       </div>
 
       <div style={{ position: "relative", zIndex: 1 }}>
+        
+        {/* Admin Back Navigation */}
+        {profile?.role === "admin" && (
+          <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 24px 0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Link
+              to="/admin"
+              className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-slate-500 bg-white hover:text-amber-600 hover:border-amber-200 border border-slate-200/80 rounded-full transition-all duration-300 shadow-sm hover:shadow"
+              style={{ textDecoration: "none" }}
+            >
+              <ArrowLeft size={14} />
+              Back to Dashboard
+            </Link>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 text-xs font-bold border border-amber-100">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+              Admin Portal
+            </div>
+          </div>
+        )}
+
         {/* ════ HERO ════════════════════════════════ */}
         <section
           style={{

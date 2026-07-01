@@ -45,6 +45,11 @@ export default function AdminDashboard() {
   const [feedbackPage, setFeedbackPage] = useState(1);
   const [deleteFeedbackId, setDeleteFeedbackId] = useState<string | null>(null);
   const [viewFeedback, setViewFeedback] = useState<any | null>(null);
+
+  // Applications section states
+  const [appSearch, setAppSearch] = useState("");
+  const [appFilter, setAppFilter] = useState("all");
+  const [appPage, setAppPage] = useState(1);
   
   const itemsPerPage = 5;
 
@@ -236,6 +241,69 @@ export default function AdminDashboard() {
   const startFeedbackIndex = (feedbackPage - 1) * itemsPerPage;
   const paginatedFeedbacks = filteredFeedbacks.slice(startFeedbackIndex, startFeedbackIndex + itemsPerPage);
 
+  const formatFeedbackDate = (dateString: string) => {
+    const d = new Date(dateString);
+    const now = new Date();
+    
+    // Check if Today
+    const isToday = d.getDate() === now.getDate() &&
+                    d.getMonth() === now.getMonth() &&
+                    d.getFullYear() === now.getFullYear();
+                    
+    // Check if Yesterday
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday = d.getDate() === yesterday.getDate() &&
+                        d.getMonth() === yesterday.getMonth() &&
+                        d.getFullYear() === yesterday.getFullYear();
+
+    const timeOptions: Intl.DateTimeFormatOptions = {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true
+    };
+    const timeStr = d.toLocaleTimeString("en-US", timeOptions);
+
+    if (isToday) {
+      return `Today, ${timeStr}`;
+    }
+    if (isYesterday) {
+      return `Yesterday, ${timeStr}`;
+    }
+
+    const dateOptions: Intl.DateTimeFormatOptions = {
+      day: "numeric",
+      month: "short",
+      year: "numeric"
+    };
+    const dateStr = d.toLocaleDateString("en-US", dateOptions);
+    return `${dateStr} • ${timeStr}`;
+  };
+
+  const getWorkerName = (workerId: string) => {
+    const matchedUser = (users || []).find((u: any) => u.id === workerId);
+    return matchedUser?.full_name || `Worker (${workerId.slice(0, 8)})`;
+  };
+
+  const filteredApplications = (applications || []).filter((a: any) => {
+    const s = appSearch.toLowerCase().trim();
+    const titleMatch = a.jobs?.title?.toLowerCase().includes(s) ?? false;
+    const workerName = getWorkerName(a.worker_id).toLowerCase();
+    const workerMatch = workerName.includes(s);
+    const matchesSearch = s === "" || titleMatch || workerMatch;
+
+    let matchesFilter = true;
+    if (appFilter !== "all") {
+      matchesFilter = a.status === appFilter;
+    }
+
+    return matchesSearch && matchesFilter;
+  });
+
+  const totalAppPages = Math.ceil(filteredApplications.length / itemsPerPage);
+  const startAppIndex = (appPage - 1) * itemsPerPage;
+  const paginatedApplications = filteredApplications.slice(startAppIndex, startAppIndex + itemsPerPage);
+
   const totalUsers = users?.length || 0;
   const totalJobs = jobs?.length || 0;
   const totalApplications = applications?.length || 0;
@@ -271,7 +339,7 @@ export default function AdminDashboard() {
           fontFamily: "'Inter', sans-serif",
         }}
       >
-        <div style={{ maxWidth: 740, margin: "0 auto", padding: "32px 16px 60px" }}>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
           
           {/* Header */}
           <div style={{ marginBottom: 28 }}>
@@ -290,49 +358,79 @@ export default function AdminDashboard() {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div style={{ background: "#fff", border: "1px solid rgba(15,10,30,0.06)", borderRadius: 18, padding: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, color: "rgba(15,10,30,0.4)", marginBottom: 8 }}>
-                <Users size={16} />
-                <span style={{ fontSize: 12, fontWeight: 600 }}>Users</span>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-5 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider">Total Users</span>
+                <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                  <Users size={16} />
+                </div>
               </div>
-              <p style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "#0d0a1e" }}>{totalUsers}</p>
+              <p className="margin-0 text-2xl font-black text-slate-800 tracking-tight leading-none mt-1">{totalUsers}</p>
             </div>
 
-            <div style={{ background: "#fff", border: "1px solid rgba(15,10,30,0.06)", borderRadius: 18, padding: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, color: "rgba(15,10,30,0.4)", marginBottom: 8 }}>
-                <Briefcase size={16} />
-                <span style={{ fontSize: 12, fontWeight: 600 }}>Jobs</span>
+            <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-5 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider">Active Jobs</span>
+                <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
+                  <Briefcase size={16} />
+                </div>
               </div>
-              <p style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "#0d0a1e" }}>{totalJobs}</p>
+              <p className="margin-0 text-2xl font-black text-slate-800 tracking-tight leading-none mt-1">{totalJobs}</p>
             </div>
 
-            <div style={{ background: "#fff", border: "1px solid rgba(15,10,30,0.06)", borderRadius: 18, padding: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, color: "rgba(15,10,30,0.4)", marginBottom: 8 }}>
-                <FileCheck size={16} />
-                <span style={{ fontSize: 12, fontWeight: 600 }}>Applications</span>
+            <div className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-5 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider">Applications</span>
+                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                  <FileCheck size={16} />
+                </div>
               </div>
-              <p style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "#0d0a1e" }}>{totalApplications}</p>
+              <p className="margin-0 text-2xl font-black text-slate-800 tracking-tight leading-none mt-1">{totalApplications}</p>
             </div>
 
-            <div style={{ background: "#fff", border: "1px solid rgba(15,10,30,0.06)", borderRadius: 18, padding: 16, borderLeft: openFeedback > 0 ? "3px solid #EF4444" : "1px solid rgba(15,10,30,0.06)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, color: "rgba(15,10,30,0.4)", marginBottom: 8 }}>
-                <MessageSquare size={16} />
-                <span style={{ fontSize: 12, fontWeight: 600 }}>Feedback</span>
+            <div 
+              className="bg-white rounded-2xl border border-slate-100/80 shadow-[0_2px_12px_rgba(15,10,30,0.02)] p-5 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-0.5"
+              style={{ borderLeft: openFeedback > 0 ? "3px solid #EF4444" : undefined }}
+            >
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider">Open Feedbacks</span>
+                <div className={`p-2 rounded-xl ${openFeedback > 0 ? "bg-rose-50 text-rose-600 animate-pulse" : "bg-slate-50 text-slate-500"}`}>
+                  <MessageSquare size={16} />
+                </div>
               </div>
-              <p style={{ margin: 0, fontSize: 24, fontWeight: 800, color: openFeedback > 0 ? "#EF4444" : "#0d0a1e" }}>{openFeedback}</p>
+              <p className={`margin-0 text-2xl font-black tracking-tight leading-none mt-1 ${openFeedback > 0 ? "text-rose-600" : "text-slate-800"}`}>
+                {openFeedback}
+              </p>
             </div>
           </div>
 
           <Tabs defaultValue="users" className="w-full">
-            <TabsList className="jl-tabs-list w-full flex mb-6 h-12">
-              <TabsTrigger value="users" className="jl-tab-trigger flex-1 h-9">Users ({users?.length || 0})</TabsTrigger>
-              <TabsTrigger value="jobs" className="jl-tab-trigger flex-1 h-9">Jobs ({jobs?.length || 0})</TabsTrigger>
-              <TabsTrigger value="applications" className="jl-tab-trigger flex-1 h-9">Applications ({applications?.length || 0})</TabsTrigger>
-              <TabsTrigger value="feedback" className="jl-tab-trigger flex-1 h-9 flex items-center justify-center gap-1.5">
+            <TabsList
+              className="flex overflow-x-auto scrollbar-none gap-1 h-auto p-1 bg-slate-100/80 rounded-xl mb-6 w-full justify-start md:justify-between"
+              style={{
+                scrollbarWidth: "none",
+                msOverflowStyle: "none",
+                WebkitOverflowScrolling: "touch",
+              }}
+            >
+              <TabsTrigger value="users" className="jl-tab-trigger shrink-0 md:flex-1 h-9 flex items-center justify-center gap-1.5 px-4 md:px-0">
+                <Users size={14} />
+                Users ({users?.length || 0})
+              </TabsTrigger>
+              <TabsTrigger value="jobs" className="jl-tab-trigger shrink-0 md:flex-1 h-9 flex items-center justify-center gap-1.5 px-4 md:px-0">
+                <Briefcase size={14} />
+                Jobs ({jobs?.length || 0})
+              </TabsTrigger>
+              <TabsTrigger value="applications" className="jl-tab-trigger shrink-0 md:flex-1 h-9 flex items-center justify-center gap-1.5 px-4 md:px-0">
+                <FileCheck size={14} />
+                Applications ({applications?.length || 0})
+              </TabsTrigger>
+              <TabsTrigger value="feedback" className="jl-tab-trigger shrink-0 md:flex-1 h-9 flex items-center justify-center gap-1.5 px-4 md:px-0">
+                <MessageSquare size={14} />
                 Feedback
                 {openFeedback > 0 && (
-                  <span style={{ background: "#EF4444", color: "#fff", borderRadius: 99, padding: "1px 6px", fontSize: 10, fontWeight: 700 }}>
+                  <span className="bg-rose-500 text-white rounded-full px-1.5 py-0.5 text-[9px] font-bold ml-1 animate-pulse">
                     {openFeedback}
                   </span>
                 )}
@@ -366,7 +464,7 @@ export default function AdminDashboard() {
                   <SelectTrigger className="w-full sm:w-[180px] h-11 rounded-xl border-slate-200 bg-white text-slate-700 font-medium">
                     <SelectValue placeholder="Filter users" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl">
+                  <SelectContent className="bg-white border border-slate-200 shadow-xl rounded-xl z-[100]">
                     <SelectItem value="all">All Users</SelectItem>
                     <SelectItem value="worker">Workers</SelectItem>
                     <SelectItem value="employer">Employers</SelectItem>
@@ -603,7 +701,7 @@ export default function AdminDashboard() {
                   <SelectTrigger className="w-full sm:w-[180px] h-11 rounded-xl border-slate-200 bg-white text-slate-700 font-medium">
                     <SelectValue placeholder="Filter jobs" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl">
+                  <SelectContent className="bg-white border border-slate-200 shadow-xl rounded-xl z-[100]">
                     <SelectItem value="all">All Jobs</SelectItem>
                     <SelectItem value="open">Open</SelectItem>
                     <SelectItem value="filled">Filled</SelectItem>
@@ -836,40 +934,202 @@ export default function AdminDashboard() {
             </TabsContent>
 
             {/* APPLICATIONS TAB */}
-            <TabsContent value="applications" className="space-y-3">
-              {!applications || applications.length === 0 ? (
+            <TabsContent value="applications" className="space-y-4">
+              {/* Search and Filters */}
+              <div className="flex flex-col sm:flex-row gap-3 mb-5">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <Input
+                    placeholder="Search by job title or worker name..."
+                    value={appSearch}
+                    onChange={(e) => {
+                      setAppSearch(e.target.value);
+                      setAppPage(1);
+                    }}
+                    className="pl-9 h-11 rounded-xl border-slate-200 focus-visible:ring-amber-500 bg-white"
+                  />
+                </div>
+
+                <Select
+                  value={appFilter}
+                  onValueChange={(val) => {
+                    setAppFilter(val);
+                    setAppPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-full sm:w-[180px] h-11 rounded-xl border-slate-200 bg-white text-slate-700 font-medium">
+                    <SelectValue placeholder="Filter status" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border border-slate-200 shadow-xl rounded-xl z-[100]">
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="applied">Applied</SelectItem>
+                    <SelectItem value="accepted">Accepted</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {paginatedApplications.length === 0 ? (
                 <EmptyState
                   icon={FileCheck}
-                  title="No applications submitted"
-                  description="Job applications submitted by workers will appear here."
+                  title="No applications found"
+                  description={
+                    appSearch || appFilter !== "all"
+                      ? "Try adjusting your search query or status filter."
+                      : "No job applications have been submitted yet."
+                  }
                 />
               ) : (
-                applications.map((a: any) => (
-                  <div
-                    key={a.id}
-                    className="jl-admin-card"
-                    style={{
-                      background: "#fff",
-                      borderRadius: 16,
-                      border: "1px solid rgba(15,10,30,0.06)",
-                      padding: "16px 20px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      transition: "box-shadow 0.2s",
-                    }}
-                  >
-                    <div>
-                      <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#0d0a1e" }}>
-                        {a.jobs?.title || "Unknown Job"}
-                      </p>
-                      <p style={{ margin: "2px 0 0", fontSize: 12, color: "rgba(15,10,30,0.4)" }}>
-                        Worker ID: {a.worker_id.slice(0, 8)}…
-                      </p>
+                <div className="space-y-4">
+                  {paginatedApplications.map((a: any) => (
+                    <div
+                      key={a.id}
+                      className="jl-admin-card"
+                      style={{
+                        background: "#fff",
+                        borderRadius: 18,
+                        border: "1px solid rgba(15,10,30,0.06)",
+                        padding: "20px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 14,
+                        transition: "all 0.2s ease",
+                        boxShadow: "0 2px 8px rgba(15,10,30,0.02)",
+                      }}
+                    >
+                      {/* Top Info Row */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div
+                            className="shrink-0 flex items-center justify-center"
+                            style={{
+                              height: 40,
+                              width: 40,
+                              borderRadius: 12,
+                              background: "rgba(16,185,129,0.08)",
+                              color: "#10B981",
+                              border: "1px solid rgba(16,185,129,0.15)",
+                            }}
+                          >
+                            <FileCheck size={18} />
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="text-sm font-bold text-slate-900 truncate m-0 font-sans tracking-tight">
+                              {a.jobs?.title || "Unknown Job"}
+                            </h3>
+                            <p className="m-0 text-xs font-semibold text-slate-500 mt-1">
+                              Applied by <span className="text-slate-800">{getWorkerName(a.worker_id)}</span>
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Status Badge */}
+                        <div className="flex items-center shrink-0">
+                          <StatusBadge status={a.status} />
+                        </div>
+                      </div>
+
+                      {/* Divider */}
+                      <div style={{ height: 1, background: "rgba(15,10,30,0.04)", width: "100%" }} />
+
+                      {/* Bottom Grid Detail elements */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs text-slate-500">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Calendar size={13.5} className="text-slate-400 shrink-0" />
+                          <span className="truncate">
+                            Date Applied: {new Date(a.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <User size={13.5} className="text-slate-400 shrink-0" />
+                          <span className="truncate" title={a.worker_id}>
+                            Worker ID: {a.worker_id.slice(0, 8)}...
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <StatusBadge status={a.status} />
-                  </div>
-                ))
+                  ))}
+
+                  {/* Pagination Section */}
+                  {totalAppPages > 1 && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-4 border-t border-slate-100">
+                      <span className="text-xs font-semibold text-slate-500 order-2 sm:order-1 text-center sm:text-left">
+                        Showing {startAppIndex + 1}–{Math.min(startAppIndex + itemsPerPage, filteredApplications.length)} of {filteredApplications.length} applications
+                      </span>
+                      
+                      <div className="flex items-center gap-1.5 order-1 sm:order-2">
+                        <Button
+                          disabled={appPage === 1}
+                          onClick={() => setAppPage((prev) => Math.max(prev - 1, 1))}
+                          style={{
+                            background: "#ffffff",
+                            border: "1px solid rgba(15,10,30,0.08)",
+                            borderRadius: 10,
+                            height: 36,
+                            width: 36,
+                            padding: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#0d0a1e",
+                            cursor: appPage === 1 ? "not-allowed" : "pointer",
+                            opacity: appPage === 1 ? 0.4 : 1,
+                            boxShadow: "0 2px 6px rgba(15,10,30,0.02)",
+                          }}
+                        >
+                          <ChevronLeft size={16} />
+                        </Button>
+                        
+                        {Array.from({ length: totalAppPages }, (_, i) => i + 1).map((page) => (
+                          <Button
+                            key={page}
+                            onClick={() => setAppPage(page)}
+                            style={{
+                              background: appPage === page ? "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)" : "#ffffff",
+                              border: appPage === page ? "none" : "1px solid rgba(15,10,30,0.08)",
+                              borderRadius: 10,
+                              height: 36,
+                              width: 36,
+                              padding: 0,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: appPage === page ? "#ffffff" : "#0d0a1e",
+                              fontWeight: 600,
+                              fontSize: 13,
+                              cursor: "pointer",
+                              boxShadow: appPage === page ? "0 2px 8px rgba(245,158,11,0.24)" : "0 2px 6px rgba(15,10,30,0.02)",
+                            }}
+                          >
+                            {page}
+                          </Button>
+                        ))}
+
+                        <Button
+                          disabled={appPage === totalAppPages}
+                          onClick={() => setAppPage((prev) => Math.min(prev + 1, totalAppPages))}
+                          style={{
+                            background: "#ffffff",
+                            border: "1px solid rgba(15,10,30,0.08)",
+                            borderRadius: 10,
+                            height: 36,
+                            width: 36,
+                            padding: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#0d0a1e",
+                            cursor: appPage === totalAppPages ? "not-allowed" : "pointer",
+                            opacity: appPage === totalAppPages ? 0.4 : 1,
+                            boxShadow: "0 2px 6px rgba(15,10,30,0.02)",
+                          }}
+                        >
+                          <ChevronRight size={16} />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </TabsContent>
 
@@ -900,7 +1160,7 @@ export default function AdminDashboard() {
                   <SelectTrigger className="w-full sm:w-[180px] h-11 rounded-xl border-slate-200 bg-white text-slate-700 font-medium">
                     <SelectValue placeholder="Filter feedback" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl">
+                  <SelectContent className="bg-white border border-slate-200 shadow-xl rounded-xl z-[100]">
                     <SelectItem value="all">All Feedback</SelectItem>
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="resolved">Resolved</SelectItem>
@@ -948,13 +1208,7 @@ export default function AdminDashboard() {
                           </div>
                           
                           <span className="text-xs font-semibold text-slate-400">
-                            {new Date(f.created_at).toLocaleDateString("en-IN", {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
+                            {formatFeedbackDate(f.created_at)}
                           </span>
                         </div>
 
@@ -1339,13 +1593,7 @@ export default function AdminDashboard() {
                 <div>
                   <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Submitted On</span>
                   <span className="block text-xs font-bold text-slate-800 mt-1.5">
-                    {new Date(viewFeedback.created_at).toLocaleDateString("en-IN", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {formatFeedbackDate(viewFeedback.created_at)}
                   </span>
                 </div>
               </div>
