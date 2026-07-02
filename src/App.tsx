@@ -98,7 +98,7 @@ function AppRoutes() {
 function AuthGate() {
   const { loading } = useAuth();
   const location = useLocation();
-  const hideHeader = ["/login", "/signup", "/forgot-password", "/reset-password", "/admin/login"].includes(location.pathname);
+  const hideHeader = ["/login", "/signup", "/forgot-password", "/reset-password", "/admin/login", "/admin"].includes(location.pathname);
 
   if (loading) {
     return <BrandedLoadingScreen message="Restoring session..." />;

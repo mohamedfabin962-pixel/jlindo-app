@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Bell, Info, Sparkles, RefreshCw, Clock, AlertTriangle, Wrench, Check, Circle } from "lucide-react";
+import { Bell, Info, Sparkles, RefreshCw, Clock, AlertTriangle, Wrench, Circle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useToast } from "@/components/ui/use-toast";
+
 
 interface Notification {
   id: string;
@@ -63,7 +63,6 @@ const PRIORITY_CONFIG = {
 
 export function NotificationBell() {
   const { user, profile } = useAuth();
-  const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [readIds, setReadIds] = useState<string[]>([]);
