@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppHeader } from "@/components/AppHeader";
-import { AnnouncementBanner } from "@/components/AnnouncementBanner";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -108,7 +107,6 @@ function AuthGate() {
   return (
     <>
       {!hideHeader && <AppHeader />}
-      {!hideHeader && <AnnouncementBanner />}
       <AppRoutes />
     </>
   );

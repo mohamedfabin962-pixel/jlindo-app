@@ -5,6 +5,7 @@ import { useState } from "react";
 import { BrandedConfirmDialog } from "@/components/BrandedConfirmDialog";
 import { motion } from "framer-motion";
 import { JlindoLogo } from "@/components/JlindoLogo";
+import { NotificationBell } from "@/components/NotificationBell";
 
 export function AppHeader() {
   const { user, profile, isAdmin, signOut } = useAuth();
@@ -180,6 +181,12 @@ export function AppHeader() {
 
               {/* Divider */}
               <div style={{ width: 1, height: 20, background: "rgba(15,10,30,0.10)", margin: "0 12px" }} />
+
+              {(role === "worker" || role === "employer") && (
+                <div style={{ marginRight: 12, display: "flex", alignItems: "center" }}>
+                  <NotificationBell />
+                </div>
+              )}
 
               {/* Avatar & Dropdown */}
               <div style={{ position: "relative" }}>
@@ -380,6 +387,13 @@ export function AppHeader() {
               >
                 Sign Up
               </Link>
+            </div>
+          )}
+
+          {/* Mobile notification bell */}
+          {user && (role === "worker" || role === "employer") && (
+            <div className="md:hidden" style={{ marginLeft: "auto", marginRight: 8, display: "flex", alignItems: "center" }}>
+              <NotificationBell />
             </div>
           )}
 

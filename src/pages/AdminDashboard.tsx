@@ -12,7 +12,7 @@ import {
   Trash2, Ban, Users, Briefcase, FileCheck, MessageSquare, ShieldCheck, Check,
   ChevronLeft, ChevronRight, Search, Mail, Phone, Calendar, User,
   MapPin, DollarSign, Clock, X, ExternalLink, TrendingUp, Activity,
-  RotateCcw, Archive, AlertTriangle, Flag, HeartPulse, Star, Megaphone, Plus, Zap, Info
+  RotateCcw, Archive, AlertTriangle, Flag, HeartPulse, Star, Megaphone, Plus, Zap, Info, Bell, Sparkles, RefreshCw
 } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { EmptyState } from "@/components/EmptyState";
@@ -138,12 +138,13 @@ export default function AdminDashboard() {
   const [warnMessage, setWarnMessage] = useState("");
   const [confirmRemoveReportJob, setConfirmRemoveReportJob] = useState<{ reportId: string; jobId: string; jobTitle: string } | null>(null);
   
-  // Announcements section states
-  const [annTitle, setAnnTitle] = useState("");
-  const [annMessage, setAnnMessage] = useState("");
-  const [annPriority, setAnnPriority] = useState<"info" | "warning" | "critical">("info");
-  const [annFormOpen, setAnnFormOpen] = useState(false);
-  const [confirmDeleteAnnId, setConfirmDeleteAnnId] = useState<string | null>(null);
+  // Notifications section states
+  const [notifTitle, setNotifTitle] = useState("");
+  const [notifMessage, setNotifMessage] = useState("");
+  const [notifPriority, setNotifPriority] = useState<"info" | "feature" | "update" | "reminder" | "important" | "maintenance">("info");
+  const [notifTargetAudience, setNotifTargetAudience] = useState<"workers" | "employers" | "everyone">("everyone");
+  const [notifFormOpen, setNotifFormOpen] = useState(false);
+  const [confirmDeleteNotifId, setConfirmDeleteNotifId] = useState<string | null>(null);
   
   const itemsPerPage = 5;
 
@@ -207,12 +208,16 @@ export default function AdminDashboard() {
     enabled: isAdmin,
   });
 
-  const { data: announcements } = useQuery({
-    queryKey: ["admin-announcements"],
+  const { data: notifications } = useQuery({
+    queryKey: ["admin-notifications"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("announcements")
-        .select("*")
+        .from("notifications")
+        .select(`
+          *,
+          profiles:created_by ( full_name ),
+          notification_reads ( user_id )
+        `)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -248,66 +253,58 @@ export default function AdminDashboard() {
     }));
   };
 
-  const createAnnouncement = useMutation({
+  const createNotification = useMutation({
     mutationFn: async ({
       title,
       message,
       priority,
+      targetAudience,
     }: {
       title: string;
       message: string;
-      priority: "info" | "warning" | "critical";
+      priority: "info" | "feature" | "update" | "reminder" | "important" | "maintenance";
+      targetAudience: "workers" | "employers" | "everyone";
     }) => {
-      const { error } = await supabase.from("announcements").insert({
+      const { error } = await supabase.from("notifications").insert({
         title,
         message,
         priority,
+        target_audience: targetAudience,
         created_by: profile!.id,
-        is_active: true,
       });
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-announcements"] });
-      toast({ title: "Announcement published", description: "All users will see it immediately." });
-      setAnnTitle("");
-      setAnnMessage("");
-      setAnnPriority("info");
-      setAnnFormOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["admin-notifications"] });
+      toast({ title: "Notification sent successfully", description: "Target audience will receive it in their app." });
+      setNotifTitle("");
+      setNotifMessage("");
+      setNotifPriority("info");
+      setNotifTargetAudience("everyone");
+      setNotifFormOpen(false);
     },
     onError: (err: any) => {
-      if (err.message?.includes("relation") && err.message?.includes("announcements")) {
+      if (err.message?.includes("relation") && err.message?.includes("notifications")) {
         toast({
           title: "Table Missing",
-          description: "Run the SQL migration to create the announcements table.",
+          description: "Please run the SQL migration to create the notifications table.",
           variant: "destructive",
         });
       } else {
-        toast({ title: "Error", description: err.message, variant: "destructive" });
+        toast({ title: "Error sending notification", description: err.message, variant: "destructive" });
       }
     },
   });
 
-  const toggleAnnouncementActive = useMutation({
-    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      const { error } = await supabase.from("announcements").update({ is_active }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-announcements"] });
-      toast({ title: "Announcement updated" });
-    },
-  });
-
-  const deleteAnnouncement = useMutation({
+  const deleteNotification = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("announcements").delete().eq("id", id);
+      const { error } = await supabase.from("notifications").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-announcements"] });
-      setConfirmDeleteAnnId(null);
-      toast({ title: "Announcement deleted" });
+      queryClient.invalidateQueries({ queryKey: ["admin-notifications"] });
+      setConfirmDeleteNotifId(null);
+      toast({ title: "Notification deleted successfully" });
     },
   });
 
@@ -1326,12 +1323,12 @@ export default function AdminDashboard() {
                   </span>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="announcements" className="jl-tab-trigger shrink-0 md:flex-1 h-9 flex items-center justify-center gap-1.5 px-4 md:px-0">
-                <Megaphone size={14} />
-                Announcements
-                {announcements && announcements.filter((a: any) => a.is_active).length > 0 && (
+              <TabsTrigger value="notifications" className="jl-tab-trigger shrink-0 md:flex-1 h-9 flex items-center justify-center gap-1.5 px-4 md:px-0">
+                <Bell size={14} />
+                Notifications
+                {notifications && notifications.length > 0 && (
                   <span className="bg-amber-500 text-white rounded-full px-1.5 py-0.5 text-[9px] font-bold ml-1">
-                    {announcements.filter((a: any) => a.is_active).length}
+                    {notifications.length}
                   </span>
                 )}
               </TabsTrigger>
@@ -3221,29 +3218,29 @@ export default function AdminDashboard() {
               </ErrorBoundary>
             </TabsContent>
 
-            {/* ANNOUNCEMENTS TAB */}
-            <TabsContent value="announcements" className="space-y-6">
-              <ErrorBoundary fallbackTitle="Announcements failed to render">
+            {/* NOTIFICATIONS TAB */}
+            <TabsContent value="notifications" className="space-y-6">
+              <ErrorBoundary fallbackTitle="Notifications management failed to render">
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h2 className="text-lg font-bold text-slate-900 m-0">Platform Announcements</h2>
+                    <h2 className="text-lg font-bold text-slate-900 m-0">Notification Management</h2>
                     <p className="text-sm text-slate-500 mt-0.5">
-                      Publish notices that appear to all workers and employers inside the app.
+                      Compose and send targeted notifications to Workers, Employers, or Everyone.
                     </p>
                   </div>
                   <Button
-                    onClick={() => setAnnFormOpen((v) => !v)}
+                    onClick={() => setNotifFormOpen((v) => !v)}
                     className="bg-orange-500 hover:bg-orange-600 text-white border-0 font-semibold shadow-sm"
                     style={{ borderRadius: 12, height: 40, paddingInline: 20 }}
                   >
                     <Plus size={16} className="mr-1.5" />
-                    {annFormOpen ? "Cancel" : "New Announcement"}
+                    {notifFormOpen ? "Cancel" : "Compose Notification"}
                   </Button>
                 </div>
 
                 {/* Create Form */}
-                {annFormOpen && (
+                {notifFormOpen && (
                   <div
                     style={{
                       background: "#fff",
@@ -3257,37 +3254,80 @@ export default function AdminDashboard() {
                     }}
                   >
                     <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#0d0a1e" }}>
-                      Create Announcement
+                      Send New Notification
                     </h3>
+
+                    {/* Target Audience */}
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "rgba(15,10,30,0.6)", display: "block", marginBottom: 8 }}>
+                        Target Audience
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {([
+                          { value: "everyone", label: "Everyone" },
+                          { value: "workers", label: "Workers Only" },
+                          { value: "employers", label: "Employers Only" }
+                        ] as const).map((a) => (
+                          <button
+                            key={a.value}
+                            type="button"
+                            onClick={() => setNotifTargetAudience(a.value)}
+                            style={{
+                              padding: "6px 14px",
+                              borderRadius: 10,
+                              fontSize: 12.5,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              border: `1.5px solid ${notifTargetAudience === a.value ? "#F59E0B" : "rgba(15,10,30,0.1)"}`,
+                              background: notifTargetAudience === a.value ? "rgba(245,158,11,0.08)" : "#fff",
+                              color: notifTargetAudience === a.value ? "#D97706" : "rgba(15,10,30,0.45)",
+                              transition: "all 0.15s",
+                            }}
+                          >
+                            {a.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
                     {/* Priority Selector */}
                     <div>
                       <label style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: "rgba(15,10,30,0.6)", display: "block", marginBottom: 8 }}>
-                        Priority
+                        Priority / Category
                       </label>
                       <div className="flex flex-wrap gap-2">
-                        {(["info", "warning", "critical"] as const).map((p) => {
-                          const labelMap = { info: "Info", warning: "Notice", critical: "Urgent" };
+                        {(["info", "feature", "update", "reminder", "important", "maintenance"] as const).map((p) => {
+                          const labelMap = {
+                            info: "Info",
+                            feature: "Feature",
+                            update: "Update",
+                            reminder: "Reminder",
+                            important: "Important",
+                            maintenance: "Maintenance"
+                          };
                           const colorMap = {
-                            info: { active: "#2563EB", bg: "#EFF6FF", border: "rgba(37,99,235,0.3)" },
-                            warning: { active: "#D97706", bg: "#FFFBEB", border: "rgba(245,158,11,0.3)" },
-                            critical: { active: "#DC2626", bg: "#FFF1F2", border: "rgba(239,68,68,0.3)" },
+                            info: { active: "#2563EB", bg: "#EFF6FF" },
+                            feature: { active: "#8B5CF6", bg: "#FAF5FF" },
+                            update: { active: "#10B981", bg: "#ECFDF5" },
+                            reminder: { active: "#D97706", bg: "#FFFBEB" },
+                            important: { active: "#EF4444", bg: "#FEF2F2" },
+                            maintenance: { active: "#64748B", bg: "#F8FAFC" },
                           };
                           const c = colorMap[p];
                           return (
                             <button
                               key={p}
                               type="button"
-                              onClick={() => setAnnPriority(p)}
+                              onClick={() => setNotifPriority(p)}
                               style={{
                                 padding: "6px 14px",
                                 borderRadius: 10,
                                 fontSize: 12.5,
                                 fontWeight: 700,
                                 cursor: "pointer",
-                                border: `1.5px solid ${annPriority === p ? c.active : "rgba(15,10,30,0.1)"}`,
-                                background: annPriority === p ? c.bg : "#fff",
-                                color: annPriority === p ? c.active : "rgba(15,10,30,0.4)",
+                                border: `1.5px solid ${notifPriority === p ? c.active : "rgba(15,10,30,0.1)"}`,
+                                background: notifPriority === p ? c.bg : "#fff",
+                                color: notifPriority === p ? c.active : "rgba(15,10,30,0.45)",
                                 transition: "all 0.15s",
                               }}
                             >
@@ -3304,9 +3344,9 @@ export default function AdminDashboard() {
                         Title
                       </label>
                       <Input
-                        value={annTitle}
-                        onChange={(e) => setAnnTitle(e.target.value)}
-                        placeholder="e.g. Scheduled Maintenance"
+                        value={notifTitle}
+                        onChange={(e) => setNotifTitle(e.target.value)}
+                        placeholder="e.g. System upgrade completed successfully"
                         maxLength={100}
                         className="h-11 rounded-xl border-slate-200 focus:border-orange-400 focus:ring-orange-100 text-sm font-medium"
                       />
@@ -3318,9 +3358,9 @@ export default function AdminDashboard() {
                         Message
                       </label>
                       <textarea
-                        value={annMessage}
-                        onChange={(e) => setAnnMessage(e.target.value)}
-                        placeholder="Describe the announcement in detail..."
+                        value={notifMessage}
+                        onChange={(e) => setNotifMessage(e.target.value)}
+                        placeholder="Write your message here..."
                         maxLength={500}
                         rows={3}
                         style={{
@@ -3340,64 +3380,88 @@ export default function AdminDashboard() {
                         onBlur={(e) => (e.target.style.borderColor = "rgba(15,10,30,0.12)")}
                       />
                       <p style={{ margin: "4px 0 0", fontSize: 11, color: "rgba(15,10,30,0.35)", textAlign: "right" }}>
-                        {annMessage.length}/500
+                        {notifMessage.length}/500
                       </p>
                     </div>
 
                     {/* Submit */}
                     <Button
                       onClick={() => {
-                        if (!annTitle.trim()) {
-                          toast({ title: "Title required", variant: "destructive" });
+                        if (!notifTitle.trim()) {
+                          toast({ title: "Title is required", variant: "destructive" });
                           return;
                         }
-                        if (!annMessage.trim()) {
-                          toast({ title: "Message required", variant: "destructive" });
+                        if (!notifMessage.trim()) {
+                          toast({ title: "Message is required", variant: "destructive" });
                           return;
                         }
-                        createAnnouncement.mutate({ title: annTitle.trim(), message: annMessage.trim(), priority: annPriority });
+                        createNotification.mutate({
+                          title: notifTitle.trim(),
+                          message: notifMessage.trim(),
+                          priority: notifPriority,
+                          targetAudience: notifTargetAudience
+                        });
                       }}
-                      disabled={createAnnouncement.isPending}
+                      disabled={createNotification.isPending}
                       className="self-end bg-orange-500 hover:bg-orange-600 text-white border-0 font-semibold shadow-sm"
                       style={{ borderRadius: 12, height: 40, paddingInline: 24 }}
                     >
-                      {createAnnouncement.isPending ? "Publishing…" : "Publish Announcement"}
+                      {createNotification.isPending ? "Sending…" : "Send Notification"}
                     </Button>
                   </div>
                 )}
 
-                {/* Announcements List */}
-                {!announcements || announcements.length === 0 ? (
+                {/* Notifications History List */}
+                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-3">
+                  Sent History
+                </h3>
+
+                {!notifications || notifications.length === 0 ? (
                   <EmptyState
-                    icon={Megaphone}
-                    title="No Announcements"
-                    description="Create your first announcement to notify workers and employers."
+                    icon={Bell}
+                    title="No Sent Notifications"
+                    description="You haven't composed any notifications yet."
                   />
                 ) : (
                   <div className="space-y-3">
-                    {announcements.map((ann: any) => {
-                      const priorityStyle = {
-                        info: { bg: "#EFF6FF", border: "rgba(59,130,246,0.2)", accent: "#2563EB", label: "Info", labelBg: "rgba(37,99,235,0.1)" },
-                        warning: { bg: "#FFFBEB", border: "rgba(245,158,11,0.2)", accent: "#D97706", label: "Notice", labelBg: "rgba(245,158,11,0.1)" },
-                        critical: { bg: "#FFF1F2", border: "rgba(239,68,68,0.2)", accent: "#DC2626", label: "Urgent", labelBg: "rgba(239,68,68,0.1)" },
-                      }[ann.priority as "info" | "warning" | "critical"] || { bg: "#EFF6FF", border: "rgba(59,130,246,0.2)", accent: "#2563EB", label: "Info", labelBg: "rgba(37,99,235,0.1)" };
+                    {notifications.map((notif: any) => {
+                      const config = {
+                        info: { bg: "#EFF6FF", border: "rgba(59,130,246,0.15)", accent: "#2563EB", label: "Info", icon: Info },
+                        feature: { bg: "#FAF5FF", border: "rgba(168,85,247,0.15)", accent: "#8B5CF6", label: "Feature", icon: Sparkles },
+                        update: { bg: "#ECFDF5", border: "rgba(16,185,129,0.15)", accent: "#10B981", label: "Update", icon: RefreshCw },
+                        reminder: { bg: "#FFFBEB", border: "rgba(245,158,11,0.15)", accent: "#D97706", label: "Reminder", icon: Clock },
+                        important: { bg: "#FEF2F2", border: "rgba(239,68,68,0.15)", accent: "#EF4444", label: "Important", icon: AlertTriangle },
+                        maintenance: { bg: "#F8FAFC", border: "rgba(100,116,139,0.15)", accent: "#64748B", label: "Maintenance", icon: Wrench },
+                      }[notif.priority as "info" | "feature" | "update" | "reminder" | "important" | "maintenance"] || { bg: "#EFF6FF", border: "rgba(59,130,246,0.15)", accent: "#2563EB", label: "Info", icon: Info };
+
+                      const IconComp = config.icon;
+
+                      // Delivery stats
+                      const workerCount = users?.filter((u: any) => u.role === "worker").length || 0;
+                      const employerCount = users?.filter((u: any) => u.role === "employer").length || 0;
+                      let totalAudience = 0;
+                      if (notif.target_audience === "workers") totalAudience = workerCount;
+                      else if (notif.target_audience === "employers") totalAudience = employerCount;
+                      else totalAudience = workerCount + employerCount;
+
+                      const readCount = notif.notification_reads?.length || 0;
+                      const unreadCount = Math.max(0, totalAudience - readCount);
 
                       return (
                         <div
-                          key={ann.id}
+                          key={notif.id}
                           style={{
-                            background: ann.is_active ? priorityStyle.bg : "#F8FAFC",
-                            border: `1px solid ${ann.is_active ? priorityStyle.border : "rgba(15,10,30,0.06)"}`,
+                            background: "#ffffff",
+                            border: `1px solid rgba(15,10,30,0.06)`,
                             borderRadius: 18,
-                            padding: "18px 20px",
+                            padding: "20px",
                             display: "flex",
                             flexDirection: "column",
-                            gap: 10,
-                            opacity: ann.is_active ? 1 : 0.6,
-                            transition: "all 0.2s ease",
+                            gap: 12,
+                            boxShadow: "0 2px 8px rgba(15,10,30,0.02)",
                           }}
                         >
-                          {/* Top row */}
+                          {/* Top Row */}
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <div className="flex items-center gap-2.5 flex-wrap">
                               <span
@@ -3405,77 +3469,71 @@ export default function AdminDashboard() {
                                   fontSize: 10,
                                   fontWeight: 800,
                                   textTransform: "uppercase",
-                                  letterSpacing: "0.07em",
-                                  color: priorityStyle.accent,
-                                  background: priorityStyle.labelBg,
+                                  letterSpacing: "0.05em",
+                                  color: config.accent,
+                                  background: config.bg,
+                                  border: `1px solid ${config.border}`,
                                   padding: "3px 8px",
                                   borderRadius: 6,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 4,
                                 }}
                               >
-                                {priorityStyle.label}
+                                <IconComp size={10} color={config.accent} />
+                                {config.label}
+                              </span>
+                              <span style={{ fontSize: 10, fontWeight: 700, color: "#64748B", background: "#F1F5F9", padding: "3px 8px", borderRadius: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                                To: {notif.target_audience === "everyone" ? "Everyone" : notif.target_audience === "workers" ? "Workers" : "Employers"}
                               </span>
                               <h4 style={{ margin: 0, fontSize: 14.5, fontWeight: 700, color: "#0d0a1e", letterSpacing: "-0.01em" }}>
-                                {ann.title}
+                                {notif.title}
                               </h4>
-                              {!ann.is_active && (
-                                <span style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", background: "#F1F5F9", padding: "2px 7px", borderRadius: 5, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                                  Inactive
-                                </span>
-                              )}
                             </div>
-                            {/* Actions */}
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => toggleAnnouncementActive.mutate({ id: ann.id, is_active: !ann.is_active })}
-                                disabled={toggleAnnouncementActive.isPending}
-                                style={{ borderRadius: 10, height: 30, fontSize: 11.5, fontWeight: 600, paddingInline: 12 }}
-                                className={ann.is_active ? "border-slate-200 text-slate-600 hover:bg-slate-50" : "border-emerald-200 text-emerald-600 bg-emerald-50/50 hover:bg-emerald-50"}
-                              >
-                                {ann.is_active ? "Deactivate" : "Activate"}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setConfirmDeleteAnnId(ann.id)}
-                                style={{ borderRadius: 10, height: 30, fontSize: 11.5, fontWeight: 600, paddingInline: 12 }}
-                                className="border-rose-100 text-rose-600 hover:bg-rose-50 bg-rose-50/20"
-                              >
-                                <Trash2 size={12} className="mr-1" />
-                                Delete
-                              </Button>
-                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setConfirmDeleteNotifId(notif.id)}
+                              style={{ borderRadius: 10, height: 30, fontSize: 11.5, fontWeight: 600, paddingInline: 12 }}
+                              className="border-rose-100 text-rose-600 hover:bg-rose-50 bg-rose-50/20 self-start sm:self-auto"
+                            >
+                              <Trash2 size={12} className="mr-1" />
+                              Delete
+                            </Button>
                           </div>
 
                           {/* Message */}
                           <p style={{ margin: 0, fontSize: 13.5, color: "rgba(15,10,30,0.65)", lineHeight: 1.55 }}>
-                            {ann.message}
+                            {notif.message}
                           </p>
 
-                          {/* Footer */}
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
-                              <Calendar size={12} />
-                              <span>
-                                {new Date(ann.created_at).toLocaleDateString("en-IN", {
+                          {/* Delivery stats and meta */}
+                          <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-slate-50 mt-1">
+                            <div className="flex items-center gap-3.5 flex-wrap">
+                              <span className="text-xs text-slate-400 font-medium flex items-center gap-1">
+                                <Calendar size={12} />
+                                {new Date(notif.created_at).toLocaleDateString("en-IN", {
                                   day: "numeric", month: "short", year: "numeric",
                                   hour: "2-digit", minute: "2-digit",
                                 })}
                               </span>
+                              <span className="text-xs text-slate-400 font-semibold">
+                                Sent by: {notif.profiles?.full_name || "System Admin"}
+                              </span>
                             </div>
-                            <div
-                              style={{
-                                width: 8,
-                                height: 8,
-                                borderRadius: "50%",
-                                background: ann.is_active ? "#10B981" : "#CBD5E1",
-                                flexShrink: 0,
-                              }}
-                            />
-                            <span style={{ fontSize: 12, fontWeight: 600, color: ann.is_active ? "#10B981" : "#CBD5E1" }}>
-                              {ann.is_active ? "Live" : "Hidden"}
-                            </span>
+
+                            {/* Reads Stats */}
+                            <div className="flex items-center gap-3 text-[11.5px] font-bold">
+                              <span className="text-emerald-600 bg-emerald-50 border border-emerald-100/50 px-2 py-0.5 rounded-md">
+                                {readCount} Read
+                              </span>
+                              <span className="text-amber-600 bg-amber-50 border border-amber-100/50 px-2 py-0.5 rounded-md">
+                                {unreadCount} Unread
+                              </span>
+                              <span className="text-slate-500 bg-slate-50 border border-slate-100/50 px-2 py-0.5 rounded-md">
+                                {totalAudience} Total
+                              </span>
+                            </div>
                           </div>
                         </div>
                       );
@@ -3973,16 +4031,16 @@ export default function AdminDashboard() {
         </DialogContent>
       </Dialog>
       <BrandedConfirmDialog
-        isOpen={!!confirmDeleteAnnId}
-        onClose={() => setConfirmDeleteAnnId(null)}
+        isOpen={!!confirmDeleteNotifId}
+        onClose={() => setConfirmDeleteNotifId(null)}
         onConfirm={() => {
-          if (confirmDeleteAnnId) deleteAnnouncement.mutate(confirmDeleteAnnId);
+          if (confirmDeleteNotifId) deleteNotification.mutate(confirmDeleteNotifId);
         }}
-        title="Delete Announcement"
-        description="This announcement will be permanently removed. Users will no longer see it."
+        title="Delete Notification"
+        description="This notification will be permanently deleted. Delivery statistics and notification history will be lost."
         confirmText="Delete"
         isDestructive
-        isLoading={deleteAnnouncement.isPending}
+        isLoading={deleteNotification.isPending}
       />
     </>
   );
