@@ -129,22 +129,38 @@ export default function JobListings() {
 
   const [jobs, setJobs] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedEmployerProfile, setSelectedEmployerProfile] = useState<any>(null);
 
   useEffect(() => {
     const loadJobs = async () => {
       const { data, error } = await supabase
         .from("jobs")
-        .select(`*, profiles:employer_id(*), applications!applications_job_id_fkey(status)`)
+        .select(`*, applications!applications_job_id_fkey(status)`)
         .neq("status", "deleted");
 
-      console.log("DATA", data);
-      console.log("ERROR", error);
+      if (error) {
+        console.error("Error loading jobs:", error);
+      }
 
       setJobs(data || []);
       setIsLoading(false);
     };
     loadJobs();
   }, []);
+
+  // Fetch employer profile separately when a job is selected (avoids FK join issues)
+  useEffect(() => {
+    if (!selectedJob?.employer_id) {
+      setSelectedEmployerProfile(null);
+      return;
+    }
+    supabase
+      .from("profiles")
+      .select("id, full_name, email, is_verified")
+      .eq("id", selectedJob.employer_id)
+      .single()
+      .then(({ data }) => setSelectedEmployerProfile(data || null));
+  }, [selectedJob?.employer_id]);
 
   const initialAutoOpenAttempted = useRef(false);
 
@@ -1058,9 +1074,9 @@ export default function JobListings() {
                               <span className="text-xs font-bold text-slate-900 block mb-0.5">Employer</span>
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <p className="m-0 text-sm text-slate-600 font-medium">
-                                  {selectedJob.profiles?.full_name || selectedJob.profiles?.email || "Employer"}
+                                  {selectedEmployerProfile?.full_name || selectedEmployerProfile?.email || "Employer"}
                                 </p>
-                                {selectedJob.profiles?.is_verified && (
+                                {selectedEmployerProfile?.is_verified && (
                                   <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 flex items-center gap-0.5">
                                     ✓ Verified Employer
                                   </span>
