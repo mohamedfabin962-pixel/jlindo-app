@@ -146,6 +146,10 @@ export default function AdminDashboard() {
   const [notifFormOpen, setNotifFormOpen] = useState(false);
   const [confirmDeleteNotifId, setConfirmDeleteNotifId] = useState<string | null>(null);
   
+  // Global Admin Search states
+  const [globalSearch, setGlobalSearch] = useState("");
+  const [searchCategoryFilter, setSearchCategoryFilter] = useState<"all" | "users" | "employers" | "jobs" | "applications" | "feedback" | "reports">("all");
+  
   const itemsPerPage = 5;
 
   const { data: users } = useQuery({
@@ -845,6 +849,108 @@ export default function AdminDashboard() {
     return matchedUser?.full_name || `Worker (${workerId.slice(0, 8)})`;
   };
 
+  const getFilteredSearchResults = () => {
+    const q = globalSearch.toLowerCase().trim();
+    if (!q) {
+      return {
+        users: [],
+        employers: [],
+        jobs: [],
+        applications: [],
+        feedback: [],
+        reports: [],
+        totalCount: 0,
+      };
+    }
+
+    const filteredUsersList = (users || []).filter((u: any) => {
+      if (u.role === "employer" || u.role === "admin") return false;
+      return (
+        (u.full_name?.toLowerCase().includes(q) ?? false) ||
+        (u.email?.toLowerCase().includes(q) ?? false) ||
+        (u.phone?.toLowerCase().includes(q) ?? false) ||
+        u.id?.toLowerCase() === q
+      );
+    });
+
+    const filteredEmployersList = (users || []).filter((u: any) => {
+      if (u.role !== "employer") return false;
+      return (
+        (u.full_name?.toLowerCase().includes(q) ?? false) ||
+        (u.email?.toLowerCase().includes(q) ?? false) ||
+        (u.phone?.toLowerCase().includes(q) ?? false) ||
+        u.id?.toLowerCase() === q
+      );
+    });
+
+    const filteredJobsList = (jobs || []).filter((j: any) => {
+      const employerName = getEmployerName(j.employer_id).toLowerCase();
+      return (
+        (j.title?.toLowerCase().includes(q) ?? false) ||
+        (j.description?.toLowerCase().includes(q) ?? false) ||
+        (j.category?.toLowerCase().includes(q) ?? false) ||
+        (j.location?.toLowerCase().includes(q) ?? false) ||
+        (j.salary?.toLowerCase().includes(q) ?? false) ||
+        employerName.includes(q) ||
+        j.id?.toLowerCase() === q
+      );
+    });
+
+    const filteredAppsList = (applications || []).filter((app: any) => {
+      const workerName = getWorkerName(app.worker_id).toLowerCase();
+      const jobTitle = app.jobs?.title?.toLowerCase() || "";
+      return (
+        jobTitle.includes(q) ||
+        workerName.includes(q) ||
+        (app.status?.toLowerCase().includes(q) ?? false) ||
+        app.id?.toLowerCase() === q
+      );
+    });
+
+    const filteredFeedbackList = (feedbacks || []).filter((f: any) => {
+      if (f.type === "report_job") return false;
+      return (
+        (f.message?.toLowerCase().includes(q) ?? false) ||
+        (f.type?.toLowerCase().includes(q) ?? false) ||
+        (f.status?.toLowerCase().includes(q) ?? false) ||
+        f.id?.toLowerCase() === q
+      );
+    });
+
+    const filteredReportsList = allReports.filter((r: any) => {
+      const reason = r.payload?.reason?.toLowerCase() || "";
+      const description = r.payload?.description?.toLowerCase() || "";
+      const jobTitle = r.payload?.jobTitle?.toLowerCase() || "";
+      const workerName = getWorkerName(r.user_id).toLowerCase();
+      return (
+        reason.includes(q) ||
+        description.includes(q) ||
+        jobTitle.includes(q) ||
+        workerName.includes(q) ||
+        (r.status?.toLowerCase().includes(q) ?? false) ||
+        r.id?.toLowerCase() === q
+      );
+    });
+
+    const totalCount =
+      filteredUsersList.length +
+      filteredEmployersList.length +
+      filteredJobsList.length +
+      filteredAppsList.length +
+      filteredFeedbackList.length +
+      filteredReportsList.length;
+
+    return {
+      users: filteredUsersList,
+      employers: filteredEmployersList,
+      jobs: filteredJobsList,
+      applications: filteredAppsList,
+      feedback: filteredFeedbackList,
+      reports: filteredReportsList,
+      totalCount,
+    };
+  };
+
   const filteredApplications = (applications || []).filter((a: any) => {
     const s = appSearch.toLowerCase().trim();
     const titleMatch = a.jobs?.title?.toLowerCase().includes(s) ?? false;
@@ -1276,6 +1382,10 @@ export default function AdminDashboard() {
                 <TrendingUp size={14} />
                 Overview
               </TabsTrigger>
+              <TabsTrigger value="search" className="jl-tab-trigger shrink-0 md:flex-1 h-9 flex items-center justify-center gap-1.5 px-4 md:px-0">
+                <Search size={14} />
+                Search
+              </TabsTrigger>
               <TabsTrigger value="health" className="jl-tab-trigger shrink-0 md:flex-1 h-9 flex items-center justify-center gap-1.5 px-4 md:px-0">
                 <HeartPulse size={14} />
                 Health
@@ -1333,6 +1443,339 @@ export default function AdminDashboard() {
                 )}
               </TabsTrigger>
             </TabsList>
+
+            {/* SEARCH TAB */}
+            <TabsContent value="search" className="space-y-6">
+              <ErrorBoundary fallbackTitle="Admin global search failed to render">
+                <div style={{
+                  background: "#fff",
+                  border: "1px solid rgba(15,10,30,0.07)",
+                  borderRadius: 22,
+                  padding: "24px",
+                  boxShadow: "0 4px 24px rgba(15,10,30,0.03)",
+                }}>
+                  <div className="flex flex-col md:flex-row md:items-center gap-4 justify-between mb-6">
+                    <div>
+                      <h2 className="text-xl font-bold text-slate-900 m-0">Universal Search</h2>
+                      <p className="text-sm text-slate-500 mt-1">
+                        Instantly search across users, employers, jobs, applications, feedback, and reports.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Search Input Bar */}
+                  <div style={{ position: "relative", width: "100%", marginBottom: 20 }}>
+                    <Search style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", color: "rgba(15,10,30,0.35)" }} size={18} />
+                    <Input
+                      value={globalSearch}
+                      onChange={(e) => setGlobalSearch(e.target.value)}
+                      placeholder="Type keywords, names, email, phone, status, or record IDs..."
+                      className="pl-12 pr-10 h-12 rounded-xl border-slate-200 focus:border-orange-400 focus:ring-orange-100 text-sm font-medium"
+                      style={{ background: "rgba(15,10,30,0.01)" }}
+                    />
+                    {globalSearch && (
+                      <button
+                        onClick={() => setGlobalSearch("")}
+                        style={{
+                          position: "absolute",
+                          right: 14,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          color: "rgba(15,10,30,0.4)"
+                        }}
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Instant Counters & Category Filters */}
+                  {(() => {
+                    const q = globalSearch.toLowerCase().trim();
+                    const uMatches = !q ? 0 : (users || []).filter((u: any) => u.role !== "employer" && u.role !== "admin" && (u.full_name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone?.toLowerCase().includes(q) || u.id?.toLowerCase() === q)).length;
+                    const empMatches = !q ? 0 : (users || []).filter((u: any) => u.role === "employer" && (u.full_name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone?.toLowerCase().includes(q) || u.id?.toLowerCase() === q)).length;
+                    const jobMatches = !q ? 0 : (jobs || []).filter((j: any) => getEmployerName(j.employer_id).toLowerCase().includes(q) || j.title?.toLowerCase().includes(q) || j.description?.toLowerCase().includes(q) || j.category?.toLowerCase().includes(q) || j.location?.toLowerCase().includes(q) || j.id?.toLowerCase() === q).length;
+                    const appMatches = !q ? 0 : (applications || []).filter((app: any) => getWorkerName(app.worker_id).toLowerCase().includes(q) || app.jobs?.title?.toLowerCase().includes(q) || app.status?.toLowerCase().includes(q) || app.id?.toLowerCase() === q).length;
+                    const fbMatches = !q ? 0 : (feedbacks || []).filter((f: any) => f.type !== "report_job" && (f.message?.toLowerCase().includes(q) || f.type?.toLowerCase().includes(q) || f.status?.toLowerCase().includes(q) || f.id?.toLowerCase() === q)).length;
+                    const repMatches = !q ? 0 : allReports.filter((r: any) => getWorkerName(r.user_id).toLowerCase().includes(q) || r.payload?.reason?.toLowerCase().includes(q) || r.payload?.description?.toLowerCase().includes(q) || r.payload?.jobTitle?.toLowerCase().includes(q) || r.status?.toLowerCase().includes(q) || r.id?.toLowerCase() === q).length;
+                    const totalMatches = uMatches + empMatches + jobMatches + appMatches + fbMatches + repMatches;
+
+                    const categories = [
+                      { value: "all", label: "All Results", count: totalMatches },
+                      { value: "users", label: "Users (Workers)", count: uMatches },
+                      { value: "employers", label: "Employers", count: empMatches },
+                      { value: "jobs", label: "Jobs", count: jobMatches },
+                      { value: "applications", label: "Applications", count: appMatches },
+                      { value: "feedback", label: "Feedback", count: fbMatches },
+                      { value: "reports", label: "Reports", count: repMatches },
+                    ] as const;
+
+                    return (
+                      <div className="flex flex-wrap gap-2 border-b border-slate-100 pb-5 mb-5">
+                        {categories.map((c) => {
+                          const isActive = searchCategoryFilter === c.value;
+                          return (
+                            <button
+                              key={c.value}
+                              onClick={() => setSearchCategoryFilter(c.value)}
+                              style={{
+                                padding: "8px 16px",
+                                borderRadius: 12,
+                                fontSize: 13,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                border: `1.5px solid ${isActive ? "#F59E0B" : "rgba(15,10,30,0.06)"}`,
+                                background: isActive ? "linear-gradient(135deg, #FEF3C7 0%, #FFFBEB 100%)" : "#ffffff",
+                                color: isActive ? "#B45309" : "rgba(15,10,30,0.52)",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 6,
+                                transition: "all 0.2s ease"
+                              }}
+                              className="hover:bg-slate-50 hover:border-slate-300"
+                            >
+                              <span>{c.label}</span>
+                              {globalSearch && (
+                                <span style={{
+                                  fontSize: 10,
+                                  fontWeight: 800,
+                                  background: isActive ? "#B45309" : "rgba(15,10,30,0.08)",
+                                  color: isActive ? "#ffffff" : "rgba(15,10,30,0.6)",
+                                  padding: "2px 6px",
+                                  borderRadius: 6,
+                                }}>
+                                  {c.count}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Results Container */}
+                  {!globalSearch ? (
+                    <div style={{ padding: "40px 20px", textAlign: "center", color: "rgba(15,10,30,0.35)" }}>
+                      <Search size={32} style={{ margin: "0 auto 12px", opacity: 0.5 }} />
+                      <h4 style={{ margin: 0, fontSize: 14.5, fontWeight: 700, color: "#475569" }}>
+                        Begin Universal Search
+                      </h4>
+                      <p style={{ margin: "4px 0 0", fontSize: 12 }}>
+                        Type any search term above to instantly scan and filter database tables.
+                      </p>
+                    </div>
+                  ) : (() => {
+                    const q = globalSearch.toLowerCase().trim();
+                    const matches = getFilteredSearchResults();
+
+                    if (matches.totalCount === 0) {
+                      return (
+                        <div style={{ padding: "40px 20px", textAlign: "center", color: "rgba(15,10,30,0.35)" }}>
+                          <X size={32} style={{ margin: "0 auto 12px", opacity: 0.5, color: "#EF4444" }} />
+                          <h4 style={{ margin: 0, fontSize: 14.5, fontWeight: 700, color: "#475569" }}>
+                            No Matches Found
+                          </h4>
+                          <p style={{ margin: "4px 0 0", fontSize: 12 }}>
+                            We couldn't find any records matching "{globalSearch}". Try using different terms.
+                          </p>
+                        </div>
+                      );
+                    }
+
+                    // Render matched items
+                    const renderUser = (u: any) => (
+                      <div key={u.id} className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between gap-4">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span style={{ fontSize: 9, fontWeight: 800, background: "#EFF6FF", color: "#2563EB", border: "1px solid rgba(37,99,235,0.15)", padding: "2px 6px", borderRadius: 5, textTransform: "uppercase" }}>Worker</span>
+                            {u.is_blocked && (
+                              <span style={{ fontSize: 9, fontWeight: 800, background: "#FEF2F2", color: "#EF4444", border: "1px solid rgba(239,68,68,0.15)", padding: "2px 6px", borderRadius: 5, textTransform: "uppercase" }}>Blocked</span>
+                            )}
+                            <h4 className="m-0 text-sm font-bold text-slate-800 truncate">{u.full_name || "Name not set"}</h4>
+                          </div>
+                          <p style={{ margin: "4px 0 0", fontSize: 11.5, color: "rgba(15,10,30,0.5)" }} className="truncate">
+                            {u.email} {u.phone ? `· ${u.phone}` : ""}
+                          </p>
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-medium">Joined {new Date(u.created_at).toLocaleDateString()}</span>
+                      </div>
+                    );
+
+                    const renderEmployer = (u: any) => (
+                      <div key={u.id} className="p-4 bg-amber-50/20 border border-amber-100/50 rounded-xl flex items-center justify-between gap-4">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span style={{ fontSize: 9, fontWeight: 800, background: "#FEF3C7", color: "#D97706", border: "1px solid rgba(217,119,6,0.15)", padding: "2px 6px", borderRadius: 5, textTransform: "uppercase" }}>Employer</span>
+                            {u.is_verified && (
+                              <span style={{ fontSize: 9, fontWeight: 800, background: "#ECFDF5", color: "#10B981", border: "1px solid rgba(16,185,129,0.15)", padding: "2px 6px", borderRadius: 5, textTransform: "uppercase" }}>Verified</span>
+                            )}
+                            {u.is_blocked && (
+                              <span style={{ fontSize: 9, fontWeight: 800, background: "#FEF2F2", color: "#EF4444", border: "1px solid rgba(239,68,68,0.15)", padding: "2px 6px", borderRadius: 5, textTransform: "uppercase" }}>Blocked</span>
+                            )}
+                            <h4 className="m-0 text-sm font-bold text-slate-800 truncate">{u.full_name || "Name not set"}</h4>
+                          </div>
+                          <p style={{ margin: "4px 0 0", fontSize: 11.5, color: "rgba(15,10,30,0.5)" }} className="truncate">
+                            {u.email} {u.phone ? `· ${u.phone}` : ""}
+                          </p>
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-medium">Joined {new Date(u.created_at).toLocaleDateString()}</span>
+                      </div>
+                    );
+
+                    const renderJob = (j: any) => (
+                      <div key={j.id} className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-2">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span style={{ fontSize: 9, fontWeight: 800, background: "#FAF5FF", color: "#8B5CF6", border: "1px solid rgba(168,85,247,0.15)", padding: "2px 6px", borderRadius: 5, textTransform: "uppercase" }}>Job</span>
+                              {j.is_featured && (
+                                <span style={{ fontSize: 9, fontWeight: 800, background: "#FFFBEB", color: "#B45309", border: "1px solid rgba(217,119,6,0.15)", padding: "2px 6px", borderRadius: 5, textTransform: "uppercase" }}>Featured</span>
+                              )}
+                              <span style={{ fontSize: 9, fontWeight: 800, background: j.status === "open" ? "#ECFDF5" : "#F1F5F9", color: j.status === "open" ? "#10B981" : "#64748B", padding: "2px 6px", borderRadius: 5, textTransform: "uppercase" }}>{j.status}</span>
+                              <h4 className="m-0 text-sm font-bold text-slate-800 truncate">{j.title}</h4>
+                            </div>
+                            <p style={{ margin: "4px 0 0", fontSize: 11.5, color: "rgba(15,10,30,0.5)" }} className="truncate">
+                              by {getEmployerName(j.employer_id)} · {j.category || "General Work"}
+                            </p>
+                          </div>
+                          <span className="text-[11.5px] font-bold text-slate-700 shrink-0">{j.salary}</span>
+                        </div>
+                        <p style={{ margin: 0, fontSize: 12, color: "rgba(15,10,30,0.58)" }} className="line-clamp-2">
+                          {j.description}
+                        </p>
+                      </div>
+                    );
+
+                    const renderApp = (app: any) => (
+                      <div key={app.id} className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between gap-4">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span style={{ fontSize: 9, fontWeight: 800, background: "#ECFDF5", color: "#10B981", border: "1px solid rgba(16,185,129,0.15)", padding: "2px 6px", borderRadius: 5, textTransform: "uppercase" }}>Application</span>
+                            <span style={{ fontSize: 9, fontWeight: 800, background: app.status === "pending" ? "#FFFBEB" : app.status === "accepted" ? "#ECFDF5" : "#FEF2F2", color: app.status === "pending" ? "#D97706" : app.status === "accepted" ? "#10B981" : "#EF4444", padding: "2px 6px", borderRadius: 5, textTransform: "uppercase" }}>{app.status}</span>
+                            <h4 className="m-0 text-sm font-bold text-slate-800 truncate">{app.jobs?.title || "Unknown Job"}</h4>
+                          </div>
+                          <p style={{ margin: "4px 0 0", fontSize: 11.5, color: "rgba(15,10,30,0.5)" }} className="truncate">
+                            Applicant: {getWorkerName(app.worker_id)}
+                          </p>
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-medium">Applied {new Date(app.created_at).toLocaleDateString()}</span>
+                      </div>
+                    );
+
+                    const renderFeedback = (fb: any) => (
+                      <div key={fb.id} className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-2">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span style={{ fontSize: 9, fontWeight: 800, background: "#EFF6FF", color: "#2563EB", border: "1px solid rgba(37,99,235,0.15)", padding: "2px 6px", borderRadius: 5, textTransform: "uppercase" }}>Feedback</span>
+                              <span style={{ fontSize: 9, fontWeight: 800, background: fb.status === "resolved" ? "#ECFDF5" : "#FFFBEB", color: fb.status === "resolved" ? "#10B981" : "#D97706", padding: "2px 6px", borderRadius: 5, textTransform: "uppercase" }}>{fb.status}</span>
+                              <h4 className="m-0 text-sm font-bold text-slate-800 truncate">{fb.type || "General Feedback"}</h4>
+                            </div>
+                          </div>
+                          <span className="text-[10px] text-slate-400 font-medium">{new Date(fb.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <p style={{ margin: 0, fontSize: 12, color: "rgba(15,10,30,0.58)" }} className="line-clamp-2">
+                          {fb.message}
+                        </p>
+                      </div>
+                    );
+
+                    const renderReport = (rep: any) => (
+                      <div key={rep.id} className="p-4 bg-rose-50/20 border border-rose-100/50 rounded-xl flex flex-col gap-2">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span style={{ fontSize: 9, fontWeight: 800, background: "#FEF2F2", color: "#EF4444", border: "1px solid rgba(239,68,68,0.15)", padding: "2px 6px", borderRadius: 5, textTransform: "uppercase" }}>Report</span>
+                              <span style={{ fontSize: 9, fontWeight: 800, background: rep.status === "resolved" ? "#ECFDF5" : "#FFFBEB", color: rep.status === "resolved" ? "#10B981" : "#D97706", padding: "2px 6px", borderRadius: 5, textTransform: "uppercase" }}>{rep.status}</span>
+                              <h4 className="m-0 text-sm font-bold text-rose-800 truncate">{rep.payload?.reason || "Reason Unspecified"}</h4>
+                            </div>
+                            <p style={{ margin: "4px 0 0", fontSize: 11.5, color: "rgba(15,10,30,0.5)" }} className="truncate">
+                              On Job: "{rep.payload?.jobTitle || "Unknown Job"}" · Reported by: {getWorkerName(rep.user_id)}
+                            </p>
+                          </div>
+                          <span className="text-[10px] text-slate-400 font-medium">{new Date(rep.created_at).toLocaleDateString()}</span>
+                        </div>
+                        {rep.payload?.description && (
+                          <p style={{ margin: 0, fontSize: 12, color: "rgba(15,10,30,0.58)" }} className="line-clamp-2">
+                            {rep.payload.description}
+                          </p>
+                        )}
+                      </div>
+                    );
+
+                    const activeFilter = searchCategoryFilter;
+
+                    return (
+                      <div className="space-y-6">
+                        {/* Users Section */}
+                        {(activeFilter === "all" || activeFilter === "users") && matches.users.length > 0 && (
+                          <div className="space-y-2.5">
+                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Users (Workers)</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {matches.users.map(renderUser)}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Employers Section */}
+                        {(activeFilter === "all" || activeFilter === "employers") && matches.employers.length > 0 && (
+                          <div className="space-y-2.5">
+                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Employers</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {matches.employers.map(renderEmployer)}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Jobs Section */}
+                        {(activeFilter === "all" || activeFilter === "jobs") && matches.jobs.length > 0 && (
+                          <div className="space-y-2.5">
+                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Jobs</h3>
+                            <div className="space-y-2.5">
+                              {matches.jobs.map(renderJob)}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Applications Section */}
+                        {(activeFilter === "all" || activeFilter === "applications") && matches.applications.length > 0 && (
+                          <div className="space-y-2.5">
+                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Applications</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {matches.applications.map(renderApp)}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Feedback Section */}
+                        {(activeFilter === "all" || activeFilter === "feedback") && matches.feedback.length > 0 && (
+                          <div className="space-y-2.5">
+                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Feedback</h3>
+                            <div className="space-y-2.5">
+                              {matches.feedback.map(renderFeedback)}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Reports Section */}
+                        {(activeFilter === "all" || activeFilter === "reports") && matches.reports.length > 0 && (
+                          <div className="space-y-2.5">
+                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Reports</h3>
+                            <div className="space-y-2.5">
+                              {matches.reports.map(renderReport)}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </ErrorBoundary>
+            </TabsContent>
 
             {/* OVERVIEW TAB */}
             <TabsContent value="overview" className="space-y-6">
