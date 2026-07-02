@@ -12,7 +12,7 @@ import {
   Trash2, Ban, Users, Briefcase, FileCheck, MessageSquare, ShieldCheck, Check,
   ChevronLeft, ChevronRight, Search, Mail, Phone, Calendar, User,
   MapPin, DollarSign, Clock, X, ExternalLink, TrendingUp, Activity,
-  RotateCcw, Archive, AlertTriangle, Flag, HeartPulse, Star, Megaphone, Plus, Zap, Info, Bell, Sparkles, RefreshCw
+  RotateCcw, Archive, AlertTriangle, Flag, HeartPulse, Star, Megaphone, Plus, Zap, Info, Bell, Sparkles, RefreshCw, Download
 } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { EmptyState } from "@/components/EmptyState";
@@ -949,6 +949,131 @@ export default function AdminDashboard() {
       reports: filteredReportsList,
       totalCount,
     };
+  };
+
+  const exportToCSV = (data: any[], filename: string, headers: { key: string; label: string }[]) => {
+    if (!data || data.length === 0) {
+      toast({ title: "No data to export", variant: "destructive" });
+      return;
+    }
+
+    const csvContent = [
+      headers.map(h => `"${h.label.replace(/"/g, '""')}"`).join(","),
+      ...data.map(row => 
+        headers.map(h => {
+          const val = row[h.key];
+          const stringVal = val === null || val === undefined ? "" : String(val);
+          return `"${stringVal.replace(/"/g, '""')}"`;
+        }).join(",")
+      )
+    ].join("\n");
+
+    const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({ title: "Export completed", description: `File "${filename}" downloaded successfully.` });
+  };
+
+  const handleExportUsers = () => {
+    const workers = (users || []).filter(u => u.role !== "employer" && u.role !== "admin");
+    const headers = [
+      { key: "id", label: "User ID" },
+      { key: "full_name", label: "Full Name" },
+      { key: "email", label: "Email" },
+      { key: "phone", label: "Phone" },
+      { key: "is_blocked", label: "Is Blocked" },
+      { key: "created_at", label: "Joined Date" }
+    ];
+    exportToCSV(workers, `workers_export_${Date.now()}.csv`, headers);
+  };
+
+  const handleExportEmployers = () => {
+    const employers = (users || []).filter(u => u.role === "employer");
+    const headers = [
+      { key: "id", label: "Employer ID" },
+      { key: "full_name", label: "Full Name" },
+      { key: "email", label: "Email" },
+      { key: "phone", label: "Phone" },
+      { key: "is_verified", label: "Is Verified" },
+      { key: "is_blocked", label: "Is Blocked" },
+      { key: "created_at", label: "Joined Date" }
+    ];
+    exportToCSV(employers, `employers_export_${Date.now()}.csv`, headers);
+  };
+
+  const handleExportJobs = () => {
+    const jobsData = (jobs || []).map(j => ({
+      ...j,
+      employer_name: getEmployerName(j.employer_id)
+    }));
+    const headers = [
+      { key: "id", label: "Job ID" },
+      { key: "title", label: "Job Title" },
+      { key: "employer_name", label: "Employer Name" },
+      { key: "category", label: "Category" },
+      { key: "location", label: "Location" },
+      { key: "salary", label: "Salary" },
+      { key: "working_hours", label: "Working Hours" },
+      { key: "status", label: "Status" },
+      { key: "created_at", label: "Posted Date" }
+    ];
+    exportToCSV(jobsData, `jobs_export_${Date.now()}.csv`, headers);
+  };
+
+  const handleExportApplications = () => {
+    const appsData = (applications || []).map(a => ({
+      ...a,
+      job_title: a.jobs?.title || "Unknown Job",
+      applicant_name: getWorkerName(a.worker_id)
+    }));
+    const headers = [
+      { key: "id", label: "Application ID" },
+      { key: "job_title", label: "Job Title" },
+      { key: "applicant_name", label: "Applicant Name" },
+      { key: "status", label: "Status" },
+      { key: "resume_url", label: "Resume URL" },
+      { key: "created_at", label: "Applied Date" }
+    ];
+    exportToCSV(appsData, `applications_export_${Date.now()}.csv`, headers);
+  };
+
+  const handleExportFeedback = () => {
+    const feedbackData = (feedbacks || []).filter(f => f.type !== "report_job");
+    const headers = [
+      { key: "id", label: "Feedback ID" },
+      { key: "type", label: "Type" },
+      { key: "message", label: "Message" },
+      { key: "status", label: "Status" },
+      { key: "user_id", label: "User ID" },
+      { key: "created_at", label: "Submitted Date" }
+    ];
+    exportToCSV(feedbackData, `feedback_export_${Date.now()}.csv`, headers);
+  };
+
+  const handleExportReports = () => {
+    const reportsData = allReports.map(r => ({
+      ...r,
+      reported_job: r.payload?.jobTitle || "Unknown Job",
+      reason: r.payload?.reason || "Other",
+      description: r.payload?.description || "",
+      reporter_name: getWorkerName(r.user_id)
+    }));
+    const headers = [
+      { key: "id", label: "Report ID" },
+      { key: "reported_job", label: "Reported Job Title" },
+      { key: "reporter_name", label: "Reporter Name" },
+      { key: "reason", label: "Reason" },
+      { key: "description", label: "Description" },
+      { key: "status", label: "Status" },
+      { key: "created_at", label: "Report Date" }
+    ];
+    exportToCSV(reportsData, `reports_export_${Date.now()}.csv`, headers);
   };
 
   const filteredApplications = (applications || []).filter((a: any) => {
@@ -2081,6 +2206,27 @@ export default function AdminDashboard() {
                     <SelectItem value="unverified">Unverified Employers</SelectItem>
                   </SelectContent>
                 </Select>
+                
+                <div className="flex gap-2 w-full sm:w-auto shrink-0">
+                  <Button
+                    onClick={handleExportUsers}
+                    variant="outline"
+                    className="flex-1 sm:flex-initial h-11 rounded-xl border-slate-200 bg-white text-slate-700 font-semibold flex items-center justify-center gap-1.5"
+                    style={{ fontSize: 13 }}
+                  >
+                    <Download size={14} />
+                    Export Workers
+                  </Button>
+                  <Button
+                    onClick={handleExportEmployers}
+                    variant="outline"
+                    className="flex-1 sm:flex-initial h-11 rounded-xl border-slate-200 bg-white text-slate-700 font-semibold flex items-center justify-center gap-1.5"
+                    style={{ fontSize: 13 }}
+                  >
+                    <Download size={14} />
+                    Export Employers
+                  </Button>
+                </div>
               </div>
 
               {paginatedUsers.length === 0 ? (
@@ -2352,6 +2498,16 @@ export default function AdminDashboard() {
                     <SelectItem value="blocked">Blocked</SelectItem>
                   </SelectContent>
                 </Select>
+                
+                <Button
+                  onClick={handleExportJobs}
+                  variant="outline"
+                  className="w-full sm:w-auto h-11 rounded-xl border-slate-200 bg-white text-slate-700 font-semibold flex items-center justify-center gap-1.5"
+                  style={{ fontSize: 13 }}
+                >
+                  <Download size={14} />
+                  Export Jobs
+                </Button>
               </div>
 
               {paginatedJobs.length === 0 ? (
@@ -2635,6 +2791,16 @@ export default function AdminDashboard() {
                     <SelectItem value="rejected">Rejected</SelectItem>
                   </SelectContent>
                 </Select>
+                
+                <Button
+                  onClick={handleExportApplications}
+                  variant="outline"
+                  className="w-full sm:w-auto h-11 rounded-xl border-slate-200 bg-white text-slate-700 font-semibold flex items-center justify-center gap-1.5"
+                  style={{ fontSize: 13 }}
+                >
+                  <Download size={14} />
+                  Export Applications
+                </Button>
               </div>
 
               {paginatedApplications.length === 0 ? (
@@ -2836,6 +3002,16 @@ export default function AdminDashboard() {
                     <SelectItem value="resolved">Resolved</SelectItem>
                   </SelectContent>
                 </Select>
+                
+                <Button
+                  onClick={handleExportFeedback}
+                  variant="outline"
+                  className="w-full sm:w-auto h-11 rounded-xl border-slate-200 bg-white text-slate-700 font-semibold flex items-center justify-center gap-1.5"
+                  style={{ fontSize: 13 }}
+                >
+                  <Download size={14} />
+                  Export Feedback
+                </Button>
               </div>
 
               {paginatedFeedbacks.length === 0 ? (
@@ -3228,16 +3404,27 @@ export default function AdminDashboard() {
                       {filteredReports.length} report{filteredReports.length !== 1 ? "s" : ""} found
                     </p>
                   </div>
-                  {/* Search */}
-                  <div className="relative w-full sm:w-64">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input
-                      id="report-search"
-                      className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-rose-400/30 focus:border-rose-400 transition-all"
-                      placeholder="Search reports…"
-                      value={reportSearch}
-                      onChange={(e) => { setReportSearch(e.target.value); setReportPage(1); }}
-                    />
+                  {/* Search and Export */}
+                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <div className="relative w-full sm:w-64">
+                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        id="report-search"
+                        className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-rose-400/30 focus:border-rose-400 transition-all"
+                        placeholder="Search reports…"
+                        value={reportSearch}
+                        onChange={(e) => { setReportSearch(e.target.value); setReportPage(1); }}
+                      />
+                    </div>
+                    <Button
+                      onClick={handleExportReports}
+                      variant="outline"
+                      className="w-full sm:w-auto h-9 rounded-xl border-slate-200 bg-white text-slate-700 font-semibold flex items-center justify-center gap-1.5"
+                      style={{ fontSize: 13 }}
+                    >
+                      <Download size={14} />
+                      Export Reports
+                    </Button>
                   </div>
                 </div>
                 {/* Filters */}
